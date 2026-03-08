@@ -159,15 +159,13 @@ export default function Home() {
       {/* 导航栏 */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="container flex items-center justify-between h-14">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo flex items-center justify-center">
-              <MessageCircle className="w-4 h-4 text-white" />
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="font-bold text-foreground tracking-tight">微信</span>
-              <span className="text-2xl font-bold" style={{ color: '#ff8800' }}>大橙子</span>
-              <span className="font-bold text-foreground tracking-tight">账单分析系统</span>
-            </div>
+          <div className="flex items-center gap-3">
+            <img 
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663269350406/SXgJ57d4GB9RBvAf3PYHaj/57da3f797bc6e8316f697d6b38c89a14_c3c1d23e.webp" 
+              alt="WeChat" 
+              className="w-8 h-8 rounded-lg"
+            />
+            <span className="font-bold text-lg tracking-tight" style={{ color: '#ff8800' }}>大橙子账单分析系统</span>
           </div>
           {state === 'report' && (
             <Button
