@@ -184,20 +184,20 @@ export default function FileUpload({ onFilesSelected, isAnalyzing, onStartAnalys
               </motion.div>
             ))}
 
-            {/* 开始分析按钮 */}
+            {/* 开始分析按钮 - 优化手机展示 */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: files.length * 0.05 + 0.2 }}
-              className="pt-6 border-t border-border mt-4"
+              className="mt-6 pt-6 border-t border-border space-y-3"
             >
               <Button
                 onClick={onStartAnalysis}
                 disabled={isAnalyzing || files.length === 0}
-                className="w-full h-12 text-base font-medium bg-indigo hover:bg-indigo/90 text-white rounded-lg transition-all"
+                className="w-full h-14 text-base font-semibold bg-indigo hover:bg-indigo/90 text-white rounded-lg transition-all active:scale-95"
               >
                 {isAnalyzing ? (
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center justify-center gap-2">
                     <motion.span
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -209,7 +209,7 @@ export default function FileUpload({ onFilesSelected, isAnalyzing, onStartAnalys
                   `开始分析 ${files.length} 个文件`
                 )}
               </Button>
-              <p className="text-xs text-muted-foreground text-center mt-3">
+              <p className="text-xs text-muted-foreground text-center leading-relaxed">
                 数据仅在您的浏览器中处理，不会上传至任何服务器
               </p>
             </motion.div>

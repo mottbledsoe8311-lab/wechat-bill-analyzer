@@ -139,7 +139,7 @@ export default function RegularTransfers({ groups }: Props) {
                       </Badge>
                       {group.confidence === 1.0 && (
                         <Badge className="text-xs bg-red-600 text-white hover:bg-red-700">
-                          🚨 私贷客户
+                          🚨 重点核实
                         </Badge>
                       )}
                     </div>
