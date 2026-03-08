@@ -11,7 +11,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { FileText, RotateCcw, Shield, Zap, Eye, ChevronDown } from 'lucide-react';
+import { FileText, RotateCcw, Shield, Zap, Eye, ChevronDown, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import FileUpload from '@/components/FileUpload';
@@ -161,9 +161,13 @@ export default function Home() {
         <div className="container flex items-center justify-between h-14">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-indigo flex items-center justify-center">
-              <FileText className="w-4 h-4 text-white" />
+              <MessageCircle className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-foreground tracking-tight">🍊🍊微信账单分析器</span>
+            <div className="flex items-baseline gap-1">
+              <span className="font-bold text-foreground tracking-tight">微信</span>
+              <span className="text-2xl font-bold" style={{ color: '#ff8800' }}>大橙子</span>
+              <span className="font-bold text-foreground tracking-tight">账单分析系统</span>
+            </div>
           </div>
           {state === 'report' && (
             <Button

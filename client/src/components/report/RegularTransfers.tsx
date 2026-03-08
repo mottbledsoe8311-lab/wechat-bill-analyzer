@@ -9,6 +9,47 @@ import { formatCurrency, formatDate, type RegularTransferGroup } from '@/lib/ana
 import { ChevronDown, Clock, AlertTriangle, Repeat } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
+// 私贷客户推算接口
+interface PrivateLoanEstimate {
+  minAmount: number;      // 最小借款金额
+  maxAmount: number;      // 最大借款金额
+  repaymentPeriods: number[]; // 可能的还款期数
+  estimatedRate: string;  // 利率范围
+}
+
+// 计算私贷客户的借款推算
+function estimatePrivateLoan(avgAmount: number, transactionCount: number): PrivateLoanEstimate {
+  // 交易次数 + 1 = 还款期数
+  const periods = [transactionCount + 1];
+  
+  // 假设每期还款额 = 借款金额 * (10% + 利息)
+  // 利息 = 借款金额 * (3.5% ~ 7%)
+  // 推算：avgAmount = 借款金额 * (10% + 利息率)
+  
+  const estimates = [];
+  
+  // 尝试不同的利率范围
+  for (let rate = 0.035; rate <= 0.07; rate += 0.005) {
+    const repaymentRate = 0.1 + rate; // 10% + 利息
+    const estimatedAmount = Math.round(avgAmount / repaymentRate / 100) * 100;
+    estimates.push({
+      amount: estimatedAmount,
+      rate: (rate * 100).toFixed(1),
+    });
+  }
+  
+  // 取中位数
+  const minAmount = Math.min(...estimates.map(e => e.amount));
+  const maxAmount = Math.max(...estimates.map(e => e.amount));
+  
+  return {
+    minAmount,
+    maxAmount,
+    repaymentPeriods: periods,
+    estimatedRate: `3.5% ~ 7%`,
+  };
+}
+
 interface Props {
   groups: RegularTransferGroup[];
 }
@@ -22,8 +63,10 @@ const riskColors = {
 export default function RegularTransfers({ groups }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   
-  // 只展示中风险和高风险的转账
-  const filteredGroups = groups.filter(g => g.riskLevel === 'medium' || g.riskLevel === 'high');
+  // 分离私贷客户（置信度100%）和其他规律转账
+  const privateLoanCustomers = groups.filter(g => g.confidence === 1.0 && (g.riskLevel === 'medium' || g.riskLevel === 'high'));
+  const otherRegularTransfers = groups.filter(g => g.confidence < 1.0 && (g.riskLevel === 'medium' || g.riskLevel === 'high'));
+  const filteredGroups = [...privateLoanCustomers, ...otherRegularTransfers];
 
   if (filteredGroups.length === 0) {
     return (
@@ -94,6 +137,11 @@ export default function RegularTransfers({ groups }: Props) {
                       <Badge variant="secondary" className="text-xs">
                         {group.direction === '支出' || group.direction === '支' ? '转出' : '转入'}
                       </Badge>
+                      {group.confidence === 1.0 && (
+                        <Badge className="text-xs bg-red-600 text-white hover:bg-red-700">
+                          🚨 私贷客户
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
