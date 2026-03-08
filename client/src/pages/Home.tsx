@@ -1,25 +1,458 @@
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
-
 /**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Best Practices, Design Guide and Common Pitfalls
+ * 首页 - 微信账单智能分析系统
+ * 
+ * 设计哲学：极简数据叙事 (Minimal Data Narrative)
+ * - 瑞士国际主义设计 + 数据新闻叙事
+ * - 留白即力量，叙事驱动，克制的色彩
+ * - DM Sans + Noto Sans SC 字体组合
+ * - 深靛蓝(#312e81)主色调，琥珀色警告，深翠绿正常
  */
+
+import { useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+import { FileText, RotateCcw, Shield, Zap, Eye, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+import FileUpload from '@/components/FileUpload';
+import AnalysisProgress from '@/components/AnalysisProgress';
+import OverviewSection from '@/components/report/OverviewSection';
+import MonthlyChart from '@/components/report/MonthlyChart';
+import RegularTransfers from '@/components/report/RegularTransfers';
+import RepaymentTracking from '@/components/report/RepaymentTracking';
+import LargeInflows from '@/components/report/LargeInflows';
+
+import CounterpartSummary from '@/components/report/CounterpartSummary';
+
+import { parsePDF, type ParseResult } from '@/lib/pdfParser';
+import { analyzeTransactions, type AnalysisResult } from '@/lib/analyzer';
+
+type AppState = 'upload' | 'analyzing' | 'report';
+
+const HERO_BG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663413101752/gJ9cYUELDfjcatYy8Yce6Q/hero-bg-fqhFpYZYJrJZisccv6Q5DA.webp';
+const UPLOAD_ILLUSTRATION = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663413101752/gJ9cYUELDfjcatYy8Yce6Q/upload-illustration-Fapr2KvCmYJqQf65NjXJvu.webp';
+
 export default function Home() {
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
+  const [state, setState] = useState<AppState>('upload');
+  const [files, setFiles] = useState<File[]>([]);
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
+  const [progressStage, setProgressStage] = useState<'parsing' | 'analyzing' | 'done'>('parsing');
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [parseResult, setParseResult] = useState<ParseResult | null>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const handleFilesSelected = useCallback((selectedFiles: File[]) => {
+    setFiles(selectedFiles);
+  }, []);
+
+  const handleStartAnalysis = useCallback(async () => {
+    if (files.length === 0) {
+      toast.error('请先上传PDF文件');
+      return;
+    }
+
+    setState('analyzing');
+    setProgress(0);
+    setProgressStage('parsing');
+
+    try {
+      // 阶段1：解析PDF
+      let allTransactions: ParseResult['transactions'] = [];
+      let accountInfo: ParseResult['accountInfo'] | null = null;
+      let totalPages = 0;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileProgress = (i / files.length) * 50;
+        
+        setProgressMessage(`正在解析第 ${i + 1}/${files.length} 个文件: ${file.name}`);
+        
+        const result = await parsePDF(file, (p, msg) => {
+          const overallProgress = fileProgress + (p / 100) * (50 / files.length);
+          setProgress(overallProgress);
+          setProgressMessage(msg);
+        });
+
+        allTransactions = [...allTransactions, ...result.transactions];
+        totalPages += result.totalPages;
+        
+        if (!accountInfo && result.accountInfo.name) {
+          accountInfo = result.accountInfo;
+        }
+
+        if (result.parseErrors.length > 0) {
+          result.parseErrors.forEach(err => toast.warning(err));
+        }
+      }
+
+      // 去重
+      const seen = new Set<string>();
+      allTransactions = allTransactions.filter(tx => {
+        const key = tx.orderId 
+          ? tx.orderId 
+          : `${tx.dateStr}-${tx.amount}-${tx.counterpart}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      // 按日期排序（由近到远）
+      allTransactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+      const finalParseResult: ParseResult = {
+        accountInfo: accountInfo || { name: '', idNumber: '', account: '', startDate: '', endDate: '' },
+        transactions: allTransactions,
+        totalPages,
+        parseErrors: [],
+      };
+      setParseResult(finalParseResult);
+
+      if (allTransactions.length === 0) {
+        toast.error('未能从PDF中提取到交易记录，请确认文件是微信账单PDF');
+        setState('upload');
+        return;
+      }
+
+      toast.success(`成功提取 ${allTransactions.length} 条交易记录`);
+
+      // 阶段2：智能分析
+      setProgressStage('analyzing');
+      setProgress(50);
+
+      const analysis = await analyzeTransactions(allTransactions, (p, msg) => {
+        setProgress(50 + p * 0.5);
+        setProgressMessage(msg);
+      });
+
+      setAnalysisResult(analysis);
+      setProgressStage('done');
+      setProgress(100);
+      
+      // 短暂延迟后切换到报表
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setState('report');
+      
+      // 滚动到报表区域
+      setTimeout(() => {
+        reportRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      toast.error(`分析失败: ${error.message}`);
+      setState('upload');
+    }
+  }, [files]);
+
+  const handleReset = useCallback(() => {
+    setState('upload');
+    setFiles([]);
+    setAnalysisResult(null);
+    setParseResult(null);
+    setProgress(0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
+    <div className="min-h-screen bg-background">
+      {/* 导航栏 */}
+      <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
+        <div className="container flex items-center justify-between h-14">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo flex items-center justify-center">
+              <FileText className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold text-foreground tracking-tight">🍊🍊微信账单分析器</span>
+          </div>
+          {state === 'report' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReset}
+              className="gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              重新分析
+            </Button>
+          )}
+        </div>
+      </nav>
+
+      {/* 上传页面 */}
+      <AnimatePresence mode="wait">
+        {state === 'upload' && (
+          <motion.div
+            key="upload"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4 }}
+          >
+            {/* Hero区域 */}
+            <section className="relative overflow-hidden">
+              <div 
+                className="absolute inset-0 opacity-[0.08]"
+                style={{
+                  backgroundImage: `url(${HERO_BG})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+              <div className="container relative py-20 md:py-28">
+                <div className="max-w-3xl">
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.7, ease: 'easeOut' }}
+                  >
+                    <p className="text-sm font-semibold tracking-widest uppercase text-indigo mb-4">
+                      WeChat Bill Analyzer
+                    </p>
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1] tracking-tight">
+                      微信流水账单
+                      <br />
+                      <span className="text-indigo">智能分析系统</span>
+                    </h1>
+                    <p className="text-lg text-muted-foreground mt-6 max-w-xl leading-relaxed">
+                      上传微信账单PDF，自动识别规律转账、追踪还款来源、
+                      监控大额入账、排查借款行为，生成专业分析报表。
+                    </p>
+                  </motion.div>
+
+                  {/* 特性标签 */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
+                    className="flex flex-wrap gap-4 mt-8"
+                  >
+                    {[
+                      { icon: Shield, text: '数据不上传服务器' },
+                      { icon: Zap, text: '浏览器本地分析' },
+                      { icon: Eye, text: '无需登录注册' },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+                        <item.icon className="w-3.5 h-3.5 text-indigo" />
+                        {item.text}
+                      </div>
+                    ))}
+                  </motion.div>
+                </div>
+
+                {/* 滚动提示 */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1 }}
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2"
+                >
+                  <motion.div
+                    animate={{ y: [0, 6, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <ChevronDown className="w-5 h-5 text-muted-foreground/50" />
+                  </motion.div>
+                </motion.div>
+              </div>
+            </section>
+
+            {/* 上传区域 */}
+            <section className="container py-16">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">上传账单文件</h2>
+                  <p className="text-muted-foreground mb-8">
+                    支持微信导出的PDF格式账单，可同时上传多个文件，支持12个月数据分析
+                  </p>
+                  <FileUpload
+                    onFilesSelected={handleFilesSelected}
+                    isAnalyzing={false}
+                    onStartAnalysis={handleStartAnalysis}
+                  />
+                </div>
+                <div className="hidden lg:flex justify-center">
+                  <motion.img
+                    src={UPLOAD_ILLUSTRATION}
+                    alt="文档分析"
+                    className="w-80 h-80 object-contain opacity-80"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 0.8, scale: 1 }}
+                    transition={{ duration: 0.8, delay: 0.4 }}
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* 功能说明 */}
+            <section className="container py-16 border-t border-border">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {[
+                  {
+                    title: '规律转账识别',
+                    desc: '自动检测每7天、10天、15天或每月的固定周期转账模式',
+                    color: 'bg-indigo/10 text-indigo',
+                  },
+                  {
+                    title: '还款来源追踪',
+                    desc: '追踪每笔还款的来源渠道，分析还款方式和频率',
+                    color: 'bg-emerald-ok/10 text-emerald-ok',
+                  },
+                  {
+                    title: '大额入账监控',
+                    desc: '智能识别异常大额收入，关联分析后续资金流向',
+                    color: 'bg-amber-warn/10 text-amber-warn',
+                  },
+                  {
+                    title: '借款行为排查',
+                    desc: '识别借入-还款模式，计算还款进度和剩余欠款',
+                    color: 'bg-destructive/10 text-destructive',
+                  },
+                ].map((feature, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 * i + 0.5 }}
+                    className="space-y-3"
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${feature.color}`}>
+                      <span className="text-lg font-bold">{i + 1}</span>
+                    </div>
+                    <h3 className="font-semibold text-lg">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </section>
+
+
+
+            {/* 底部 */}
+            <footer className="container py-8 border-t border-border">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
+                <p>所有数据仅在您的浏览器中处理，不会上传至任何服务器</p>
+                <p>微信账单智能分析系统</p>
+              </div>
+            </footer>
+          </motion.div>
+        )}
+
+        {/* 分析中 */}
+        {state === 'analyzing' && (
+          <motion.div
+            key="analyzing"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="container"
+          >
+            <AnalysisProgress
+              progress={progress}
+              message={progressMessage}
+              stage={progressStage}
+            />
+          </motion.div>
+        )}
+
+        {/* 分析报表 */}
+        {state === 'report' && analysisResult && (
+          <motion.div
+            key="report"
+            ref={reportRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* 报表头部 */}
+            <section className="bg-muted/30 border-b border-border">
+              <div className="container py-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <p className="text-sm font-semibold tracking-widest uppercase text-indigo mb-1">
+                      Analysis Report
+                    </p>
+                    <h1 className="text-2xl font-bold">
+                      {parseResult?.accountInfo.name 
+                        ? `${parseResult.accountInfo.name} 的账单分析报告` 
+                        : '微信账单分析报告'
+                      }
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      共分析 {analysisResult.overview.totalTransactions} 笔交易 · 
+                      {parseResult?.totalPages || 0} 页PDF · 
+                      {files.length} 个文件
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReset}
+                    className="gap-1.5 shrink-0"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    重新分析
+                  </Button>
+                </div>
+
+                {/* 快速导航 */}
+                <div className="flex flex-wrap gap-2 mt-6">
+                  {[
+                    { id: 'overview', label: '概览' },
+                    { id: 'monthly', label: '月度趋势' },
+                    { id: 'regular', label: '规律转账' },
+                    { id: 'repayment', label: '还款追踪' },
+                    { id: 'large', label: '大额入账' },
+
+                    { id: 'counterpart', label: '交易对方' },
+                  ].map(nav => (
+                    <button
+                      key={nav.id}
+                      onClick={() => {
+                        document.getElementById(nav.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-background border border-border rounded-full transition-colors hover:border-indigo/30"
+                    >
+                      {nav.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* 报表内容 */}
+            <div className="container">
+              <div id="overview">
+                <OverviewSection stats={analysisResult.overview} />
+              </div>
+              <div id="monthly">
+                <MonthlyChart data={analysisResult.monthlyBreakdown} />
+              </div>
+              <div id="regular">
+                <RegularTransfers groups={analysisResult.regularTransfers} />
+              </div>
+              <div id="repayment">
+                <RepaymentTracking records={analysisResult.repaymentTracking} />
+              </div>
+              <div id="large">
+                <LargeInflows inflows={analysisResult.largeInflows} />
+              </div>
+
+              <div id="counterpart">
+                <CounterpartSummary data={analysisResult.counterpartSummary} />
+              </div>
+            </div>
+
+            {/* 报表底部 */}
+            <footer className="container py-12 border-t border-border mt-8">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
+                <p>所有分析均在浏览器本地完成，数据不会上传至服务器</p>
+                <p>微信账单智能分析系统 · 报表生成时间: {new Date().toLocaleString('zh-CN')}</p>
+              </div>
+            </footer>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

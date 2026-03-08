@@ -43,6 +43,19 @@
 }
 
 :root {
+  /* 深靛蓝主色调 */
+  --indigo: #312e81;
+  --indigo-light: #4f46e5;
+  --indigo-lighter: #818cf8;
+  
+  /* 成功色 - 深翠绿 */
+  --emerald-ok: #065f46;
+  --emerald-ok-light: #10b981;
+  
+  /* 警告色 - 琥珀色 */
+  --amber-warn: #d97706;
+  --amber-warn-light: #fbbf24;
+  
   --primary: var(--color-blue-700);
   --primary-foreground: var(--color-blue-50);
   --sidebar-primary: var(--color-blue-600);
@@ -52,7 +65,7 @@
   --chart-3: var(--color-blue-600);
   --chart-4: var(--color-blue-700);
   --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
+  --radius: 0.5rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.235 0.015 65);
   --card: oklch(1 0 0);
