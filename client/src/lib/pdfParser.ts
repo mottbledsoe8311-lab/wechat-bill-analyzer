@@ -9,14 +9,17 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
 
-// 设置 worker - pdfjs-dist 4.x 使用 legacy build
-// iOS 兼容性修复：使用 CDN 作为备选方案
+// 检测浏览器类型
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+const isIOSDevice = isIOS || isSafari;
 
-if (isIOS || isSafari) {
-  // iOS Safari 上直接使用 CDN，避免本地 worker 加载问题
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// iOS 兼容性修复：禁用 worker，使用主线程模式
+if (isIOSDevice) {
+  // iOS 上禁用 worker，强制使用主线程模式
+  (pdfjsLib.GlobalWorkerOptions as any).workerSrc = undefined;
+  // 禁用 worker 模式，使用主线程模式
+  (pdfjsLib as any).disableWorker = true;
 } else {
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -24,7 +27,7 @@ if (isIOS || isSafari) {
       import.meta.url
     ).toString();
   } catch (e) {
-    // 备选方案：使用 CDN
+    // 备选方案：使用 CDN worker
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   }
 }
@@ -361,12 +364,12 @@ export async function parsePDF(
     // iOS 兼容性修复：禁用某些可能导致卡住的选项
     const pdfOptions = {
       data: arrayBuffer,
-      disableAutoFetch: isIOS || isSafari ? true : false,
-      disableStream: isIOS || isSafari ? true : false,
-      disableRange: isIOS || isSafari ? true : false,
+      disableAutoFetch: isIOSDevice ? true : false,
+      disableStream: isIOSDevice ? true : false,
+      disableRange: isIOSDevice ? true : false,
       rangeChunkSize: 65536,
-      useWorkerFetch: isIOS || isSafari ? false : true,
-      useSystemFonts: isIOS || isSafari ? true : false,
+      useWorkerFetch: isIOSDevice ? false : true,
+      useSystemFonts: isIOSDevice ? true : false,
     };
     
     const pdfPromise = pdfjsLib.getDocument(pdfOptions).promise;
