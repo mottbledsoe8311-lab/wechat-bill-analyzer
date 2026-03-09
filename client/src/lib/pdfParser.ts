@@ -9,26 +9,32 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
 
-// 检测浏览器类型
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-const isIOSDevice = isIOS || isSafari;
+// 初始化 PDF.js worker（延迟到首次使用时）
+let workerInitialized = false;
 
-// iOS 兼容性修复：禁用 worker，使用主线程模式
-if (isIOSDevice) {
-  // iOS 上禁用 worker，强制使用主线程模式
-  (pdfjsLib.GlobalWorkerOptions as any).workerSrc = undefined;
-  // 禁用 worker 模式，使用主线程模式
-  (pdfjsLib as any).disableWorker = true;
-} else {
+function initPDFWorker() {
+  if (workerInitialized) return;
+  workerInitialized = true;
+  
   try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-      'pdfjs-dist/build/pdf.worker.min.mjs',
-      import.meta.url
-    ).toString();
+    // 检测浏览器类型（延迟检测，避免顶层错误）
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
+    const isIOSDevice = isIOS || isSafari;
+    
+    if (isIOSDevice) {
+      // iOS 和 Safari 上禁用 worker，强制使用主线程模式
+      (pdfjsLib.GlobalWorkerOptions as any).workerSrc = undefined;
+      (pdfjsLib as any).disableWorker = true;
+    } else {
+      // 其他浏览器使用 CDN worker（避免本地 ESM worker 兼容性问题）
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
   } catch (e) {
-    // 备选方案：使用 CDN worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    console.warn('Failed to initialize PDF worker:', e);
+    // 降级方案：禁用 worker
+    (pdfjsLib as any).disableWorker = true;
   }
 }
 
@@ -313,6 +319,7 @@ export async function parsePDF(
   file: File,
   onProgress?: ProgressCallback
 ): Promise<ParseResult> {
+  initPDFWorker();
   const errors: string[] = [];
   const transactions: Transaction[] = [];
   let accountInfo: AccountInfo = {
@@ -371,12 +378,12 @@ export async function parsePDF(
     // iOS 兼容性修复：禁用某些可能导致卡住的选项
     const pdfOptions = {
       data: arrayBuffer,
-      disableAutoFetch: isIOSDevice ? true : false,
-      disableStream: isIOSDevice ? true : false,
-      disableRange: isIOSDevice ? true : false,
+      disableAutoFetch: false,
+      disableStream: false,
+      disableRange: false,
       rangeChunkSize: 65536,
-      useWorkerFetch: isIOSDevice ? false : true,
-      useSystemFonts: isIOSDevice ? true : false,
+      useWorkerFetch: true,
+      useSystemFonts: false,
     };
     
     const pdfPromise = pdfjsLib.getDocument(pdfOptions).promise;
