@@ -457,7 +457,7 @@ export default function Home() {
               </div>
 
               <div id="counterpart">
-                <CounterpartSummary data={analysisResult.counterpartSummary} />
+                <CounterpartSummary data={analysisResult.counterpartSummary} allTransactions={allTransactions} />
               </div>
             </div>
 

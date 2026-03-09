@@ -506,28 +506,31 @@ export async function parsePDF(
           const [y, cells] = sortedRows[rowIdx];
           const lineText = cells.map(c => c.str).join(' ');
           
-          // 检查当前行是否只有时间（HH:MM:SS 或 HH:MM），且下一行有日期
-          const isTimeOnly = /^\d{1,2}:\d{2}(?::\d{2})?$/.test(lineText.trim());
-          const hasDateInNextRow = rowIdx + 1 < sortedRows.length && 
-            /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(sortedRows[rowIdx + 1][1].map(c => c.str).join(' '));
+          // 检查当前行是否有日期，且下一行是否只有时间
+          const hasDate = /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(lineText);
+          const nextLineIsTimeOnly = rowIdx + 1 < sortedRows.length && 
+            /^\d{1,2}:\d{2}(?::\d{2})?$/.test(sortedRows[rowIdx + 1][1].map(c => c.str).join(' ').trim());
           
-          if (isTimeOnly && hasDateInNextRow) {
-            // 合并当前行（时间）和下一行（日期）
+          if (hasDate && nextLineIsTimeOnly) {
+            // 合并当前行（日期）和下一行（时间）
             const [nextY, nextCells] = sortedRows[rowIdx + 1];
-            const timeStr = lineText.trim();
-            const nextLineText = nextCells.map(c => c.str).join(' ');
+            const timeStr = nextCells.map(c => c.str).join(' ').trim();
             
             // 在日期后面添加时间
-            const mergedText = nextLineText.replace(
+            const mergedText = lineText.replace(
               /(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/,
               `$1 ${timeStr}`
             );
             
-            // 创建合并后的行
-            const mergedCells = nextCells.map(c => ({ ...c }));
-            mergedCells.push({ x: 0, str: ` ${timeStr}` });
+            // 创建合并后的行，更新第一个单元格的文本
+            const mergedCells = cells.map((c, idx) => {
+              if (idx === 0) {
+                return { ...c, str: mergedText };
+              }
+              return { ...c };
+            });
             
-            mergedRows.push({ y: nextY, cells: mergedCells });
+            mergedRows.push({ y, cells: mergedCells });
             rowIdx += 2; // 跳过已处理的两行
           } else {
             mergedRows.push({ y, cells });
