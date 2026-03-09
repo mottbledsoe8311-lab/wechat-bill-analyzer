@@ -98,7 +98,7 @@ function isHeaderRow(text: string): boolean {
 }
 
 /**
- * 解析日期字符串
+ * 解析日期字符串 - 支持完整的时分秒信息
  */
 function parseDate(dateStr: string): Date | null {
   if (!dateStr) return null;
@@ -106,23 +106,28 @@ function parseDate(dateStr: string): Date | null {
   // 清理空格和特殊字符
   const cleaned = dateStr.replace(/\s+/g, ' ').trim();
   
-  // 尝试多种日期格式
+  // 尝试多种日期格式（优先级从高到低）
   const patterns = [
-    /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\s+(\d{1,2}):(\d{2}):(\d{2})/,
-    /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\s+(\d{1,2}):(\d{2})/,
-    /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/,
+    // 格式1: YYYY-MM-DD HH:MM:SS (最完整)
+    { regex: /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\s+(\d{1,2}):(\d{2}):(\d{2})/, groups: { year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6 } },
+    // 格式2: YYYY-MM-DD HH:MM
+    { regex: /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\s+(\d{1,2}):(\d{2})/, groups: { year: 1, month: 2, day: 3, hour: 4, minute: 5, second: null } },
+    // 格式3: YYYY-MM-DD
+    { regex: /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/, groups: { year: 1, month: 2, day: 3, hour: null, minute: null, second: null } },
   ];
 
-  for (const pattern of patterns) {
-    const match = cleaned.match(pattern);
+  for (const { regex, groups } of patterns) {
+    const match = cleaned.match(regex);
     if (match) {
-      const year = parseInt(match[1]);
-      const month = parseInt(match[2]) - 1;
-      const day = parseInt(match[3]);
-      const hour = match[4] ? parseInt(match[4]) : 0;
-      const minute = match[5] ? parseInt(match[5]) : 0;
-      const second = match[6] ? parseInt(match[6]) : 0;
-      return new Date(year, month, day, hour, minute, second);
+      const year = parseInt(match[groups.year]);
+      const month = parseInt(match[groups.month]) - 1; // JavaScript月份从0开始
+      const day = parseInt(match[groups.day]);
+      const hour = groups.hour ? parseInt(match[groups.hour]) : 0;
+      const minute = groups.minute ? parseInt(match[groups.minute]) : 0;
+      const second = groups.second ? parseInt(match[groups.second]) : 0;
+      
+      // 使用 UTC 时间创建日期对象，避免时区问题
+      return new Date(Date.UTC(year, month, day, hour, minute, second));
     }
   }
   return null;
