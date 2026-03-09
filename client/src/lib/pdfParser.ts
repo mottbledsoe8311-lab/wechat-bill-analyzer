@@ -10,10 +10,16 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
 // 设置 worker - pdfjs-dist 4.x 使用 legacy build
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
+// iOS 兼容性修复：使用 CDN 作为备选方案
+try {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url
+  ).toString();
+} catch (e) {
+  // iOS Safari 上可能无法使用本地 worker，使用 CDN
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 
 export interface Transaction {
   orderId: string;       // 交易订单号
@@ -297,8 +303,37 @@ export async function parsePDF(
   try {
     onProgress?.(5, '正在读取PDF文件...');
     
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let arrayBuffer: ArrayBuffer;
+    
+    // iOS 兼容性修复：尝试多种方式读取文件
+    try {
+      arrayBuffer = await file.arrayBuffer();
+    } catch (e) {
+      // 备选方案 1: 使用 FileReader
+      arrayBuffer = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (reader.result instanceof ArrayBuffer) {
+            resolve(reader.result);
+          } else {
+            reject(new Error('FileReader 返回非 ArrayBuffer'));
+          }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.onabort = () => reject(new Error('FileReader 被中止'));
+        reader.readAsArrayBuffer(file);
+      });
+    }
+    
+    onProgress?.(8, '正在初始化PDF解析器...');
+    
+    const pdf = await pdfjsLib.getDocument({ 
+      data: arrayBuffer,
+      disableAutoFetch: false,
+      disableStream: false,
+      disableRange: false,
+      rangeChunkSize: 65536,
+    }).promise;
     const totalPages = pdf.numPages;
     
     onProgress?.(10, `PDF加载完成，共 ${totalPages} 页`);
@@ -308,16 +343,46 @@ export async function parsePDF(
     const pageTexts: string[] = [];
     
     for (let i = 1; i <= totalPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      pageTexts.push(pageText);
-      allText += pageText + '\n';
-      
-      const progress = 10 + (i / totalPages) * 30;
-      onProgress?.(progress, `正在提取第 ${i}/${totalPages} 页文本...`);
+      try {
+        // 添加超时保护（iOS 上可能卡住）
+        const pagePromise = pdf.getPage(i);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('页面加载超时')), 30000)
+        );
+        
+        const page = await Promise.race([pagePromise, timeoutPromise]) as any;
+        
+        // 获取文本内容，添加错误处理
+        let textContent;
+        try {
+          textContent = await page.getTextContent();
+        } catch (textError: any) {
+          console.warn(`第 ${i} 页文本提取失败: ${textError.message}`);
+          errors.push(`第 ${i} 页文本提取失败: ${textError.message}`);
+          pageTexts.push('');
+          allText += '\n';
+          const progress = 10 + (i / totalPages) * 30;
+          onProgress?.(progress, `第 ${i} 页文本提取失败，继续处理...`);
+          continue;
+        }
+        
+        const pageText = textContent.items
+          .map((item: any) => item.str || '')
+          .filter((str: string) => str.length > 0)
+          .join(' ');
+        pageTexts.push(pageText);
+        allText += pageText + '\n';
+        
+        const progress = 10 + (i / totalPages) * 30;
+        onProgress?.(progress, `正在提取第 ${i}/${totalPages} 页文本...`);
+      } catch (pageError: any) {
+        console.error(`第 ${i} 页处理失败: ${pageError.message}`);
+        errors.push(`第 ${i} 页处理失败: ${pageError.message}`);
+        pageTexts.push('');
+        allText += '\n';
+        const progress = 10 + (i / totalPages) * 30;
+        onProgress?.(progress, `第 ${i} 页处理失败，继续处理...`);
+      }
     }
 
     // 提取账户信息（通常在第一页）
@@ -327,8 +392,29 @@ export async function parsePDF(
     // 第二遍：逐页提取交易数据
     for (let i = 1; i <= totalPages; i++) {
       try {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
+        // 添加超时保护
+        const pagePromise = pdf.getPage(i);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('页面加载超时')), 30000)
+        );
+        
+        const page = await Promise.race([pagePromise, timeoutPromise]) as any;
+        
+        // 获取文本内容
+        let textContent;
+        try {
+          const textPromise = page.getTextContent();
+          const textTimeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('文本提取超时')), 30000)
+          );
+          textContent = await Promise.race([textPromise, textTimeoutPromise]);
+        } catch (textError: any) {
+          console.warn(`第 ${i} 页文本提取失败: ${textError.message}`);
+          errors.push(`第 ${i} 页文本提取失败: ${textError.message}`);
+          const progress = Math.min(45 + (i / totalPages) * 45, 99);
+          onProgress?.(progress, `第 ${i} 页文本提取失败，继续处理...`);
+          continue;
+        }
         
         // 按Y坐标分组文本项（同一行的文本）
         const items = textContent.items as any[];
@@ -367,12 +453,13 @@ export async function parsePDF(
           }
         }
 
-        const progress = 45 + (i / totalPages) * 45;
+        const progress = Math.min(45 + (i / totalPages) * 45, 99);
         onProgress?.(progress, `正在分析第 ${i}/${totalPages} 页交易...`);
       } catch (pageError: any) {
-        errors.push(`第 ${i} 页解析失败: ${pageError.message}`);
-        const progress = 45 + (i / totalPages) * 45;
-        onProgress?.(progress, `第 ${i} 页解析失败，继续处理下一页...`);
+        console.error(`第 ${i} 页处理失败: ${pageError.message}`);
+        errors.push(`第 ${i} 页处理失败: ${pageError.message}`);
+        const progress = Math.min(45 + (i / totalPages) * 45, 99);
+        onProgress?.(progress, `第 ${i} 页处理失败，继续处理下一页...`);
       }
     }
 
