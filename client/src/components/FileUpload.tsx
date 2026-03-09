@@ -194,7 +194,7 @@ export default function FileUpload({ onFilesSelected, isAnalyzing, onStartAnalys
               <Button
                 onClick={onStartAnalysis}
                 disabled={isAnalyzing || files.length === 0}
-                className="w-full h-14 text-base font-semibold bg-indigo hover:bg-indigo/90 text-white rounded-lg transition-all active:scale-95"
+                className="w-full h-14 text-base font-bold bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg transition-all active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isAnalyzing ? (
                   <span className="flex items-center justify-center gap-2">
