@@ -117,6 +117,11 @@ function parseDate(dateStr: string): Date | null {
   // 清理空格和特殊字符
   const cleaned = dateStr.replace(/\s+/g, ' ').trim();
   
+  // 调试：记录输入的日期字符串
+  if (cleaned && cleaned.includes(':')) {
+    console.debug('[PDF Parser] 解析日期时间:', cleaned);
+  }
+  
   // 尝试多种日期格式（优先级从高到低）
   const patterns = [
     // 格式1: YYYY-MM-DD HH:MM:SS (最完整)
@@ -491,7 +496,44 @@ export async function parsePDF(
         const sortedRows = Array.from(rows.entries())
           .sort((a, b) => b[0] - a[0]);
 
-        for (const [, cells] of sortedRows) {
+        // 修复：合并分离的日期和时间
+        // 在某些 PDF 中，日期和时间可能被分成两行
+        const mergedRows: Array<{ y: number; cells: { x: number; str: string }[] }> = [];
+        let rowIdx = 0;
+        while (rowIdx < sortedRows.length) {
+          const [y, cells] = sortedRows[rowIdx];
+          const lineText = cells.map(c => c.str).join(' ');
+          
+          // 检查当前行是否只有时间（HH:MM:SS 或 HH:MM），且下一行有日期
+          const isTimeOnly = /^\d{1,2}:\d{2}(?::\d{2})?$/.test(lineText.trim());
+          const hasDateInNextRow = rowIdx + 1 < sortedRows.length && 
+            /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(sortedRows[rowIdx + 1][1].map(c => c.str).join(' '));
+          
+          if (isTimeOnly && hasDateInNextRow) {
+            // 合并当前行（时间）和下一行（日期）
+            const [nextY, nextCells] = sortedRows[rowIdx + 1];
+            const timeStr = lineText.trim();
+            const nextLineText = nextCells.map(c => c.str).join(' ');
+            
+            // 在日期后面添加时间
+            const mergedText = nextLineText.replace(
+              /(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/,
+              `$1 ${timeStr}`
+            );
+            
+            // 创建合并后的行
+            const mergedCells = nextCells.map(c => ({ ...c }));
+            mergedCells.push({ x: 0, str: ` ${timeStr}` });
+            
+            mergedRows.push({ y: nextY, cells: mergedCells });
+            rowIdx += 2; // 跳过已处理的两行
+          } else {
+            mergedRows.push({ y, cells });
+            rowIdx += 1;
+          }
+        }
+
+        for (const { cells } of mergedRows) {
           // 按X坐标排序
           cells.sort((a, b) => a.x - b.x);
           
@@ -512,8 +554,8 @@ export async function parsePDF(
           }
         }
 
-        const progress = Math.min(45 + (i / totalPages) * 45, 99);
-        onProgress?.(progress, `正在分析第 ${i}/${totalPages} 页交易...`);
+        const pageProgress = Math.min(45 + (i / totalPages) * 45, 99);
+        onProgress?.(pageProgress, `正在分析第 ${i}/${totalPages} 页交易...`);
       } catch (pageError: any) {
         console.error(`第 ${i} 页处理失败: ${pageError.message}`);
         errors.push(`第 ${i} 页处理失败: ${pageError.message}`);
