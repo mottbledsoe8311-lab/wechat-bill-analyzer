@@ -11,14 +11,22 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 // 设置 worker - pdfjs-dist 4.x 使用 legacy build
 // iOS 兼容性修复：使用 CDN 作为备选方案
-try {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url
-  ).toString();
-} catch (e) {
-  // iOS Safari 上可能无法使用本地 worker，使用 CDN
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+
+if (isIOS || isSafari) {
+  // iOS Safari 上直接使用 CDN，避免本地 worker 加载问题
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+} else {
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url
+    ).toString();
+  } catch (e) {
+    // 备选方案：使用 CDN
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
 }
 
 export interface Transaction {
@@ -312,33 +320,61 @@ export async function parsePDF(
     
     // iOS 兼容性修复：尝试多种方式读取文件
     try {
-      arrayBuffer = await file.arrayBuffer();
-    } catch (e) {
+      // 添加超时保护
+      const arrayBufferPromise = file.arrayBuffer();
+      const timeoutPromise = new Promise<ArrayBuffer>((_, reject) => 
+        setTimeout(() => reject(new Error('文件读取超时')), 15000)
+      );
+      arrayBuffer = await Promise.race([arrayBufferPromise, timeoutPromise]);
+    } catch (e: any) {
+      console.warn('arrayBuffer() 失败，尝试 FileReader:', e.message);
       // 备选方案 1: 使用 FileReader
       arrayBuffer = await new Promise((resolve, reject) => {
         const reader = new FileReader();
+        const timeout = setTimeout(() => {
+          reader.abort();
+          reject(new Error('FileReader 读取超时'));
+        }, 15000);
+        
         reader.onload = () => {
+          clearTimeout(timeout);
           if (reader.result instanceof ArrayBuffer) {
             resolve(reader.result);
           } else {
             reject(new Error('FileReader 返回非 ArrayBuffer'));
           }
         };
-        reader.onerror = () => reject(reader.error);
-        reader.onabort = () => reject(new Error('FileReader 被中止'));
+        reader.onerror = () => {
+          clearTimeout(timeout);
+          reject(reader.error);
+        };
+        reader.onabort = () => {
+          clearTimeout(timeout);
+          reject(new Error('FileReader 被中止'));
+        };
         reader.readAsArrayBuffer(file);
       });
     }
     
     onProgress?.(8, '正在初始化PDF解析器...');
     
-    const pdf = await pdfjsLib.getDocument({ 
+    // iOS 兼容性修复：禁用某些可能导致卡住的选项
+    const pdfOptions = {
       data: arrayBuffer,
-      disableAutoFetch: false,
-      disableStream: false,
-      disableRange: false,
+      disableAutoFetch: isIOS || isSafari ? true : false,
+      disableStream: isIOS || isSafari ? true : false,
+      disableRange: isIOS || isSafari ? true : false,
       rangeChunkSize: 65536,
-    }).promise;
+      useWorkerFetch: isIOS || isSafari ? false : true,
+      useSystemFonts: isIOS || isSafari ? true : false,
+    };
+    
+    const pdfPromise = pdfjsLib.getDocument(pdfOptions).promise;
+    const pdfTimeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('PDF加载超时')), 20000)
+    );
+    
+    const pdf = await Promise.race([pdfPromise, pdfTimeoutPromise]) as any;
     const totalPages = pdf.numPages;
     
     onProgress?.(10, `PDF加载完成，共 ${totalPages} 页`);
@@ -351,16 +387,31 @@ export async function parsePDF(
       try {
         // 添加超时保护（iOS 上可能卡住）
         const pagePromise = pdf.getPage(i);
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('页面加载超时')), 30000)
+        const pageTimeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error(`第 ${i} 页加载超时`)), 15000)
         );
         
-        const page = await Promise.race([pagePromise, timeoutPromise]) as any;
+        let page;
+        try {
+          page = await Promise.race([pagePromise, pageTimeoutPromise]) as any;
+        } catch (pageLoadError: any) {
+          console.error(`第 ${i} 页加载失败: ${pageLoadError.message}`);
+          errors.push(`第 ${i} 页加载失败: ${pageLoadError.message}`);
+          pageTexts.push('');
+          allText += '\n';
+          const progress = 10 + (i / totalPages) * 30;
+          onProgress?.(progress, `第 ${i} 页加载失败，继续处理...`);
+          continue;
+        }
         
         // 获取文本内容，添加错误处理
         let textContent;
         try {
-          textContent = await page.getTextContent();
+          const textPromise = page.getTextContent({ normalizeSpaces: true });
+          const textTimeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`第 ${i} 页文本提取超时`)), 10000)
+          );
+          textContent = await Promise.race([textPromise, textTimeoutPromise]);
         } catch (textError: any) {
           console.warn(`第 ${i} 页文本提取失败: ${textError.message}`);
           errors.push(`第 ${i} 页文本提取失败: ${textError.message}`);
