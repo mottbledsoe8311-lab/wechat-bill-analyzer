@@ -326,48 +326,54 @@ export async function parsePDF(
 
     // 第二遍：逐页提取交易数据
     for (let i = 1; i <= totalPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      
-      // 按Y坐标分组文本项（同一行的文本）
-      const items = textContent.items as any[];
-      const rows: Map<number, { x: number; str: string }[]> = new Map();
-      
-      for (const item of items) {
-        if (!item.str || item.str.trim() === '') continue;
-        // 将Y坐标四舍五入到最近的整数来分组
-        const y = Math.round(item.transform[5]);
-        if (!rows.has(y)) rows.set(y, []);
-        rows.get(y)!.push({ x: item.transform[4], str: item.str });
-      }
-
-      // 按Y坐标排序（从上到下，Y值从大到小）
-      const sortedRows = Array.from(rows.entries())
-        .sort((a, b) => b[0] - a[0]);
-
-      for (const [, cells] of sortedRows) {
-        // 按X坐标排序
-        cells.sort((a, b) => a.x - b.x);
+      try {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
         
-        // 方法1：将整行作为文本解析
-        const lineText = cells.map(c => c.str).join(' ');
-        let tx = parseTransactionFromText(lineText);
+        // 按Y坐标分组文本项（同一行的文本）
+        const items = textContent.items as any[];
+        const rows: Map<number, { x: number; str: string }[]> = new Map();
         
-        if (tx) {
-          transactions.push(tx);
-          continue;
+        for (const item of items) {
+          if (!item.str || item.str.trim() === '') continue;
+          // 将Y坐标四舍五入到最近的整数来分组
+          const y = Math.round(item.transform[5]);
+          if (!rows.has(y)) rows.set(y, []);
+          rows.get(y)!.push({ x: item.transform[4], str: item.str });
         }
 
-        // 方法2：作为表格行解析
-        const cellTexts = cells.map(c => c.str.trim()).filter(s => s.length > 0);
-        tx = parseTransactionFromRow(cellTexts);
-        if (tx) {
-          transactions.push(tx);
-        }
-      }
+        // 按Y坐标排序（从上到下，Y值从大到小）
+        const sortedRows = Array.from(rows.entries())
+          .sort((a, b) => b[0] - a[0]);
 
-      const progress = 45 + (i / totalPages) * 45;
-      onProgress?.(progress, `正在分析第 ${i}/${totalPages} 页交易...`);
+        for (const [, cells] of sortedRows) {
+          // 按X坐标排序
+          cells.sort((a, b) => a.x - b.x);
+          
+          // 方法1：将整行作为文本解析
+          const lineText = cells.map(c => c.str).join(' ');
+          let tx = parseTransactionFromText(lineText);
+          
+          if (tx) {
+            transactions.push(tx);
+            continue;
+          }
+
+          // 方法2：作为表格行解析
+          const cellTexts = cells.map(c => c.str.trim()).filter(s => s.length > 0);
+          tx = parseTransactionFromRow(cellTexts);
+          if (tx) {
+            transactions.push(tx);
+          }
+        }
+
+        const progress = 45 + (i / totalPages) * 45;
+        onProgress?.(progress, `正在分析第 ${i}/${totalPages} 页交易...`);
+      } catch (pageError: any) {
+        errors.push(`第 ${i} 页解析失败: ${pageError.message}`);
+        const progress = 45 + (i / totalPages) * 45;
+        onProgress?.(progress, `第 ${i} 页解析失败，继续处理下一页...`);
+      }
     }
 
     // 去重（根据订单号和日期）

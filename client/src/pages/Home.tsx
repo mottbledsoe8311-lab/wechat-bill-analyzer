@@ -66,23 +66,32 @@ export default function Home() {
         const file = files[i];
         const fileProgress = (i / files.length) * 50;
         
-        setProgressMessage(`正在解析第 ${i + 1}/${files.length} 个文件: ${file.name}`);
-        
-        const result = await parsePDF(file, (p, msg) => {
-          const overallProgress = fileProgress + (p / 100) * (50 / files.length);
-          setProgress(overallProgress);
-          setProgressMessage(msg);
-        });
+        try {
+          setProgressMessage(`正在解析第 ${i + 1}/${files.length} 个文件: ${file.name}`);
+          
+          const result = await parsePDF(file, (p, msg) => {
+            const overallProgress = fileProgress + (p / 100) * (50 / files.length);
+            setProgress(Math.min(overallProgress, 99)); // 防止进度条卡在某个位置
+            setProgressMessage(msg);
+          });
 
-        allTransactions = [...allTransactions, ...result.transactions];
-        totalPages += result.totalPages;
-        
-        if (!accountInfo && result.accountInfo.name) {
-          accountInfo = result.accountInfo;
-        }
+          if (result.transactions.length === 0 && result.parseErrors.length === 0) {
+            toast.warning(`${file.name} 未能提取到任何交易记录`);
+          }
 
-        if (result.parseErrors.length > 0) {
-          result.parseErrors.forEach(err => toast.warning(err));
+          allTransactions = [...allTransactions, ...result.transactions];
+          totalPages += result.totalPages;
+          
+          if (!accountInfo && result.accountInfo.name) {
+            accountInfo = result.accountInfo;
+          }
+
+          if (result.parseErrors.length > 0) {
+            result.parseErrors.forEach(err => toast.warning(err));
+          }
+        } catch (fileError: any) {
+          toast.error(`文件 ${file.name} 解析失败: ${fileError.message}`);
+          console.error(`Error parsing file ${file.name}:`, fileError);
         }
       }
 
