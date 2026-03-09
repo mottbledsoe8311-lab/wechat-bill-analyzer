@@ -697,10 +697,8 @@ export function formatCurrency(amount: number): string {
 }
 
 export function formatDate(date: Date): string {
-  // 处理UTC时区转换 - 将UTC时间转换为本地时间显示
-  // 由于parseDate使用UTC创建日期，这里需要调整显示
-  const localDate = new Date(date.getTime());
-  return format(localDate, 'yyyy-MM-dd HH:mm');
+  // 直接格式化本地时间，保持与PDF原始数据一致
+  return format(date, 'yyyy-MM-dd HH:mm');
 }
 
 export function formatDateShort(date: Date): string {

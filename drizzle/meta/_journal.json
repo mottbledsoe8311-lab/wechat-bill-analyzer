@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1773071118039,
+      "tag": "0000_naive_the_liberteens",
+      "breakpoints": true
+    }
+  ]
+}

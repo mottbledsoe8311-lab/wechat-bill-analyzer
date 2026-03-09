@@ -134,8 +134,8 @@ function parseDate(dateStr: string): Date | null {
       const minute = groups.minute ? parseInt(match[groups.minute]) : 0;
       const second = groups.second ? parseInt(match[groups.second]) : 0;
       
-      // 使用 UTC 时间创建日期对象，避免时区问题
-      return new Date(Date.UTC(year, month, day, hour, minute, second));
+      // 使用本地时间创建日期对象，保持与PDF原始数据一致
+      return new Date(year, month, day, hour, minute, second);
     }
   }
   return null;

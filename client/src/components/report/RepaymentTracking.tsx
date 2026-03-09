@@ -16,8 +16,8 @@ interface Props {
 export default function RepaymentTracking({ records }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
-  // 只显示有意义的还款记录（至少2笔）
-  const meaningfulRecords = records.filter(r => r.repayments.length >= 2);
+  // 只显示规律还款
+  const meaningfulRecords = records.filter(r => r.isRegular && r.repayments.length >= 2);
 
   if (meaningfulRecords.length === 0) {
     return (

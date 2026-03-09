@@ -21,13 +21,10 @@ import MonthlyChart from '@/components/report/MonthlyChart';
 import RegularTransfers from '@/components/report/RegularTransfers';
 import RepaymentTracking from '@/components/report/RepaymentTracking';
 import LargeInflows from '@/components/report/LargeInflows';
-import DateRangeSelector from '@/components/DateRangeSelector';
-
 import CounterpartSummary from '@/components/report/CounterpartSummary';
 
 import { parsePDF, type ParseResult } from '@/lib/pdfParser';
 import { analyzeTransactions, type AnalysisResult } from '@/lib/analyzer';
-import { calculateDateRange, type DateRange } from '@/lib/dateFilterUtils';
 
 type AppState = 'upload' | 'analyzing' | 'report';
 
@@ -42,7 +39,6 @@ export default function Home() {
   const [progressStage, setProgressStage] = useState<'parsing' | 'analyzing' | 'done'>('parsing');
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
-  const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -141,10 +137,6 @@ export default function Home() {
       setAnalysisResult(analysis);
       setAllTransactions(allTransactions);
       
-      // 初始化日期范围为最近3个月
-      const initialRange = calculateDateRange('3m', allTransactions.map(t => t.date));
-      setDateRange(initialRange);
-      
       setProgressStage('done');
       setProgress(100);
       
@@ -169,17 +161,12 @@ export default function Home() {
     setFiles([]);
     setAnalysisResult(null);
     setParseResult(null);
-    setDateRange(null);
     setAllTransactions([]);
     setProgress(0);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const handleDateRangeChange = useCallback((type: '1m' | '3m' | '6m' | 'all') => {
-    if (allTransactions.length === 0) return;
-    const newRange = calculateDateRange(type, allTransactions.map(t => t.date));
-    setDateRange(newRange);
-  }, [allTransactions]);
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -449,17 +436,7 @@ export default function Home() {
               </div>
             </section>
 
-            {/* 日期范围选择器 */}
-            {dateRange && (
-              <section className="bg-background border-b border-border sticky top-14 z-40">
-                <div className="container py-4">
-                  <DateRangeSelector 
-                    selectedRange={dateRange}
-                    onRangeChange={handleDateRangeChange}
-                  />
-                </div>
-              </section>
-            )}
+            {/* 日期范围选择器 - 已移除 */}
 
             {/* 报表内容 */}
             <div className="container">
