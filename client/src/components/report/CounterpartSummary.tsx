@@ -20,9 +20,13 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
   const [showDetails, setShowDetails] = useState(false);
 
   // 获取搜索对方的所有交易明细
-  const searchedCounterpart = searchTerm.trim() ? data.find(d => d.name.toLowerCase() === searchTerm.toLowerCase()) : null;
+  // 先尝试精确匹配，如果没有则使用第一个模糊匹配结果
+  const searchedCounterpart = searchTerm.trim() 
+    ? data.find(d => d.name.toLowerCase() === searchTerm.toLowerCase()) || 
+      data.find(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    : null;
   const detailedTransactions = searchedCounterpart 
-    ? allTransactions.filter(tx => tx.counterpart === searchedCounterpart.name)
+    ? allTransactions.filter(tx => tx.counterpart.toLowerCase() === searchedCounterpart.name.toLowerCase())
     : [];
 
   const filtered = data

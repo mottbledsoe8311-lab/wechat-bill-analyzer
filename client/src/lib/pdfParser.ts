@@ -498,7 +498,7 @@ export async function parsePDF(
         const sortedRows = Array.from(rows.entries())
           .sort((a, b) => b[0] - a[0]);
 
-        // 修复：合并分离的日期和时间
+        // 修复：合并分离的日期和时间（双向处理）
         // 在某些 PDF 中，日期和时间可能被分成两行
         const mergedRows: Array<{ y: number; cells: { x: number; str: string }[] }> = [];
         let rowIdx = 0;
@@ -506,23 +506,30 @@ export async function parsePDF(
           const [y, cells] = sortedRows[rowIdx];
           const lineText = cells.map(c => c.str).join(' ');
           
-          // 检查当前行是否有日期，且下一行是否只有时间
+          // 检查当前行是否只有时间（HH:MM:SS 或 HH:MM）
+          const isTimeOnly = /^\d{1,2}:\d{2}(?::\d{2})?$/.test(lineText.trim());
+          
+          // 检查当前行是否有日期
           const hasDate = /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(lineText);
+          
+          // 检查下一行是否只有时间
           const nextLineIsTimeOnly = rowIdx + 1 < sortedRows.length && 
             /^\d{1,2}:\d{2}(?::\d{2})?$/.test(sortedRows[rowIdx + 1][1].map(c => c.str).join(' ').trim());
           
+          // 检查上一行是否有日期
+          const prevLineHasDate = mergedRows.length > 0 && 
+            /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(mergedRows[mergedRows.length - 1].cells.map(c => c.str).join(' '));
+          
+          // 情况1：当前行有日期，下一行只有时间 -> 合并到当前行
           if (hasDate && nextLineIsTimeOnly) {
-            // 合并当前行（日期）和下一行（时间）
             const [nextY, nextCells] = sortedRows[rowIdx + 1];
             const timeStr = nextCells.map(c => c.str).join(' ').trim();
             
-            // 在日期后面添加时间
             const mergedText = lineText.replace(
               /(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/,
               `$1 ${timeStr}`
             );
             
-            // 创建合并后的行，更新第一个单元格的文本
             const mergedCells = cells.map((c, idx) => {
               if (idx === 0) {
                 return { ...c, str: mergedText };
@@ -531,8 +538,23 @@ export async function parsePDF(
             });
             
             mergedRows.push({ y, cells: mergedCells });
-            rowIdx += 2; // 跳过已处理的两行
-          } else {
+            rowIdx += 2;
+          }
+          // 情况2：当前行只有时间，上一行有日期 -> 合并到上一行
+          else if (isTimeOnly && prevLineHasDate) {
+            const prevRow = mergedRows[mergedRows.length - 1];
+            const prevLineText = prevRow.cells.map(c => c.str).join(' ');
+            
+            const mergedText = prevLineText.replace(
+              /(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/,
+              `$1 ${lineText.trim()}`
+            );
+            
+            prevRow.cells[0] = { ...prevRow.cells[0], str: mergedText };
+            rowIdx += 1;
+          }
+          // 情况3：其他情况 -> 直接添加
+          else {
             mergedRows.push({ y, cells });
             rowIdx += 1;
           }
