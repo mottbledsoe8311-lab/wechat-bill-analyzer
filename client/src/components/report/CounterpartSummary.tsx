@@ -29,6 +29,14 @@ export default function CounterpartSummary({ data }: Props) {
       }
     });
 
+  // 计算搜索结果的汇总统计
+  const searchStats = searchTerm.trim() ? {
+    totalCount: filtered.reduce((sum, item) => sum + item.transactionCount, 0),
+    totalIn: filtered.reduce((sum, item) => sum + item.totalIn, 0),
+    totalOut: filtered.reduce((sum, item) => sum + item.totalOut, 0),
+    netFlow: filtered.reduce((sum, item) => sum + item.netFlow, 0),
+  } : null;
+
   return (
     <motion.section
       initial={{ opacity: 0 }}
@@ -79,6 +87,37 @@ export default function CounterpartSummary({ data }: Props) {
           ))}
         </div>
       </div>
+
+      {/* 搜索统计信息 */}
+      {searchStats && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 bg-muted/50 rounded-lg border border-border"
+        >
+          <p className="text-sm font-medium text-foreground mb-3">搜索结果统计</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">笔数</p>
+              <p className="text-lg font-bold text-foreground">{searchStats.totalCount}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">收入</p>
+              <p className="text-lg font-bold text-emerald-ok">{formatCurrency(searchStats.totalIn)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">支出</p>
+              <p className="text-lg font-bold text-destructive">{formatCurrency(searchStats.totalOut)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">净额</p>
+              <p className={`text-lg font-bold ${searchStats.netFlow >= 0 ? 'text-emerald-ok' : 'text-destructive'}`}>
+                {searchStats.netFlow >= 0 ? '+' : ''}{formatCurrency(searchStats.netFlow)}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* 表格 */}
       <div className="overflow-x-auto">
