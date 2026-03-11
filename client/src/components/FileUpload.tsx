@@ -1,6 +1,7 @@
 /**
  * 文件上传组件
  * 设计：极简数据叙事 - 大面积留白，精准的交互反馈
+ * 改进：开始分析按钮始终显示，未上传文件时显示禁用状态
  */
 
 import { useCallback, useState } from 'react';
@@ -151,7 +152,7 @@ export default function FileUpload({ onFilesSelected, isAnalyzing, onStartAnalys
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 space-y-2"
+            className="mt-4 space-y-2"
           >
             {files.map((file, index) => (
               <motion.div
@@ -183,39 +184,41 @@ export default function FileUpload({ onFilesSelected, isAnalyzing, onStartAnalys
                 )}
               </motion.div>
             ))}
-
-            {/* 开始分析按钮 - 优化手机展示 */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: files.length * 0.05 + 0.2 }}
-              className="mt-6 pt-6 border-t border-border space-y-3"
-            >
-              <Button
-                onClick={onStartAnalysis}
-                disabled={isAnalyzing || files.length === 0}
-                className="w-full h-14 text-base font-bold bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg transition-all active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAnalyzing ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <motion.span
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                      className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                    />
-                    正在分析中...
-                  </span>
-                ) : (
-                  `开始分析 ${files.length} 个文件`
-                )}
-              </Button>
-              <p className="text-xs text-muted-foreground text-center leading-relaxed">
-                数据仅在您的浏览器中处理，不会上传至任何服务器
-              </p>
-            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 开始分析按钮 - 始终显示，未上传文件时禁用 */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="mt-6 pt-6 border-t border-border space-y-3"
+      >
+        <Button
+          onClick={onStartAnalysis}
+          disabled={isAnalyzing || files.length === 0}
+          className="w-full h-14 text-base font-bold bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg transition-all active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {isAnalyzing ? (
+            <span className="flex items-center justify-center gap-2">
+              <motion.span
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+              />
+              正在分析中...
+            </span>
+          ) : files.length > 0 ? (
+            `开始分析 ${files.length} 个文件`
+          ) : (
+            '请先上传微信账单PDF'
+          )}
+        </Button>
+        <p className="text-xs text-muted-foreground text-center leading-relaxed">
+          数据仅在您的浏览器中处理，不会上传至任何服务器
+        </p>
+      </motion.div>
     </div>
   );
 }
