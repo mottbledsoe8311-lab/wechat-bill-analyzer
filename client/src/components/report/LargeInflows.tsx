@@ -1,6 +1,6 @@
 /**
  * 大额入账监控
- * 设计：极简数据叙事 - 醒目的大额标记
+ * 设计：精致卡片式 - 醒目的大额标记，时间范围筛选
  */
 
 import { useState, useMemo } from 'react';
@@ -8,7 +8,6 @@ import { motion } from 'framer-motion';
 import { formatCurrency, formatDate, type LargeInflow } from '@/lib/analyzer';
 import { ArrowDownLeft, AlertCircle, TrendingUp, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 interface Props {
   inflows: LargeInflow[];
@@ -16,55 +15,44 @@ interface Props {
 
 type TimeRange = '1month' | '3months' | '6months' | 'all';
 
+const TIME_RANGE_OPTIONS: { key: TimeRange; label: string }[] = [
+  { key: '1month',  label: '近1月' },
+  { key: '3months', label: '近3月' },
+  { key: '6months', label: '近6月' },
+  { key: 'all',     label: '全部' },
+];
+
 export default function LargeInflows({ inflows }: Props) {
   const [timeRange, setTimeRange] = useState<TimeRange>('3months');
 
-  // 计算时间范围
-  const getDateRange = (range: TimeRange): { start: Date; end: Date } => {
+  const filteredInflows = useMemo(() => {
     const end = new Date();
     const start = new Date();
-    
-    switch (range) {
-      case '1month':
-        start.setMonth(start.getMonth() - 1);
-        break;
-      case '3months':
-        start.setMonth(start.getMonth() - 3);
-        break;
-      case '6months':
-        start.setMonth(start.getMonth() - 6);
-        break;
-      case 'all':
-        start.setFullYear(1970);
-        break;
-    }
-    
-    return { start, end };
-  };
+    if (timeRange === '1month')  start.setMonth(start.getMonth() - 1);
+    else if (timeRange === '3months') start.setMonth(start.getMonth() - 3);
+    else if (timeRange === '6months') start.setMonth(start.getMonth() - 6);
+    else start.setFullYear(1970);
 
-  // 根据时间范围筛选和排序
-  const filteredInflows = useMemo(() => {
-    const { start, end } = getDateRange(timeRange);
-    
     return inflows
       .filter(item => {
-        const itemDate = item.transaction.date;
-        return itemDate >= start && itemDate <= end;
+        const d = item.transaction.date;
+        return d >= start && d <= end;
       })
       .sort((a, b) => b.transaction.date.getTime() - a.transaction.date.getTime());
   }, [inflows, timeRange]);
-  if (filteredInflows.length === 0 && inflows.length === 0) {
+
+  if (inflows.length === 0) {
     return (
-      <section className="py-12 border-t border-border">
+      <section className="py-10 border-t border-border">
         <div className="mb-8">
-          <h2 className="text-sm font-semibold tracking-widest uppercase text-indigo mb-2">
-            Large Inflows
-          </h2>
+          <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Large Inflows</p>
           <h3 className="text-2xl font-bold text-foreground">大额入账监控</h3>
         </div>
-        <div className="text-center py-12 text-muted-foreground">
-          <TrendingUp className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>未检测到大额入账记录</p>
+        <div className="text-center py-16 text-muted-foreground">
+          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <TrendingUp className="w-7 h-7 opacity-30" />
+          </div>
+          <p className="font-medium">未检测到大额入账记录</p>
         </div>
       </section>
     );
@@ -75,138 +63,114 @@ export default function LargeInflows({ inflows }: Props) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6, delay: 0.5 }}
-      className="py-12 border-t border-border"
+      className="py-10 border-t border-border"
     >
-      <div className="mb-8">
-        <h2 className="text-sm font-semibold tracking-widest uppercase text-indigo mb-2">
-          Large Inflows
-        </h2>
+      <div className="mb-6">
+        <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Large Inflows</p>
         <h3 className="text-2xl font-bold text-foreground">大额入账监控</h3>
-        <p className="text-muted-foreground mt-1">
-          检测到 {filteredInflows.length} 笔大额入账
+        <p className="text-sm text-muted-foreground mt-1">
+          检测到 <span className="font-semibold text-foreground">{filteredInflows.length}</span> 笔大额入账
         </p>
       </div>
 
       {/* 时间范围选择器 */}
-      <div className="mb-6 flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-1 text-sm text-muted-foreground mr-2">
-          <Calendar className="w-4 h-4" />
-          <span>时间范围：</span>
+      <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mr-1">
+          <Calendar className="w-3.5 h-3.5" />
+          <span>时间范围</span>
         </div>
-        <Button
-          variant={timeRange === '1month' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setTimeRange('1month')}
-          className="text-xs"
-        >
-          最近1个月
-        </Button>
-        <Button
-          variant={timeRange === '3months' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setTimeRange('3months')}
-          className="text-xs"
-        >
-          最近3个月
-        </Button>
-        <Button
-          variant={timeRange === '6months' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setTimeRange('6months')}
-          className="text-xs"
-        >
-          最近6个月
-        </Button>
-        <Button
-          variant={timeRange === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setTimeRange('all')}
-          className="text-xs"
-        >
-          全部
-        </Button>
+        <div className="flex gap-1 bg-muted/60 rounded-lg p-1">
+          {TIME_RANGE_OPTIONS.map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setTimeRange(opt.key)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                timeRange === opt.key
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {filteredInflows.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <TrendingUp className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>该时间范围内未检测到大额入账记录</p>
+          <p className="text-sm">该时间范围内未检测到大额入账</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filteredInflows.map((item, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 * index }}
-            className={`border rounded-lg p-5 ${
-              item.isUnusual 
-                ? 'border-amber-warn/30 bg-amber-warn/5' 
-                : 'border-border'
-            }`}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                  item.isUnusual ? 'bg-amber-warn/10' : 'bg-emerald-ok/10'
-                }`}>
-                  <ArrowDownLeft className={`w-5 h-5 ${
-                    item.isUnusual ? 'text-amber-warn' : 'text-emerald-ok'
-                  }`} />
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.04 * index }}
+              className={`rounded-xl border p-4 ${
+                item.isUnusual
+                  ? 'border-amber-warn/30 bg-amber-warn/5'
+                  : 'border-border bg-muted/20'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                    item.isUnusual ? 'bg-amber-warn/15' : 'bg-emerald-ok/10'
+                  }`}>
+                    <ArrowDownLeft className={`w-4.5 h-4.5 ${item.isUnusual ? 'text-amber-warn' : 'text-emerald-ok'}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-semibold text-sm">{item.transaction.counterpart || '未知来源'}</span>
+                      {item.isUnusual && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-amber-warn border-amber-warn/30">
+                          <AlertCircle className="w-2.5 h-2.5 mr-0.5" />
+                          异常金额
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                      <span className="tabular-nums">{formatDate(item.transaction.date)}</span>
+                      <span>·</span>
+                      <span>{item.transaction.type}</span>
+                      <span>·</span>
+                      <span>{item.transaction.method}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      位于所有收入的 Top {(100 - item.percentile).toFixed(0)}%
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-lg">
-                      {item.transaction.counterpart || '未知来源'}
-                    </span>
-                    {item.isUnusual && (
-                      <Badge variant="outline" className="text-xs text-amber-warn border-amber-warn/20">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        异常金额
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <span className="tabular-nums">{formatDate(item.transaction.date)}</span>
-                    <span>·</span>
-                    <span>{item.transaction.type}</span>
-                    <span>·</span>
-                    <span>{item.transaction.method}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    位于所有收入的 Top {(100 - item.percentile).toFixed(0)}%
+                <div className="text-right shrink-0">
+                  <p className="text-xl font-bold tabular-nums text-emerald-ok leading-none">
+                    +{formatCurrency(item.transaction.amount)}
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold tabular-nums text-emerald-ok">
-                  +{formatCurrency(item.transaction.amount)}
-                </p>
-              </div>
-            </div>
 
-            {/* 关联支出 */}
-            {item.relatedOutflows.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-border/50">
-                <p className="text-xs font-medium text-muted-foreground mb-2">
-                  入账后的后续交易（最多10笔）
-                </p>
-                <div className="space-y-1">
-                  {item.relatedOutflows.slice(0, 10).map((tx, i) => (
-                    <div key={i} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {formatDate(tx.date)} · {tx.counterpart}
-                      </span>
-                      <span className="tabular-nums text-destructive font-medium">
-                        -{formatCurrency(tx.amount)}
-                      </span>
-                    </div>
-                  ))}
+              {item.relatedOutflows.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-border/50">
+                  <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+                    入账后续交易（最多10笔）
+                  </p>
+                  <div className="space-y-1.5">
+                    {item.relatedOutflows.slice(0, 10).map((tx, i) => (
+                      <div key={i} className="flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground">
+                          {formatDate(tx.date)} · {tx.counterpart}
+                        </span>
+                        <span className="tabular-nums text-destructive font-semibold ml-2 shrink-0">
+                          -{formatCurrency(tx.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </motion.div>
+              )}
+            </motion.div>
           ))}
         </div>
       )}

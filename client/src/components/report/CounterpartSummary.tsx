@@ -1,12 +1,13 @@
 /**
  * 交易对方汇总
  * 设计：极简数据叙事 - 清晰的对方关系网络
+ * 功能：点击对方名字直接展开全部交易明细
  */
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, type CounterpartSummary as CounterpartSummaryType } from '@/lib/analyzer';
-import { Users, Search } from 'lucide-react';
+import { Users, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Props {
@@ -18,14 +19,20 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'count' | 'totalIn' | 'totalOut' | 'netFlow'>('count');
   const [showDetails, setShowDetails] = useState(false);
+  const [expandedName, setExpandedName] = useState<string | null>(null);
 
-  // 获取搜索对方的所有交易明细
-  const searchedCounterpart = searchTerm.trim() 
-    ? data.find(d => d.name.toLowerCase() === searchTerm.toLowerCase()) || 
+  // 获取搜索对方的所有交易明细（搜索框）
+  const searchedCounterpart = searchTerm.trim()
+    ? data.find(d => d.name.toLowerCase() === searchTerm.toLowerCase()) ||
       data.find(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()))
     : null;
-  const detailedTransactions = searchedCounterpart 
+  const detailedTransactions = searchedCounterpart
     ? allTransactions.filter(tx => tx.counterpart.toLowerCase() === searchedCounterpart.name.toLowerCase())
+    : [];
+
+  // 获取点击展开对方的交易明细
+  const expandedTransactions = expandedName
+    ? allTransactions.filter(tx => tx.counterpart.toLowerCase() === expandedName.toLowerCase())
     : [];
 
   const filtered = data
@@ -48,6 +55,10 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
     netFlow: filtered.reduce((sum, item) => sum + item.netFlow, 0),
   } : null;
 
+  const handleRowClick = (name: string) => {
+    setExpandedName(prev => prev === name ? null : name);
+  };
+
   return (
     <motion.section
       initial={{ opacity: 0 }}
@@ -61,7 +72,7 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
         </h2>
         <h3 className="text-2xl font-bold text-foreground">交易对方分析</h3>
         <p className="text-muted-foreground mt-1">
-          共涉及 {data.length} 个交易对方
+          共涉及 {data.length} 个交易对方 · 点击对方名字可展开全部明细
         </p>
       </div>
 
@@ -73,7 +84,7 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
             type="text"
             placeholder="搜索交易对方..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setShowDetails(false); }}
             className="w-full pl-10 pr-4 py-2.5 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-indigo/20 focus:border-indigo"
           />
         </div>
@@ -88,8 +99,8 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
               key={item.key}
               onClick={() => setSortBy(item.key)}
               className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                sortBy === item.key 
-                  ? 'bg-background text-foreground shadow-sm' 
+                sortBy === item.key
+                  ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -104,25 +115,25 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-muted/50 rounded-lg border border-border"
+          className="mb-6 p-4 bg-muted/50 rounded-xl border border-border"
         >
-          <p className="text-sm font-medium text-foreground mb-3">搜索结果统计</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-            <div>
-              <p className="text-xs text-muted-foreground">笔数</p>
-              <p className="text-lg font-bold text-foreground">{searchStats.totalCount}</p>
+          <p className="text-sm font-semibold text-foreground mb-3">搜索结果统计</p>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-background rounded-lg p-3">
+              <p className="text-xs text-muted-foreground mb-1">笔数</p>
+              <p className="text-xl font-bold text-foreground">{searchStats.totalCount}</p>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">收入</p>
-              <p className="text-lg font-bold text-emerald-ok">{formatCurrency(searchStats.totalIn)}</p>
+            <div className="bg-background rounded-lg p-3">
+              <p className="text-xs text-muted-foreground mb-1">收入</p>
+              <p className="text-xl font-bold text-emerald-ok">{formatCurrency(searchStats.totalIn)}</p>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">支出</p>
-              <p className="text-lg font-bold text-destructive">{formatCurrency(searchStats.totalOut)}</p>
+            <div className="bg-background rounded-lg p-3">
+              <p className="text-xs text-muted-foreground mb-1">支出</p>
+              <p className="text-xl font-bold text-destructive">{formatCurrency(searchStats.totalOut)}</p>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">净额</p>
-              <p className={`text-lg font-bold ${searchStats.netFlow >= 0 ? 'text-emerald-ok' : 'text-destructive'}`}>
+            <div className="bg-background rounded-lg p-3">
+              <p className="text-xs text-muted-foreground mb-1">净额</p>
+              <p className={`text-xl font-bold ${searchStats.netFlow >= 0 ? 'text-emerald-ok' : 'text-destructive'}`}>
                 {searchStats.netFlow >= 0 ? '+' : ''}{formatCurrency(searchStats.netFlow)}
               </p>
             </div>
@@ -130,11 +141,7 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
           {detailedTransactions.length > 0 && (
             <button
               onClick={() => setShowDetails(!showDetails)}
-              className={`w-full py-3 rounded-lg font-semibold text-base transition-colors border-2 ${
-                showDetails
-                  ? 'bg-white text-emerald-ok border-emerald-ok hover:bg-emerald-ok/5'
-                  : 'bg-white text-emerald-ok border-emerald-ok hover:bg-emerald-ok/5'
-              }`}
+              className="w-full py-3.5 rounded-xl font-semibold text-base transition-all border-2 border-emerald-ok text-emerald-ok bg-white hover:bg-emerald-ok/5 active:scale-[0.98]"
             >
               {showDetails ? '▲ 隐藏详细流水' : '▼ 显示详细流水'}
             </button>
@@ -142,98 +149,169 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
         </motion.div>
       )}
 
-      {/* 详细交易明细（只显示一次） */}
-      {showDetails && detailedTransactions.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-muted/30 rounded-lg border border-border"
-        >
-          <p className="text-sm font-medium text-foreground mb-4">全部交易明细 ({detailedTransactions.length}笔)</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">日期时间</th>
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">交易类型</th>
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">交易方式</th>
-                  <th className="text-right py-2 px-3 font-medium text-muted-foreground">金额</th>
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">收/支</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detailedTransactions.map((tx, i) => (
-                  <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                    <td className="py-2 px-3 text-muted-foreground">{format(tx.date, 'MM-dd HH:mm:ss')}</td>
-                    <td className="py-2 px-3">{tx.type}</td>
-                    <td className="py-2 px-3 text-muted-foreground">{tx.method}</td>
-                    <td className="py-2 px-3 text-right font-medium tabular-nums">{formatCurrency(tx.amount)}</td>
-                    <td className={`py-2 px-3 font-medium ${tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'}`}>
-                      {tx.direction}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-      )}
+      {/* 详细交易明细（搜索框触发） */}
+      <AnimatePresence>
+        {showDetails && detailedTransactions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6 overflow-hidden"
+          >
+            <div className="p-4 bg-muted/30 rounded-xl border border-border">
+              <p className="text-sm font-semibold text-foreground mb-4">
+                {searchedCounterpart?.name} · 全部交易明细（{detailedTransactions.length}笔）
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">日期时间</th>
+                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">类型</th>
+                      <th className="text-right py-2 px-2 font-medium text-muted-foreground">金额</th>
+                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">收/支</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detailedTransactions.map((tx: any, i: number) => (
+                      <tr key={i} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                        <td className="py-2 px-2 text-muted-foreground tabular-nums">{format(tx.date, 'MM-dd HH:mm')}</td>
+                        <td className="py-2 px-2">{tx.type}</td>
+                        <td className="py-2 px-2 text-right font-medium tabular-nums">{formatCurrency(tx.amount)}</td>
+                        <td className={`py-2 px-2 font-medium ${tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'}`}>
+                          {tx.direction === '收入' || tx.direction === '收' ? '收入' : '支出'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 表格 */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">交易对方</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">笔数</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">收入</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">支出</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">净额</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">首次</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">最近</th>
+              <th className="text-left py-3 px-3 font-medium text-muted-foreground">交易对方</th>
+              <th className="text-right py-3 px-3 font-medium text-muted-foreground">笔数</th>
+              <th className="text-right py-3 px-3 font-medium text-muted-foreground">收入</th>
+              <th className="text-right py-3 px-3 font-medium text-muted-foreground">支出</th>
+              <th className="text-right py-3 px-3 font-medium text-muted-foreground hidden sm:table-cell">净额</th>
+              <th className="text-right py-3 px-3 font-medium text-muted-foreground hidden md:table-cell">首次</th>
+              <th className="text-right py-3 px-3 font-medium text-muted-foreground hidden md:table-cell">最近</th>
             </tr>
           </thead>
           <tbody>
             {filtered.slice(0, 50).map((item, i) => (
-              <motion.tr
-                key={item.name}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.02 * i }}
-                className="border-b border-border/50 hover:bg-muted/20 transition-colors"
-              >
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-indigo/10 flex items-center justify-center shrink-0">
-                      <Users className="w-3.5 h-3.5 text-indigo" />
+              <>
+                <motion.tr
+                  key={item.name}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.02 * i }}
+                  onClick={() => handleRowClick(item.name)}
+                  className={`border-b border-border/50 cursor-pointer transition-colors ${
+                    expandedName === item.name
+                      ? 'bg-indigo/5 hover:bg-indigo/10'
+                      : 'hover:bg-muted/30'
+                  }`}
+                >
+                  <td className="py-3 px-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                        expandedName === item.name ? 'bg-indigo/20' : 'bg-indigo/10'
+                      }`}>
+                        <Users className="w-3.5 h-3.5 text-indigo" />
+                      </div>
+                      <span className={`font-medium truncate max-w-[120px] sm:max-w-[200px] ${
+                        expandedName === item.name ? 'text-indigo' : ''
+                      }`}>{item.name}</span>
+                      {item.isRegular && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo/10 text-indigo font-medium shrink-0">
+                          常客
+                        </span>
+                      )}
+                      {expandedName === item.name
+                        ? <ChevronUp className="w-3.5 h-3.5 text-indigo ml-auto shrink-0" />
+                        : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/40 ml-auto shrink-0" />
+                      }
                     </div>
-                    <span className="font-medium truncate max-w-[200px]">{item.name}</span>
-                    {item.isRegular && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo/10 text-indigo font-medium">
-                        常客
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-right tabular-nums">{item.transactionCount}</td>
-                <td className="py-3 px-4 text-right tabular-nums text-emerald-ok">
-                  {item.totalIn > 0 ? formatCurrency(item.totalIn) : '-'}
-                </td>
-                <td className="py-3 px-4 text-right tabular-nums text-destructive">
-                  {item.totalOut > 0 ? formatCurrency(item.totalOut) : '-'}
-                </td>
-                <td className={`py-3 px-4 text-right tabular-nums font-medium ${
-                  item.netFlow >= 0 ? 'text-emerald-ok' : 'text-destructive'
-                }`}>
-                  {item.netFlow >= 0 ? '+' : ''}{formatCurrency(item.netFlow)}
-                </td>
-                <td className="py-3 px-4 text-right tabular-nums text-muted-foreground hidden md:table-cell">
-                  {format(item.firstDate, 'yy-MM-dd HH:mm')}
-                </td>
-                <td className="py-3 px-4 text-right tabular-nums text-muted-foreground hidden md:table-cell">
-                  {format(item.lastDate, 'yy-MM-dd HH:mm')}
-                </td>
-              </motion.tr>
+                  </td>
+                  <td className="py-3 px-3 text-right tabular-nums">{item.transactionCount}</td>
+                  <td className="py-3 px-3 text-right tabular-nums text-emerald-ok">
+                    {item.totalIn > 0 ? formatCurrency(item.totalIn) : '-'}
+                  </td>
+                  <td className="py-3 px-3 text-right tabular-nums text-destructive">
+                    {item.totalOut > 0 ? formatCurrency(item.totalOut) : '-'}
+                  </td>
+                  <td className={`py-3 px-3 text-right tabular-nums font-medium hidden sm:table-cell ${
+                    item.netFlow >= 0 ? 'text-emerald-ok' : 'text-destructive'
+                  }`}>
+                    {item.netFlow >= 0 ? '+' : ''}{formatCurrency(item.netFlow)}
+                  </td>
+                  <td className="py-3 px-3 text-right tabular-nums text-muted-foreground hidden md:table-cell text-xs">
+                    {format(item.firstDate, 'yy-MM-dd HH:mm')}
+                  </td>
+                  <td className="py-3 px-3 text-right tabular-nums text-muted-foreground hidden md:table-cell text-xs">
+                    {format(item.lastDate, 'yy-MM-dd HH:mm')}
+                  </td>
+                </motion.tr>
+
+                {/* 展开的交易明细行 */}
+                {expandedName === item.name && expandedTransactions.length > 0 && (
+                  <tr key={`${item.name}-details`}>
+                    <td colSpan={7} className="p-0">
+                      <AnimatePresence>
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.25 }}
+                          className="overflow-hidden bg-indigo/3 border-b border-indigo/10"
+                        >
+                          <div className="px-4 py-3">
+                            <p className="text-xs font-semibold text-indigo mb-2">
+                              {item.name} · 全部 {expandedTransactions.length} 笔交易
+                            </p>
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="text-muted-foreground">
+                                  <th className="text-left py-1.5 pr-3 font-medium">日期时间</th>
+                                  <th className="text-left py-1.5 pr-3 font-medium">类型</th>
+                                  <th className="text-right py-1.5 pr-3 font-medium">金额</th>
+                                  <th className="text-left py-1.5 font-medium">收/支</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {expandedTransactions.map((tx: any, j: number) => (
+                                  <tr key={j} className="border-t border-indigo/10">
+                                    <td className="py-1.5 pr-3 tabular-nums text-muted-foreground">{format(tx.date, 'MM-dd HH:mm')}</td>
+                                    <td className="py-1.5 pr-3">{tx.type}</td>
+                                    <td className={`py-1.5 pr-3 text-right tabular-nums font-semibold ${
+                                      tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'
+                                    }`}>
+                                      {tx.direction === '收入' || tx.direction === '收' ? '+' : '-'}{formatCurrency(tx.amount)}
+                                    </td>
+                                    <td className={`py-1.5 font-medium ${
+                                      tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'
+                                    }`}>
+                                      {tx.direction === '收入' || tx.direction === '收' ? '收入' : '支出'}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </motion.div>
+                      </AnimatePresence>
+                    </td>
+                  </tr>
+                )}
+              </>
             ))}
           </tbody>
         </table>

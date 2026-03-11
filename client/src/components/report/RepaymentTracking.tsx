@@ -1,13 +1,12 @@
 /**
  * 还款追踪展示
- * 设计：极简数据叙事 - 清晰的还款来源追踪
- * 改进：收入与支出合并在一个表格中展示，按日期排序
+ * 设计：精致卡片式 - 收支合并展示，风险等级色彩编码
  */
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatDate, type RepaymentRecord } from '@/lib/analyzer';
-import { ChevronDown, Wallet, CreditCard, TrendingUp, TrendingDown } from 'lucide-react';
+import { ChevronDown, Wallet, CreditCard, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface Props {
@@ -17,21 +16,20 @@ interface Props {
 export default function RepaymentTracking({ records }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
-  // 只显示规律还款
   const meaningfulRecords = records.filter(r => r.isRegular && r.repayments.length >= 2);
 
   if (meaningfulRecords.length === 0) {
     return (
-      <section className="py-12 border-t border-border">
+      <section className="py-10 border-t border-border">
         <div className="mb-8">
-          <h2 className="text-sm font-semibold tracking-widest uppercase text-indigo mb-2">
-            Repayment Tracking
-          </h2>
+          <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Repayment Tracking</p>
           <h3 className="text-2xl font-bold text-foreground">还款追踪</h3>
         </div>
-        <div className="text-center py-12 text-muted-foreground">
-          <Wallet className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>未检测到明显的还款记录</p>
+        <div className="text-center py-16 text-muted-foreground">
+          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <Wallet className="w-7 h-7 opacity-30" />
+          </div>
+          <p className="font-medium">未检测到明显的还款记录</p>
         </div>
       </section>
     );
@@ -42,15 +40,13 @@ export default function RepaymentTracking({ records }: Props) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6, delay: 0.4 }}
-      className="py-12 border-t border-border"
+      className="py-10 border-t border-border"
     >
       <div className="mb-8">
-        <h2 className="text-sm font-semibold tracking-widest uppercase text-indigo mb-2">
-          Repayment Tracking
-        </h2>
+        <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Repayment Tracking</p>
         <h3 className="text-2xl font-bold text-foreground">还款追踪</h3>
-        <p className="text-muted-foreground mt-1">
-          追踪到 {meaningfulRecords.length} 组还款记录
+        <p className="text-sm text-muted-foreground mt-1">
+          追踪到 <span className="font-semibold text-foreground">{meaningfulRecords.length}</span> 组规律还款记录
         </p>
       </div>
 
@@ -58,43 +54,55 @@ export default function RepaymentTracking({ records }: Props) {
         {meaningfulRecords.slice(0, 30).map((record, index) => {
           const isExpanded = expandedIndex === index;
 
-          // 合并收入和支出，按日期降序排列
           const allTxs = [
             ...record.repayments.map(t => ({ ...t, _dir: 'out' as const })),
             ...record.incomings.map(t => ({ ...t, _dir: 'in' as const })),
           ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
+          const hasIncoming = record.incomings.length > 0;
+          const netFlow = record.totalReceived - record.totalRepaid;
+
           return (
             <motion.div
               key={`${record.counterpart}-${index}`}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 * index }}
-              className="border border-border rounded-lg overflow-hidden"
+              transition={{ delay: 0.04 * index }}
+              className="rounded-xl overflow-hidden border border-border"
             >
               <button
                 onClick={() => setExpandedIndex(isExpanded ? null : index)}
-                className="w-full flex items-center justify-between p-4 hover:bg-muted/20 transition-colors text-left"
+                className={`w-full flex items-center justify-between px-4 py-3.5 transition-colors text-left ${
+                  isExpanded ? 'bg-indigo/5' : 'hover:bg-muted/30'
+                }`}
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-indigo/10 flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-indigo" />
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                    isExpanded ? 'bg-indigo/20' : 'bg-indigo/10'
+                  }`}>
+                    <CreditCard className="w-4.5 h-4.5 text-indigo" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{record.counterpart}</span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-sm">{record.counterpart}</span>
                       {record.isRegular && (
-                        <Badge variant="outline" className="text-xs text-amber-warn border-amber-warn/20">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-amber-warn border-amber-warn/30">
                           规律还款
                         </Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
-                      <span>{record.repayments.length} 笔支出</span>
-                      {record.incomings.length > 0 && (
+                    <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground flex-wrap">
+                      <span className="flex items-center gap-0.5">
+                        <TrendingDown className="w-3 h-3 text-destructive" />
+                        {record.repayments.length}笔支出
+                      </span>
+                      {hasIncoming && (
                         <>
                           <span>·</span>
-                          <span>{record.incomings.length} 笔收入</span>
+                          <span className="flex items-center gap-0.5">
+                            <TrendingUp className="w-3 h-3 text-emerald-ok" />
+                            {record.incomings.length}笔收入
+                          </span>
                         </>
                       )}
                       <span>·</span>
@@ -102,26 +110,24 @@ export default function RepaymentTracking({ records }: Props) {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 shrink-0">
-                  <div className="text-right space-y-1">
-                    <div className="flex items-center gap-1.5 justify-end">
-                      <TrendingDown className="w-3.5 h-3.5 text-destructive" />
-                      <p className="font-bold tabular-nums text-destructive text-sm">
+                <div className="flex items-center gap-3 shrink-0 ml-2">
+                  <div className="text-right space-y-0.5">
+                    <div className="flex items-center gap-1 justify-end">
+                      <TrendingDown className="w-3 h-3 text-destructive" />
+                      <span className="font-bold tabular-nums text-destructive text-xs">
                         {formatCurrency(record.totalRepaid)}
-                      </p>
+                      </span>
                     </div>
-                    {record.totalReceived > 0 && (
-                      <div className="flex items-center gap-1.5 justify-end">
-                        <TrendingUp className="w-3.5 h-3.5 text-emerald-ok" />
-                        <p className="font-bold tabular-nums text-emerald-ok text-sm">
+                    {hasIncoming && (
+                      <div className="flex items-center gap-1 justify-end">
+                        <TrendingUp className="w-3 h-3 text-emerald-ok" />
+                        <span className="font-bold tabular-nums text-emerald-ok text-xs">
                           {formatCurrency(record.totalReceived)}
-                        </p>
+                        </span>
                       </div>
                     )}
                   </div>
-                  <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${
-                    isExpanded ? 'rotate-180' : ''
-                  }`} />
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
               </button>
 
@@ -131,22 +137,32 @@ export default function RepaymentTracking({ records }: Props) {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.25 }}
                     className="overflow-hidden"
                   >
-                    <div className="border-t border-border/50 p-4 space-y-4">
-                      {/* 还款来源分析 */}
+                    <div className="border-t border-border/40 bg-background/60 p-4 space-y-4">
+                      {/* 净额汇总 */}
+                      {hasIncoming && (
+                        <div className={`rounded-lg px-4 py-3 flex items-center justify-between ${
+                          netFlow >= 0 ? 'bg-emerald-ok/5 border border-emerald-ok/20' : 'bg-destructive/5 border border-destructive/20'
+                        }`}>
+                          <span className="text-xs font-medium text-muted-foreground">净流量（收入 - 支出）</span>
+                          <span className={`font-bold tabular-nums text-sm ${netFlow >= 0 ? 'text-emerald-ok' : 'text-destructive'}`}>
+                            {netFlow >= 0 ? '+' : ''}{formatCurrency(netFlow)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* 还款来源 */}
                       {record.sources.length > 0 && (
                         <div>
-                          <h4 className="text-sm font-medium text-muted-foreground mb-3">还款来源</h4>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">还款来源</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {record.sources.map((source, i) => (
-                              <div key={i} className="bg-muted/30 rounded-md p-3">
-                                <p className="text-sm font-medium">{source.method}</p>
-                                <p className="text-lg font-bold tabular-nums mt-1">
-                                  {formatCurrency(source.total)}
-                                </p>
-                                <p className="text-xs text-muted-foreground">{source.count} 笔</p>
+                              <div key={i} className="bg-muted/40 rounded-lg p-3">
+                                <p className="text-xs font-medium text-muted-foreground">{source.method}</p>
+                                <p className="text-base font-bold tabular-nums mt-0.5">{formatCurrency(source.total)}</p>
+                                <p className="text-xs text-muted-foreground/70">{source.count} 笔</p>
                               </div>
                             ))}
                           </div>
@@ -155,40 +171,40 @@ export default function RepaymentTracking({ records }: Props) {
 
                       {/* 收支合并明细 */}
                       <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                        <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
                           全部交易明细（{allTxs.length} 笔）
-                        </h4>
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="text-muted-foreground">
-                              <th className="text-left py-2 font-medium">日期</th>
-                              <th className="text-left py-2 font-medium">来源</th>
-                              <th className="text-right py-2 font-medium">金额</th>
-                              <th className="text-left py-2 font-medium">收/支</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {allTxs.slice(0, 30).map((tx, i) => (
-                              <tr key={i} className="border-t border-border/30">
-                                <td className="py-2 tabular-nums">{formatDate(tx.date)}</td>
-                                <td className="py-2">{tx.method}</td>
-                                <td className={`py-2 text-right tabular-nums font-medium ${
-                                  tx._dir === 'out' ? 'text-destructive' : 'text-emerald-ok'
-                                }`}>
-                                  {tx._dir === 'out' ? '-' : '+'}{formatCurrency(tx.amount)}
-                                </td>
-                                <td className={`py-2 text-xs font-medium ${
-                                  tx._dir === 'out' ? 'text-destructive' : 'text-emerald-ok'
-                                }`}>
-                                  {tx._dir === 'out' ? '支出' : '收入'}
-                                </td>
+                        </p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-border/60">
+                                <th className="text-left py-2 pr-3 font-medium text-muted-foreground">日期</th>
+                                <th className="text-left py-2 pr-3 font-medium text-muted-foreground">来源</th>
+                                <th className="text-right py-2 pr-3 font-medium text-muted-foreground">金额</th>
+                                <th className="text-left py-2 font-medium text-muted-foreground">收/支</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {allTxs.slice(0, 30).map((tx, i) => (
+                                <tr key={i} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                                  <td className="py-2 pr-3 tabular-nums text-muted-foreground">{formatDate(tx.date)}</td>
+                                  <td className="py-2 pr-3">{tx.method}</td>
+                                  <td className={`py-2 pr-3 text-right tabular-nums font-semibold ${tx._dir === 'out' ? 'text-destructive' : 'text-emerald-ok'}`}>
+                                    {tx._dir === 'out' ? '-' : '+'}{formatCurrency(tx.amount)}
+                                  </td>
+                                  <td className="py-2">
+                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${tx._dir === 'out' ? 'text-destructive bg-destructive/10' : 'text-emerald-ok bg-emerald-ok/10'}`}>
+                                      {tx._dir === 'out' ? '支出' : '收入'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                         {allTxs.length > 30 && (
-                          <p className="text-xs text-muted-foreground mt-2 text-center">
-                            仅显示前30条，共 {allTxs.length} 条记录
+                          <p className="text-xs text-muted-foreground mt-3 text-center">
+                            仅显示前 30 条，共 {allTxs.length} 条记录
                           </p>
                         )}
                       </div>

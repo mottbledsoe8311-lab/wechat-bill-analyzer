@@ -175,11 +175,11 @@ export default function Home() {
         <div className="container flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
             <img 
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663269350406/SXgJ57d4GB9RBvAf3PYHaj/57da3f797bc6e8316f697d6b38c89a14_c3c1d23e.webp" 
-              alt="WeChat" 
-              className="w-8 h-8 rounded-lg"
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663269350406/SXgJ57d4GB9RBvAf3PYHaj/orange-logo_9f1e46c0.png" 
+              alt="橙子账单" 
+              className="w-10 h-10 rounded-xl object-cover"
             />
-            <span className="font-bold text-lg tracking-tight" style={{ color: '#ff8800' }}>大橙子账单分析系统</span>
+            <span className="font-bold text-lg tracking-tight" style={{ color: '#ff8800' }}>橙子账单分析系统</span>
           </div>
           {state === 'report' && (
             <Button
@@ -223,7 +223,7 @@ export default function Home() {
                     transition={{ duration: 0.7, ease: 'easeOut' }}
                   >
                     <p className="text-sm font-semibold tracking-widest uppercase text-indigo mb-4">
-                      WeChat Bill Analyzer
+                      Orange Bill Analyzer
                     </p>
                     <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1] tracking-tight">
                       微信流水账单

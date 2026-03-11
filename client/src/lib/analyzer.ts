@@ -333,6 +333,22 @@ function buildMonthlyBreakdown(transactions: Transaction[]): MonthlyData[] {
 
 // ============ 规律转账识别 ============
 
+// 需要过滤的银行/提现/充值关键词（这些不是可疑的个人转账）
+const BANK_WITHDRAW_KEYWORDS = [
+  '银行', '提现', '充值', '零钱', '理财', '基金', '股票', '证券',
+  '招商', '工行', '建行', '农行', '中行', '交行', '邮储', '浦发',
+  '光大', '民生', '兴业', '华夏', '平安', '广发', '中信', '渤海',
+  '微众', '网商', '余额宝', '花呗', '借呗', '白条', '金条',
+  '支付宝', '财付通', '零钱通', '理财通',
+  'ATM', 'atm', '自动取款',
+];
+
+function isBankOrWithdraw(name: string): boolean {
+  if (!name) return false;
+  const lower = name.toLowerCase();
+  return BANK_WITHDRAW_KEYWORDS.some(kw => lower.includes(kw.toLowerCase()));
+}
+
 function detectRegularTransfers(transactions: Transaction[]): RegularTransferGroup[] {
   const results: RegularTransferGroup[] = [];
   
@@ -345,12 +361,8 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
     name = name.replace(/[^\u4e00-\u9fa5a-zA-Z0-9\s\-_()（）]/g, '').trim();
     if (!name) continue;
     
-    // 只关注转账类型
-    const isTransfer = tx.type?.includes('转账') || 
-                       tx.type?.includes('红包') ||
-                       tx.type?.includes('转入') ||
-                       tx.type?.includes('转出') ||
-                       tx.type?.includes('付款');
+    // 过滤银行提现、充值等非个人转账
+    if (isBankOrWithdraw(name)) continue;
     
     // 也包含所有收支记录
     const key = `${name}|${tx.direction}`;
@@ -378,27 +390,33 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
     // 检测规律性
     const regularPattern = detectPattern(intervals);
     if (regularPattern) {
-      // 检测金额规律性 - 金额必须有规律（至少50%的金额相同或相近）
+      // 检测金额规律性 - 金额必须有规律（至屑50%的金额相同或相近）
       const amounts = sorted.map(t => t.amount);
       const amountRegularity = detectAmountRegularity(amounts);
-      if (!amountRegularity) continue; // 如果金额没有规律，跳过
+      if (!amountRegularity.valid) continue; // 如果金额没有规律，跳过
       
       const totalAmount = sorted.reduce((sum, t) => sum + t.amount, 0);
       const avgAmount = totalAmount / sorted.length;
       
+      // 置信度100%需要至少2笔金额相同
+      let finalConfidence = regularPattern.confidence;
+      if (finalConfidence >= 1.0 && amountRegularity.maxSameCount < 2) {
+        finalConfidence = 0.95; // 降级为95%，不达到100%
+      }
+      
       // 判断风险等级（收入和支出都参与评级）
       let riskLevel: 'low' | 'medium' | 'high' = 'low';
-      if (regularPattern.confidence > 0.6 && avgAmount > 500) riskLevel = 'medium';
-      if (regularPattern.confidence > 0.7 && avgAmount > 2000) riskLevel = 'medium';
-      if (regularPattern.confidence > 0.8 && avgAmount > 5000) riskLevel = 'high';
+      if (finalConfidence > 0.6 && avgAmount > 500) riskLevel = 'medium';
+      if (finalConfidence > 0.7 && avgAmount > 2000) riskLevel = 'medium';
+      if (finalConfidence > 0.8 && avgAmount > 5000) riskLevel = 'high';
       // 支出方向风险更高
       if (direction === '支出' || direction === '支') {
-        if (regularPattern.confidence > 0.6 && avgAmount > 3000) riskLevel = 'high';
+        if (finalConfidence > 0.6 && avgAmount > 3000) riskLevel = 'high';
       }
       // 收入方向：高置信度+大额也是中/高风险
       if (direction === '收入' || direction === '收') {
-        if (regularPattern.confidence > 0.6 && avgAmount > 1000) riskLevel = 'medium';
-        if (regularPattern.confidence > 0.8 && avgAmount > 5000) riskLevel = 'high';
+        if (finalConfidence > 0.6 && avgAmount > 1000) riskLevel = 'medium';
+        if (finalConfidence > 0.8 && avgAmount > 5000) riskLevel = 'high';
       }
 
       results.push({
@@ -409,7 +427,7 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
         avgAmount,
         totalAmount,
         transactions: sorted,
-        confidence: regularPattern.confidence,
+        confidence: finalConfidence,
         riskLevel,
       });
     }
@@ -432,22 +450,26 @@ interface PatternResult {
 }
 
 /**
- * 检测金额规律性 - 检查是否有至少50%的金额相同或相近（±5%）
+ * 检测金额规律性 - 检查是否有至屑50%的金额相同或相近（±5%）
+ * 返回最高频率金额的出现次数，用于判断置信度100%
  */
-function detectAmountRegularity(amounts: number[]): boolean {
-  if (amounts.length < 3) return false;
+function detectAmountRegularity(amounts: number[]): { valid: boolean; maxSameCount: number } {
+  if (amounts.length < 3) return { valid: false, maxSameCount: 0 };
   
-  // 统计金额出现频率
+  // 统计金额出现频率（四舍五入到最近的10元）
   const amountMap: Record<string, number> = {};
   for (const amount of amounts) {
-    const rounded = Math.round(amount / 10) * 10; // 四舍五入到最近的10元
+    const rounded = Math.round(amount / 10) * 10;
     const key = rounded.toString();
     amountMap[key] = (amountMap[key] || 0) + 1;
   }
   
   // 检查是否有金额出现频率达到50%
   const maxFrequency = Math.max(...Object.values(amountMap));
-  return maxFrequency / amounts.length >= 0.5;
+  return {
+    valid: maxFrequency / amounts.length >= 0.5,
+    maxSameCount: maxFrequency,
+  };
 }
 
 function detectPattern(intervals: number[]): PatternResult | null {
