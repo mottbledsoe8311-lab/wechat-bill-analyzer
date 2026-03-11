@@ -9,22 +9,39 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
 
-// 初始化 PDF.js worker（延迟到首次使用时）
+// 初始化 PDF.js worker
+// 使用 Blob Worker 方案解决 iOS Safari 跨域限制
 let workerInitialized = false;
+let workerBlobUrl: string | null = null;
 
-function initPDFWorker() {
+// Worker CDN URL——cdnjs.cloudflare.com 支持 CORS，可用于 Blob Worker 方案
+const WORKER_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+async function initPDFWorkerAsync(): Promise<void> {
   if (workerInitialized) return;
   workerInitialized = true;
-  
+
   try {
-    // 使用 CDN worker，官方推荐的方案
-    // 使用 unpkg CDN 上的 5.5.207 版本 worker
-    const workerSrc = 'https://unpkg.com/pdfjs-dist@5.5.207/build/pdf.worker.min.mjs';
-    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc;
-    console.log('[PDF.js] Worker source set to:', workerSrc);
+    // 方案 1：尝试通过 fetch 获取 worker 内容，创建 Blob URL（同源）
+    // 这是解决 iOS Safari "Setting up fake worker failed" 的最可靠方案
+    const response = await fetch(WORKER_CDN_URL, { mode: 'cors' });
+    if (!response.ok) throw new Error(`Worker fetch failed: ${response.status}`);
+    const blob = await response.blob();
+    const jsBlob = new Blob([blob], { type: 'application/javascript' });
+    workerBlobUrl = URL.createObjectURL(jsBlob);
+    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerBlobUrl;
+    console.log('[PDF.js] Worker initialized via Blob URL (iOS Safari compatible)');
   } catch (e) {
-    console.error('[PDF.js] Failed to initialize worker:', e);
+    console.warn('[PDF.js] Blob worker failed, falling back to CDN URL:', e);
+    // 方案 2：直接使用 CDN URL（如果 fetch 失败）
+    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = WORKER_CDN_URL;
+    console.log('[PDF.js] Worker initialized with CDN URL:', WORKER_CDN_URL);
   }
+}
+
+// 同步包装（向后兼容）
+function initPDFWorker() {
+  // no-op: use initPDFWorkerAsync instead
 }
 
 export interface Transaction {
@@ -308,7 +325,7 @@ export async function parsePDF(
   file: File,
   onProgress?: ProgressCallback
 ): Promise<ParseResult> {
-  initPDFWorker();
+  await initPDFWorkerAsync();
   const errors: string[] = [];
   const transactions: Transaction[] = [];
   let accountInfo: AccountInfo = {
@@ -494,63 +511,81 @@ export async function parsePDF(
         const sortedRows = Array.from(rows.entries())
           .sort((a, b) => b[0] - a[0]);
 
-        // 修复：合并分离的日期和时间（双向处理）
-        // 在某些 PDF 中，日期和时间可能被分成两行
+        // 修复：合并分离的日期和时间
+        // 微信账单 PDF 结构：
+        //   行1: 订单号前缀 + 日期 + 交易类型 + 收/支 + 支付方式 + 金额 + 交易对方
+        //   行2: 订单号后缀 + 时间(HH:MM:SS)（时间可能与数字相连，如 37508918:40:22）
         const mergedRows: Array<{ y: number; cells: { x: number; str: string }[] }> = [];
         let rowIdx = 0;
         while (rowIdx < sortedRows.length) {
           const [y, cells] = sortedRows[rowIdx];
           const lineText = cells.map(c => c.str).join(' ');
           
-          // 检查当前行是否只有时间（HH:MM:SS 或 HH:MM）
-          const isTimeOnly = /^\d{1,2}:\d{2}(?::\d{2})?$/.test(lineText.trim());
-          
           // 检查当前行是否有日期
           const hasDate = /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(lineText);
           
-          // 检查下一行是否只有时间
-          const nextLineIsTimeOnly = rowIdx + 1 < sortedRows.length && 
-            /^\d{1,2}:\d{2}(?::\d{2})?$/.test(sortedRows[rowIdx + 1][1].map(c => c.str).join(' ').trim());
+          // 检查当前行是否已经包含时间
+          const alreadyHasTime = /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\s+\d{1,2}:\d{2}/.test(lineText);
           
-          // 检查上一行是否有日期
-          const prevLineHasDate = mergedRows.length > 0 && 
-            /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(mergedRows[mergedRows.length - 1].cells.map(c => c.str).join(' '));
+          // 检查上一行是否有日期但没有时间
+          const prevLineHasDateNoTime = mergedRows.length > 0 && (() => {
+            const prevText = mergedRows[mergedRows.length - 1].cells.map(c => c.str).join(' ');
+            return /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(prevText) && 
+                   !/\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\s+\d{1,2}:\d{2}/.test(prevText);
+          })();
           
-          // 情况1：当前行有日期，下一行只有时间 -> 合并到当前行
-          if (hasDate && nextLineIsTimeOnly) {
-            const [nextY, nextCells] = sortedRows[rowIdx + 1];
-            const timeStr = nextCells.map(c => c.str).join(' ').trim();
+          if (hasDate && !alreadyHasTime) {
+            // 当前行有日期但无时间，在后续 2 行内查找时间
+            // 时间格式：HH:MM:SS（可能与其他数字相连，如 37508918:40:22）
+            let timeStr = '';
             
-            const mergedText = lineText.replace(
-              /(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/,
-              `$1 ${timeStr}`
-            );
-            
-            const mergedCells = cells.map((c, idx) => {
-              if (idx === 0) {
-                return { ...c, str: mergedText };
+            for (let offset = 1; offset <= 2; offset++) {
+              if (rowIdx + offset < sortedRows.length) {
+                const candidateText = sortedRows[rowIdx + offset][1].map((c: {x: number; str: string}) => c.str).join(' ');
+                // 从候选行中提取时间（允许时间前后有数字）
+                const timeMatch = candidateText.match(/(\d{1,2}:\d{2}:\d{2})/);
+                if (timeMatch) {
+                  timeStr = timeMatch[1];
+                  break;
+                }
               }
-              return { ...c };
-            });
+            }
             
-            mergedRows.push({ y, cells: mergedCells });
-            rowIdx += 2;
-          }
-          // 情况2：当前行只有时间，上一行有日期 -> 合并到上一行
-          else if (isTimeOnly && prevLineHasDate) {
-            const prevRow = mergedRows[mergedRows.length - 1];
-            const prevLineText = prevRow.cells.map(c => c.str).join(' ');
-            
-            const mergedText = prevLineText.replace(
-              /(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/,
-              `$1 ${lineText.trim()}`
-            );
-            
-            prevRow.cells[0] = { ...prevRow.cells[0], str: mergedText };
+            if (timeStr) {
+              // 将时间插入到日期后面
+              const mergedText = lineText.replace(
+                /(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/,
+                `$1 ${timeStr}`
+              );
+              
+              const mergedCells = cells.map((c: {x: number; str: string}, idx: number) => {
+                if (idx === 0) {
+                  return { ...c, str: mergedText };
+                }
+                return { ...c };
+              });
+              
+              mergedRows.push({ y, cells: mergedCells });
+            } else {
+              mergedRows.push({ y, cells });
+            }
             rowIdx += 1;
-          }
-          // 情况3：其他情况 -> 直接添加
-          else {
+          } else if (!hasDate && prevLineHasDateNoTime) {
+            // 当前行没有日期，但上一行有日期无时间
+            // 尝试从当前行提取时间并合并到上一行
+            const timeMatch = lineText.match(/(\d{1,2}:\d{2}:\d{2})/);
+            if (timeMatch) {
+              const prevRow = mergedRows[mergedRows.length - 1];
+              const prevLineText = prevRow.cells.map((c: {x: number; str: string}) => c.str).join(' ');
+              const mergedText = prevLineText.replace(
+                /(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/,
+                `$1 ${timeMatch[1]}`
+              );
+              prevRow.cells[0] = { ...prevRow.cells[0], str: mergedText };
+            }
+            mergedRows.push({ y, cells });
+            rowIdx += 1;
+          } else {
             mergedRows.push({ y, cells });
             rowIdx += 1;
           }

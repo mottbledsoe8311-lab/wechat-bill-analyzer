@@ -99,3 +99,8 @@
 ## iOS Promise.withResolvers 兼容性修复
 - [x] 为 iOS 添加 Promise.withResolvers polyfill
 - [x] 确保 Android 不受影响
+
+
+## iOS PDF 解析彻底修复（第四轮）
+- [ ] 切换到不需要 worker 的 PDF.js 方案（使用 pdf.sandbox.mjs）
+- [ ] 确保 iOS 和 Android 都能正常使用
