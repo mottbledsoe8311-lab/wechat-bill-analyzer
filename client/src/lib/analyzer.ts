@@ -386,12 +386,19 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
       const totalAmount = sorted.reduce((sum, t) => sum + t.amount, 0);
       const avgAmount = totalAmount / sorted.length;
       
-      // 判断风险等级
+      // 判断风险等级（收入和支出都参与评级）
       let riskLevel: 'low' | 'medium' | 'high' = 'low';
-      if (regularPattern.confidence > 0.7 && avgAmount > 1000) riskLevel = 'medium';
+      if (regularPattern.confidence > 0.6 && avgAmount > 500) riskLevel = 'medium';
+      if (regularPattern.confidence > 0.7 && avgAmount > 2000) riskLevel = 'medium';
       if (regularPattern.confidence > 0.8 && avgAmount > 5000) riskLevel = 'high';
+      // 支出方向风险更高
       if (direction === '支出' || direction === '支') {
         if (regularPattern.confidence > 0.6 && avgAmount > 3000) riskLevel = 'high';
+      }
+      // 收入方向：高置信度+大额也是中/高风险
+      if (direction === '收入' || direction === '收') {
+        if (regularPattern.confidence > 0.6 && avgAmount > 1000) riskLevel = 'medium';
+        if (regularPattern.confidence > 0.8 && avgAmount > 5000) riskLevel = 'high';
       }
 
       results.push({

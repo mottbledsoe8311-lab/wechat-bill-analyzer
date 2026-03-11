@@ -11,7 +11,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { FileText, RotateCcw, Shield, Zap, Eye, ChevronDown, MessageCircle } from 'lucide-react';
+import { RotateCcw, Shield, Zap, Eye, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import FileUpload from '@/components/FileUpload';
@@ -22,7 +22,6 @@ import RegularTransfers from '@/components/report/RegularTransfers';
 import RepaymentTracking from '@/components/report/RepaymentTracking';
 import LargeInflows from '@/components/report/LargeInflows';
 import CounterpartSummary from '@/components/report/CounterpartSummary';
-import CustomerScoreCard from '@/components/report/CustomerScore';
 
 import { parsePDF, type ParseResult } from '@/lib/pdfParser';
 import { analyzeTransactions, type AnalysisResult } from '@/lib/analyzer';
@@ -415,7 +414,6 @@ export default function Home() {
                 {/* 快速导航 */}
                 <div className="flex flex-wrap gap-2 mt-6">
                   {[
-                    { id: 'score', label: '客户评分' },
                     { id: 'overview', label: '概览' },
                     { id: 'monthly', label: '月度趋势' },
                     { id: 'regular', label: '规律转账' },
@@ -441,9 +439,6 @@ export default function Home() {
 
             {/* 报表内容 */}
             <div className="container">
-              <div id="score">
-                <CustomerScoreCard score={analysisResult.customerScore} />
-              </div>
               <div id="overview">
                 <OverviewSection stats={analysisResult.overview} />
               </div>

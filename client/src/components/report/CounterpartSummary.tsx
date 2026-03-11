@@ -130,10 +130,10 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
           {detailedTransactions.length > 0 && (
             <button
               onClick={() => setShowDetails(!showDetails)}
-              className={`w-full py-3 rounded-lg font-semibold text-base transition-colors ${
+              className={`w-full py-3 rounded-lg font-semibold text-base transition-colors border-2 ${
                 showDetails
-                  ? 'bg-emerald-ok/20 text-emerald-ok hover:bg-emerald-ok/30 border border-emerald-ok/30'
-                  : 'bg-emerald-ok text-white hover:bg-emerald-ok/90 shadow-sm'
+                  ? 'bg-white text-emerald-ok border-emerald-ok hover:bg-emerald-ok/5'
+                  : 'bg-white text-emerald-ok border-emerald-ok hover:bg-emerald-ok/5'
               }`}
             >
               {showDetails ? '▲ 隐藏详细流水' : '▼ 显示详细流水'}
