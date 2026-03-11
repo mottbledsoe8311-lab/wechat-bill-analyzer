@@ -87,3 +87,10 @@
 - [x] 对所有浏览器禁用 PDF.js worker，使用主线程处理
 - [x] 避免 ESM worker 加载问题和跨域问题
 - [x] 验证 PDF 可以被正确提取（包含日期和时间）
+
+
+## PDF.js Worker CDN 方案（最终修复）
+- [x] 改用 unpkg CDN 加载 worker（官方推荐方案）
+- [x] 使用 https://unpkg.com/pdfjs-dist@5.5.207/build/pdf.worker.min.mjs
+- [x] 避免本地 worker 加载和跨域问题
+- [x] 编译成功，服务器正常运行

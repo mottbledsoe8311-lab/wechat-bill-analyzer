@@ -17,16 +17,13 @@ function initPDFWorker() {
   workerInitialized = true;
   
   try {
-    // 对所有浏览器都禁用 worker，使用主线程处理
-    // 这避免了 ESM worker 加载问题和跨域问题
-    console.log('[PDF.js] Disabling worker - using main thread processing');
-    (pdfjsLib as any).disableWorker = true;
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-    console.log('[PDF.js] Worker initialization complete');
+    // 使用 CDN worker，官方推荐的方案
+    // 使用 unpkg CDN 上的 5.5.207 版本 worker
+    const workerSrc = 'https://unpkg.com/pdfjs-dist@5.5.207/build/pdf.worker.min.mjs';
+    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc;
+    console.log('[PDF.js] Worker source set to:', workerSrc);
   } catch (e) {
-    console.error('[PDF.js] Failed to initialize PDF worker:', e);
-    (pdfjsLib as any).disableWorker = true;
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    console.error('[PDF.js] Failed to initialize worker:', e);
   }
 }
 
