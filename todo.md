@@ -94,3 +94,8 @@
 - [x] 使用 https://unpkg.com/pdfjs-dist@5.5.207/build/pdf.worker.min.mjs
 - [x] 避免本地 worker 加载和跨域问题
 - [x] 编译成功，服务器正常运行
+
+
+## iOS Promise.withResolvers 兼容性修复
+- [x] 为 iOS 添加 Promise.withResolvers polyfill
+- [x] 确保 Android 不受影响

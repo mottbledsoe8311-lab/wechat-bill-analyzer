@@ -6,9 +6,13 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
+import { setupIOSPolyfills } from "./lib/iosPolyfill";
 import "./index.css";
 
-// iOS 兼容性修复：添加全局错误处理
+// 在应用启动时立即设置 iOS polyfill
+setupIOSPolyfills();
+
+// 全局错误处理
 if (typeof window !== 'undefined') {
   // 捕获未处理的 Promise 拒绝
   window.addEventListener('unhandledrejection', (event) => {
