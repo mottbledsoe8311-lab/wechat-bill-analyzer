@@ -106,22 +106,8 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 p-4 bg-muted/50 rounded-lg border border-border"
         >
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium text-foreground">搜索结果统计</p>
-            {detailedTransactions.length > 0 && (
-              <button
-                onClick={() => setShowDetails(!showDetails)}
-                className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${
-                  showDetails
-                    ? 'bg-emerald-ok/20 text-emerald-ok hover:bg-emerald-ok/30'
-                    : 'bg-emerald-ok text-white hover:bg-emerald-ok/90'
-                }`}
-              >
-                {showDetails ? '隐藏详细流水' : '显示详细流水'}
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <p className="text-sm font-medium text-foreground mb-3">搜索结果统计</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
             <div>
               <p className="text-xs text-muted-foreground">笔数</p>
               <p className="text-lg font-bold text-foreground">{searchStats.totalCount}</p>
@@ -141,6 +127,18 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
               </p>
             </div>
           </div>
+          {detailedTransactions.length > 0 && (
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              className={`w-full py-3 rounded-lg font-semibold text-base transition-colors ${
+                showDetails
+                  ? 'bg-emerald-ok/20 text-emerald-ok hover:bg-emerald-ok/30 border border-emerald-ok/30'
+                  : 'bg-emerald-ok text-white hover:bg-emerald-ok/90 shadow-sm'
+              }`}
+            >
+              {showDetails ? '▲ 隐藏详细流水' : '▼ 显示详细流水'}
+            </button>
+          )}
         </motion.div>
       )}
 

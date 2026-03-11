@@ -38,6 +38,8 @@ export interface CustomerScore {
   };
   analysis: string[];        // 评分说明条目
   summary: string;           // 总结评语
+  highRiskRegularCount: number;  // 置信度100%的高风险规律转账数量
+  isHighRisk: boolean;           // 是否存在高风险识别
 }
 
 export interface OverviewStats {
@@ -907,22 +909,43 @@ function calculateCustomerScore(
   const mediumRiskLoans = loanDetection.filter(l => l.riskLevel === 'medium').length;
   const regularRepayments = repaymentTracking.filter(r => r.isRegular).length;
 
-  if (highRiskLoans === 0 && mediumRiskLoans === 0 && regularRepayments >= 1) {
+  // 识别置信度100%的高风险规律转账（支出方向）
+  const highConfidenceRiskTransfers = regularTransfers.filter(
+    g => g.confidence >= 1.0 && (g.direction === '支出' || g.direction === '支')
+  );
+  const highRiskRegularCount = highConfidenceRiskTransfers.length;
+  const isHighRisk = highRiskRegularCount > 0 || highRiskLoans > 0;
+
+  if (highRiskLoans === 0 && mediumRiskLoans === 0 && regularRepayments >= 1 && highRiskRegularCount === 0) {
     repaymentAbility = 10;
     analysis.push(`无高风险借款，有 ${regularRepayments} 组规律还款，还款能力优秀`);
-  } else if (highRiskLoans === 0 && mediumRiskLoans <= 1) {
+  } else if (highRiskLoans === 0 && mediumRiskLoans <= 1 && highRiskRegularCount === 0) {
     repaymentAbility = 8;
     analysis.push(`借款风险较低，还款能力良好`);
-  } else if (highRiskLoans <= 1) {
+  } else if (highRiskLoans <= 1 && highRiskRegularCount <= 1) {
     repaymentAbility = 5;
-    analysis.push(`存在 ${highRiskLoans} 笔高风险借款，还款能力一般`);
+    const parts: string[] = [];
+    if (highRiskLoans > 0) parts.push(`${highRiskLoans} 笔高风险借款`);
+    if (highRiskRegularCount > 0) parts.push(`${highRiskRegularCount} 组高风险规律转账`);
+    analysis.push(`存在 ${parts.join('、')}，还款能力一般`);
   } else {
     repaymentAbility = 2;
-    analysis.push(`存在 ${highRiskLoans} 笔高风险借款，还款能力存疑`);
+    const parts: string[] = [];
+    if (highRiskLoans > 0) parts.push(`${highRiskLoans} 笔高风险借款`);
+    if (highRiskRegularCount > 0) parts.push(`${highRiskRegularCount} 组高风险规律转账`);
+    analysis.push(`存在 ${parts.join('、')}，还款能力存疑`);
+  }
+
+  // 高风险规律转账额外扣分（每组-3分，最多扣10分）
+  if (highRiskRegularCount > 0) {
+    const deduction = Math.min(10, highRiskRegularCount * 3);
+    analysis.push(`❗ 发现 ${highRiskRegularCount} 组置信度100%的高风险规律转账，风险评分额外扣除 ${deduction} 分`);
   }
 
   // ---- 汇总评分 ----
-  const total = Math.min(100, Math.max(1, incomeLevel + cashFlow + consumptionQuality + stability + repaymentAbility));
+  // 高风险规律转账额外扣分（每组-3分，最多扣10分）
+  const highRiskDeduction = Math.min(10, highRiskRegularCount * 3);
+  const total = Math.min(100, Math.max(1, incomeLevel + cashFlow + consumptionQuality + stability + repaymentAbility - highRiskDeduction));
 
   let grade: CustomerScore['grade'];
   let summary: string;
@@ -961,5 +984,7 @@ function calculateCustomerScore(
     },
     analysis,
     summary,
+    highRiskRegularCount,
+    isHighRisk,
   };
 }

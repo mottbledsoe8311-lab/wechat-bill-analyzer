@@ -1,7 +1,7 @@
 /**
  * 还款追踪展示
  * 设计：极简数据叙事 - 清晰的还款来源追踪
- * 功能：同时显示支出（我还款）和收入（对方还款给我）
+ * 改进：收入与支出合并在一个表格中展示，按日期排序
  */
 
 import { useState } from 'react';
@@ -58,6 +58,12 @@ export default function RepaymentTracking({ records }: Props) {
         {meaningfulRecords.slice(0, 30).map((record, index) => {
           const isExpanded = expandedIndex === index;
 
+          // 合并收入和支出，按日期降序排列
+          const allTxs = [
+            ...record.repayments.map(t => ({ ...t, _dir: 'out' as const })),
+            ...record.incomings.map(t => ({ ...t, _dir: 'in' as const })),
+          ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
           return (
             <motion.div
               key={`${record.counterpart}-${index}`}
@@ -83,7 +89,7 @@ export default function RepaymentTracking({ records }: Props) {
                         </Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
                       <span>{record.repayments.length} 笔支出</span>
                       {record.incomings.length > 0 && (
                         <>
@@ -96,16 +102,20 @@ export default function RepaymentTracking({ records }: Props) {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 shrink-0">
                   <div className="text-right space-y-1">
                     <div className="flex items-center gap-1.5 justify-end">
                       <TrendingDown className="w-3.5 h-3.5 text-destructive" />
-                      <p className="font-bold tabular-nums text-destructive">{formatCurrency(record.totalRepaid)}</p>
+                      <p className="font-bold tabular-nums text-destructive text-sm">
+                        {formatCurrency(record.totalRepaid)}
+                      </p>
                     </div>
                     {record.totalReceived > 0 && (
                       <div className="flex items-center gap-1.5 justify-end">
                         <TrendingUp className="w-3.5 h-3.5 text-emerald-ok" />
-                        <p className="font-bold tabular-nums text-emerald-ok">{formatCurrency(record.totalReceived)}</p>
+                        <p className="font-bold tabular-nums text-emerald-ok text-sm">
+                          {formatCurrency(record.totalReceived)}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -126,26 +136,27 @@ export default function RepaymentTracking({ records }: Props) {
                   >
                     <div className="border-t border-border/50 p-4 space-y-4">
                       {/* 还款来源分析 */}
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-3">还款来源</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {record.sources.map((source, i) => (
-                            <div key={i} className="bg-muted/30 rounded-md p-3">
-                              <p className="text-sm font-medium">{source.method}</p>
-                              <p className="text-lg font-bold tabular-nums mt-1">
-                                {formatCurrency(source.total)}
-                              </p>
-                              <p className="text-xs text-muted-foreground">{source.count} 笔</p>
-                            </div>
-                          ))}
+                      {record.sources.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-3">还款来源</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {record.sources.map((source, i) => (
+                              <div key={i} className="bg-muted/30 rounded-md p-3">
+                                <p className="text-sm font-medium">{source.method}</p>
+                                <p className="text-lg font-bold tabular-nums mt-1">
+                                  {formatCurrency(source.total)}
+                                </p>
+                                <p className="text-xs text-muted-foreground">{source.count} 笔</p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
 
-                      {/* 支出明细 */}
+                      {/* 收支合并明细 */}
                       <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
-                          <TrendingDown className="w-3.5 h-3.5 text-destructive" />
-                          支出明细（我还款给对方）
+                        <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                          全部交易明细（{allTxs.length} 笔）
                         </h4>
                         <table className="w-full text-sm">
                           <thead>
@@ -153,61 +164,34 @@ export default function RepaymentTracking({ records }: Props) {
                               <th className="text-left py-2 font-medium">日期</th>
                               <th className="text-left py-2 font-medium">来源</th>
                               <th className="text-right py-2 font-medium">金额</th>
+                              <th className="text-left py-2 font-medium">收/支</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {record.repayments.slice(0, 20).map((tx, i) => (
+                            {allTxs.slice(0, 30).map((tx, i) => (
                               <tr key={i} className="border-t border-border/30">
                                 <td className="py-2 tabular-nums">{formatDate(tx.date)}</td>
                                 <td className="py-2">{tx.method}</td>
-                                <td className="py-2 text-right tabular-nums font-medium text-destructive">
-                                  -{formatCurrency(tx.amount)}
+                                <td className={`py-2 text-right tabular-nums font-medium ${
+                                  tx._dir === 'out' ? 'text-destructive' : 'text-emerald-ok'
+                                }`}>
+                                  {tx._dir === 'out' ? '-' : '+'}{formatCurrency(tx.amount)}
+                                </td>
+                                <td className={`py-2 text-xs font-medium ${
+                                  tx._dir === 'out' ? 'text-destructive' : 'text-emerald-ok'
+                                }`}>
+                                  {tx._dir === 'out' ? '支出' : '收入'}
                                 </td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
-                        {record.repayments.length > 20 && (
+                        {allTxs.length > 30 && (
                           <p className="text-xs text-muted-foreground mt-2 text-center">
-                            仅显示前20条，共 {record.repayments.length} 条
+                            仅显示前30条，共 {allTxs.length} 条记录
                           </p>
                         )}
                       </div>
-
-                      {/* 收入明细（对方还款给我） */}
-                      {record.incomings.length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
-                            <TrendingUp className="w-3.5 h-3.5 text-emerald-ok" />
-                            收入明细（对方还款给我）
-                          </h4>
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="text-muted-foreground">
-                                <th className="text-left py-2 font-medium">日期</th>
-                                <th className="text-left py-2 font-medium">来源</th>
-                                <th className="text-right py-2 font-medium">金额</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {record.incomings.slice(0, 20).map((tx, i) => (
-                                <tr key={i} className="border-t border-border/30">
-                                  <td className="py-2 tabular-nums">{formatDate(tx.date)}</td>
-                                  <td className="py-2">{tx.method}</td>
-                                  <td className="py-2 text-right tabular-nums font-medium text-emerald-ok">
-                                    +{formatCurrency(tx.amount)}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                          {record.incomings.length > 20 && (
-                            <p className="text-xs text-muted-foreground mt-2 text-center">
-                              仅显示前20条，共 {record.incomings.length} 条
-                            </p>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </motion.div>
                 )}
