@@ -154,31 +154,19 @@ export default function LargeInflows({ inflows }: Props) {
               {item.relatedOutflows.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-border/50">
                   <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-                    入账后续 {item.relatedOutflows.length} 笔交易
+                    入账后续交易（最多10笔）
                   </p>
-                  <div className="space-y-1">
-                    {item.relatedOutflows.map((tx, i) => {
-                      const isIncome = tx.direction === '收入' || tx.direction === '收';
-                      return (
-                        <div key={i} className="flex justify-between items-center text-xs gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className={`shrink-0 text-[10px] px-1 py-0.5 rounded font-medium ${
-                              isIncome ? 'bg-emerald-ok/10 text-emerald-ok' : 'bg-destructive/10 text-destructive'
-                            }`}>
-                              {isIncome ? '收' : '支'}
-                            </span>
-                            <span className="text-muted-foreground truncate">
-                              {formatDate(tx.date)} · {tx.counterpart || '未知'}
-                            </span>
-                          </div>
-                          <span className={`tabular-nums font-semibold shrink-0 ${
-                            isIncome ? 'text-emerald-ok' : 'text-destructive'
-                          }`}>
-                            {isIncome ? '+' : '-'}{formatCurrency(tx.amount)}
-                          </span>
-                        </div>
-                      );
-                    })}
+                  <div className="space-y-1.5">
+                    {item.relatedOutflows.slice(0, 10).map((tx, i) => (
+                      <div key={i} className="flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground">
+                          {formatDate(tx.date)} · {tx.counterpart}
+                        </span>
+                        <span className="tabular-nums text-destructive font-semibold ml-2 shrink-0">
+                          -{formatCurrency(tx.amount)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
