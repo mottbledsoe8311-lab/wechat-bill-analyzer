@@ -76,3 +76,8 @@
 ## iOS 白屏问题 - 深度修复完成
 - [x] iOS 完全白屏 - 修复 PDF.js worker 配置，延迟初始化，添加全局错误处理
 - [x] 修复方案：将 PDF.js 初始化从模块顶层移到 parsePDF 函数内部，使用 CDN worker 而非本地 ESM worker
+
+## PDF.js 版本不匹配修复
+- [x] 统一 PDF.js 版本为 5.5.207（API 和 Worker 版本必须匹配）
+- [x] 改进 worker 初始化逻辑，添加详细日志
+- [x] 修复 iOS 上的 worker 初始化问题

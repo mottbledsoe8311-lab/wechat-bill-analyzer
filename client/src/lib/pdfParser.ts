@@ -23,18 +23,27 @@ function initPDFWorker() {
     const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
     const isIOSDevice = isIOS || isSafari;
     
+    console.log('[PDF.js] Initializing worker. UA:', ua.substring(0, 50));
+    
     if (isIOSDevice) {
       // iOS 和 Safari 上禁用 worker，强制使用主线程模式
-      (pdfjsLib.GlobalWorkerOptions as any).workerSrc = undefined;
+      console.log('[PDF.js] iOS/Safari detected - disabling worker');
       (pdfjsLib as any).disableWorker = true;
+      // 确保 GlobalWorkerOptions 被正确设置
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     } else {
-      // 其他浏览器使用 CDN worker（避免本地 ESM worker 兼容性问题）
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      // 其他浏览器使用 CDN worker（版本必须与 pdfjs-dist 匹配：5.5.207）
+      const workerUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.5.207/pdf.worker.min.js';
+      console.log('[PDF.js] Setting worker URL:', workerUrl);
+      pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
     }
+    
+    console.log('[PDF.js] Worker initialization complete');
   } catch (e) {
-    console.warn('Failed to initialize PDF worker:', e);
+    console.error('[PDF.js] Failed to initialize PDF worker:', e);
     // 降级方案：禁用 worker
     (pdfjsLib as any).disableWorker = true;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
   }
 }
 
