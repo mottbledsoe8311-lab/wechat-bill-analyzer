@@ -655,12 +655,16 @@ function detectLargeInflows(transactions: Transaction[]): LargeInflow[] {
       const rank = amounts.filter(a => a <= tx.amount).length;
       const percentile = (rank / amounts.length) * 100;
 
-      // 查找相关的支出（入账后7天内的大额支出）
-      const relatedOutflows = transactions.filter(t => {
-        if (t.direction !== '支出' && t.direction !== '支') return false;
-        const daysDiff = differenceInDays(t.date, tx.date);
-        return daysDiff >= 0 && daysDiff <= 7 && t.amount >= tx.amount * 0.3;
-      });
+      // 查找入账后续的5笔交易（任意方向、任意金额，按时间正序）
+      const relatedOutflows = transactions
+        .filter(t => {
+          // 排除本笔入账自身
+          if (t === tx) return false;
+          // 必须在本笔入账之后
+          return t.date.getTime() > tx.date.getTime();
+        })
+        .sort((a, b) => a.date.getTime() - b.date.getTime())
+        .slice(0, 5);
 
       // 判断是否异常
       const isUnusual = tx.amount > mean + 3 * stdDev;
