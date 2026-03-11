@@ -446,7 +446,7 @@ export default function Home() {
                 <MonthlyChart data={analysisResult.monthlyBreakdown} />
               </div>
               <div id="regular">
-                <RegularTransfers groups={analysisResult.regularTransfers} />
+                <RegularTransfers groups={analysisResult.regularTransfers} allTransactions={allTransactions} />
               </div>
               <div id="repayment">
                 <RepaymentTracking records={analysisResult.repaymentTracking} />

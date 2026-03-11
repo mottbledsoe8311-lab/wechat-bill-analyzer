@@ -1,6 +1,6 @@
 /**
  * 规律转账识别展示
- * 设计：精致卡片式 - 风险等级色彩编码，收支合并展示
+ * 设计：精致卡片式 - 风险等级色彩编码，只展示转出，展开时显示相关所有进出流水
  */
 
 import { useState } from 'react';
@@ -11,49 +11,7 @@ import { Badge } from '@/components/ui/badge';
 
 interface Props {
   groups: RegularTransferGroup[];
-}
-
-interface MergedGroup {
-  counterpart: string;
-  outGroup: RegularTransferGroup | null;
-  inGroup: RegularTransferGroup | null;
-  maxRiskLevel: 'low' | 'medium' | 'high';
-  maxConfidence: number;
-  isHighConfidence: boolean;
-}
-
-function mergeGroups(groups: RegularTransferGroup[]): MergedGroup[] {
-  const map = new Map<string, MergedGroup>();
-
-  for (const g of groups) {
-    const key = g.counterpart;
-    if (!map.has(key)) {
-      map.set(key, {
-        counterpart: g.counterpart,
-        outGroup: null,
-        inGroup: null,
-        maxRiskLevel: g.riskLevel,
-        maxConfidence: g.confidence,
-        isHighConfidence: g.confidence >= 1.0,
-      });
-    }
-    const entry = map.get(key)!;
-    const isOut = g.direction === '支出' || g.direction === '支';
-    if (isOut) entry.outGroup = g;
-    else entry.inGroup = g;
-
-    const riskOrder = { high: 2, medium: 1, low: 0 };
-    if (riskOrder[g.riskLevel] > riskOrder[entry.maxRiskLevel]) entry.maxRiskLevel = g.riskLevel;
-    if (g.confidence > entry.maxConfidence) entry.maxConfidence = g.confidence;
-    if (g.confidence >= 1.0) entry.isHighConfidence = true;
-  }
-
-  const riskOrder = { high: 0, medium: 1, low: 2 };
-  return Array.from(map.values()).sort((a, b) => {
-    if (a.isHighConfidence !== b.isHighConfidence) return a.isHighConfidence ? -1 : 1;
-    if (riskOrder[a.maxRiskLevel] !== riskOrder[b.maxRiskLevel]) return riskOrder[a.maxRiskLevel] - riskOrder[b.maxRiskLevel];
-    return b.maxConfidence - a.maxConfidence;
-  });
+  allTransactions?: any[];
 }
 
 const riskConfig = {
@@ -62,13 +20,24 @@ const riskConfig = {
   high:   { bg: 'bg-destructive/5',   border: 'border-destructive/20',   text: 'text-destructive',   icon: 'bg-destructive/10',   label: '高风险' },
 };
 
-export default function RegularTransfers({ groups }: Props) {
+export default function RegularTransfers({ groups, allTransactions = [] }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
-  const filtered = groups.filter(g => g.riskLevel === 'medium' || g.riskLevel === 'high');
-  const merged = mergeGroups(filtered);
+  // 只取转出方向的规律转账，且风险等级为中/高
+  const outGroups = groups.filter(g => {
+    const isOut = g.direction === '支出' || g.direction === '支';
+    const isMediumHigh = g.riskLevel === 'medium' || g.riskLevel === 'high';
+    return isOut && isMediumHigh;
+  });
 
-  if (merged.length === 0) {
+  // 按风险等级+置信度排序
+  const riskOrder = { high: 0, medium: 1, low: 2 };
+  const sorted = [...outGroups].sort((a, b) => {
+    if (riskOrder[a.riskLevel] !== riskOrder[b.riskLevel]) return riskOrder[a.riskLevel] - riskOrder[b.riskLevel];
+    return b.confidence - a.confidence;
+  });
+
+  if (sorted.length === 0) {
     return (
       <section className="py-10 border-t border-border">
         <div className="mb-8">
@@ -86,7 +55,7 @@ export default function RegularTransfers({ groups }: Props) {
     );
   }
 
-  const highConfidenceCount = merged.filter(m => m.isHighConfidence).length;
+  const highConfidenceCount = sorted.filter(g => g.confidence >= 1.0).length;
 
   return (
     <motion.section
@@ -100,7 +69,7 @@ export default function RegularTransfers({ groups }: Props) {
         <h3 className="text-2xl font-bold text-foreground">规律转账识别</h3>
         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
           <p className="text-sm text-muted-foreground">
-            检测到 <span className="font-semibold text-foreground">{merged.length}</span> 个中/高风险对方
+            检测到 <span className="font-semibold text-foreground">{sorted.length}</span> 个中/高风险规律转出
           </p>
           {highConfidenceCount > 0 && (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
@@ -112,21 +81,30 @@ export default function RegularTransfers({ groups }: Props) {
       </div>
 
       <div className="space-y-3">
-        {merged.map((item, index) => {
-          const risk = riskConfig[item.maxRiskLevel];
+        {sorted.map((g, index) => {
+          const risk = riskConfig[g.riskLevel];
           const isExpanded = expandedIndex === index;
-          const outG = item.outGroup;
-          const inG = item.inGroup;
-          const allTxs = [
-            ...(outG?.transactions || []).map(t => ({ ...t, _dir: 'out' as const })),
-            ...(inG?.transactions || []).map(t => ({ ...t, _dir: 'in' as const })),
-          ].sort((a, b) => b.date.getTime() - a.date.getTime());
+          const isHighRisk = g.confidence >= 1.0;
 
-          const isHighRisk = item.isHighConfidence;
+          // 获取该对方的所有进出流水（不限方向）
+          const counterpartName = g.counterpart;
+          const relatedTxs = allTransactions.length > 0
+            ? allTransactions
+                .filter(tx => tx.counterpart?.trim() === counterpartName)
+                .sort((a: any, b: any) => b.date.getTime() - a.date.getTime())
+            : g.transactions.map(t => ({ ...t, direction: g.direction }));
+
+          // 统计收入和支出
+          const totalIn = relatedTxs
+            .filter((tx: any) => tx.direction === '收入' || tx.direction === '收')
+            .reduce((sum: number, tx: any) => sum + tx.amount, 0);
+          const totalOut = relatedTxs
+            .filter((tx: any) => tx.direction === '支出' || tx.direction === '支')
+            .reduce((sum: number, tx: any) => sum + tx.amount, 0);
 
           return (
             <motion.div
-              key={item.counterpart}
+              key={`${g.counterpart}-${index}`}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.04 * index }}
@@ -146,19 +124,18 @@ export default function RegularTransfers({ groups }: Props) {
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                     isHighRisk ? 'bg-red-500/15' : risk.icon
                   }`}>
-                    {item.maxRiskLevel === 'high'
+                    {g.riskLevel === 'high'
                       ? <AlertTriangle className={`w-4.5 h-4.5 ${isHighRisk ? 'text-red-600' : risk.text}`} />
                       : <Clock className={`w-4.5 h-4.5 ${risk.text}`} />
                     }
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-semibold text-sm">{item.counterpart}</span>
+                      <span className="font-semibold text-sm">{g.counterpart}</span>
                       <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${risk.text} ${risk.border}`}>
                         {risk.label}
                       </Badge>
-                      {outG && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">转出</Badge>}
-                      {inG && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">转入</Badge>}
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">转出</Badge>
                       {isHighRisk && (
                         <Badge className="text-[10px] px-1.5 py-0 h-4 bg-red-600 text-white hover:bg-red-700">
                           🚨 重点核实
@@ -166,36 +143,19 @@ export default function RegularTransfers({ groups }: Props) {
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground flex-wrap">
-                      {outG && (
-                        <span className="flex items-center gap-1">
-                          <Repeat className="w-3 h-3" />
-                          {outG.pattern} · {outG.transactions.length}笔支出 · {(outG.confidence * 100).toFixed(0)}%
-                        </span>
-                      )}
-                      {inG && outG && <span>·</span>}
-                      {inG && (
-                        <span className="flex items-center gap-1">
-                          <Repeat className="w-3 h-3" />
-                          {inG.pattern} · {inG.transactions.length}笔收入 · {(inG.confidence * 100).toFixed(0)}%
-                        </span>
-                      )}
+                      <span className="flex items-center gap-1">
+                        <Repeat className="w-3 h-3" />
+                        {g.pattern} · {g.transactions.length}笔支出 · {(g.confidence * 100).toFixed(0)}%
+                      </span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0 ml-2">
                   <div className="text-right space-y-0.5">
-                    {outG && (
-                      <div className="flex items-center gap-1 justify-end">
-                        <TrendingDown className="w-3 h-3 text-destructive" />
-                        <span className="font-bold tabular-nums text-destructive text-xs">{formatCurrency(outG.totalAmount)}</span>
-                      </div>
-                    )}
-                    {inG && (
-                      <div className="flex items-center gap-1 justify-end">
-                        <TrendingUp className="w-3 h-3 text-emerald-ok" />
-                        <span className="font-bold tabular-nums text-emerald-ok text-xs">{formatCurrency(inG.totalAmount)}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1 justify-end">
+                      <TrendingDown className="w-3 h-3 text-destructive" />
+                      <span className="font-bold tabular-nums text-destructive text-xs">{formatCurrency(g.totalAmount)}</span>
+                    </div>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
@@ -211,9 +171,22 @@ export default function RegularTransfers({ groups }: Props) {
                     className="overflow-hidden"
                   >
                     <div className="border-t border-border/40 bg-background/60 p-4">
-                      <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
-                        全部交易明细（{allTxs.length} 笔）
-                      </p>
+                      {/* 收支汇总 */}
+                      <div className="flex items-center gap-4 mb-3 text-xs">
+                        <span className="text-muted-foreground font-medium">
+                          {counterpartName} · 全部 {relatedTxs.length} 笔流水
+                        </span>
+                        <span className="flex items-center gap-1 text-destructive">
+                          <TrendingDown className="w-3 h-3" />
+                          转出 {formatCurrency(totalOut)}
+                        </span>
+                        {totalIn > 0 && (
+                          <span className="flex items-center gap-1 text-emerald-ok">
+                            <TrendingUp className="w-3 h-3" />
+                            转入 {formatCurrency(totalIn)}
+                          </span>
+                        )}
+                      </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                           <thead>
@@ -226,25 +199,30 @@ export default function RegularTransfers({ groups }: Props) {
                             </tr>
                           </thead>
                           <tbody>
-                            {allTxs.slice(0, 30).map((tx, i) => (
-                              <tr key={i} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                                <td className="py-2 pr-3 tabular-nums text-muted-foreground">{formatDate(tx.date)}</td>
-                                <td className="py-2 pr-3">{tx.type}</td>
-                                <td className="py-2 pr-3 text-muted-foreground">{tx.method}</td>
-                                <td className={`py-2 pr-3 text-right tabular-nums font-semibold ${tx._dir === 'out' ? 'text-destructive' : 'text-emerald-ok'}`}>
-                                  {tx._dir === 'out' ? '-' : '+'}{formatCurrency(tx.amount)}
-                                </td>
-                                <td className={`py-2 text-[10px] font-medium px-1.5 py-0.5 rounded ${tx._dir === 'out' ? 'text-destructive bg-destructive/10' : 'text-emerald-ok bg-emerald-ok/10'}`}>
-                                  {tx._dir === 'out' ? '支出' : '收入'}
-                                </td>
-                              </tr>
-                            ))}
+                            {relatedTxs.slice(0, 50).map((tx: any, i: number) => {
+                              const isIn = tx.direction === '收入' || tx.direction === '收';
+                              return (
+                                <tr key={i} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                                  <td className="py-1.5 pr-3 tabular-nums text-muted-foreground">{formatDate(tx.date)}</td>
+                                  <td className="py-1.5 pr-3">{tx.type}</td>
+                                  <td className="py-1.5 pr-3 text-muted-foreground">{tx.method}</td>
+                                  <td className={`py-1.5 pr-3 text-right tabular-nums font-semibold ${isIn ? 'text-emerald-ok' : 'text-destructive'}`}>
+                                    {isIn ? '+' : '-'}{formatCurrency(tx.amount)}
+                                  </td>
+                                  <td className="py-1.5">
+                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${isIn ? 'text-emerald-ok bg-emerald-ok/10' : 'text-destructive bg-destructive/10'}`}>
+                                      {isIn ? '收入' : '支出'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
-                      {allTxs.length > 30 && (
+                      {relatedTxs.length > 50 && (
                         <p className="text-xs text-muted-foreground mt-3 text-center">
-                          仅显示前 30 条，共 {allTxs.length} 条记录
+                          仅显示前 50 条，共 {relatedTxs.length} 条记录
                         </p>
                       )}
                     </div>

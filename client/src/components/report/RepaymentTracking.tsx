@@ -46,7 +46,7 @@ export default function RepaymentTracking({ records }: Props) {
         <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Repayment Tracking</p>
         <h3 className="text-2xl font-bold text-foreground">还款追踪</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          追踪到 <span className="font-semibold text-foreground">{meaningfulRecords.length}</span> 组规律还款记录
+          追踪到 <span className="font-semibold text-foreground">{meaningfulRecords.length}</span> 组规律转账记录
         </p>
       </div>
 
@@ -87,7 +87,7 @@ export default function RepaymentTracking({ records }: Props) {
                       <span className="font-semibold text-sm">{record.counterpart}</span>
                       {record.isRegular && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-amber-warn border-amber-warn/30">
-                          规律还款
+                          规律转账
                         </Badge>
                       )}
                     </div>

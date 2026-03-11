@@ -273,33 +273,33 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                           transition={{ duration: 0.25 }}
                           className="overflow-hidden bg-indigo/3 border-b border-indigo/10"
                         >
-                          <div className="px-4 py-3">
-                            <p className="text-xs font-semibold text-indigo mb-2">
+                          <div className="px-3 py-2">
+                            <p className="text-[11px] font-semibold text-indigo mb-1">
                               {item.name} · 全部 {expandedTransactions.length} 笔交易
                             </p>
-                            <table className="w-full text-xs">
+                            <table className="w-full text-[11px]">
                               <thead>
-                                <tr className="text-muted-foreground">
-                                  <th className="text-left py-1.5 pr-3 font-medium">日期时间</th>
-                                  <th className="text-left py-1.5 pr-3 font-medium">类型</th>
-                                  <th className="text-right py-1.5 pr-3 font-medium">金额</th>
-                                  <th className="text-left py-1.5 font-medium">收/支</th>
+                                <tr className="text-muted-foreground border-b border-indigo/10">
+                                  <th className="text-left py-1 pr-2 font-medium">日期</th>
+                                  <th className="text-left py-1 pr-2 font-medium">类型</th>
+                                  <th className="text-right py-1 pr-2 font-medium">金额</th>
+                                  <th className="text-left py-1 font-medium">收/支</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {expandedTransactions.map((tx: any, j: number) => (
-                                  <tr key={j} className="border-t border-indigo/10">
-                                    <td className="py-1.5 pr-3 tabular-nums text-muted-foreground">{format(tx.date, 'MM-dd HH:mm')}</td>
-                                    <td className="py-1.5 pr-3">{tx.type}</td>
-                                    <td className={`py-1.5 pr-3 text-right tabular-nums font-semibold ${
+                                  <tr key={j} className="border-t border-indigo/8">
+                                    <td className="py-0.5 pr-2 tabular-nums text-muted-foreground whitespace-nowrap">{format(tx.date, 'MM-dd HH:mm')}</td>
+                                    <td className="py-0.5 pr-2 truncate max-w-[60px]">{tx.type}</td>
+                                    <td className={`py-0.5 pr-2 text-right tabular-nums font-semibold ${
                                       tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'
                                     }`}>
                                       {tx.direction === '收入' || tx.direction === '收' ? '+' : '-'}{formatCurrency(tx.amount)}
                                     </td>
-                                    <td className={`py-1.5 font-medium ${
+                                    <td className={`py-0.5 font-medium ${
                                       tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'
                                     }`}>
-                                      {tx.direction === '收入' || tx.direction === '收' ? '收入' : '支出'}
+                                      {tx.direction === '收入' || tx.direction === '收' ? '收' : '支'}
                                     </td>
                                   </tr>
                                 ))}
