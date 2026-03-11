@@ -20,7 +20,6 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
   const [showDetails, setShowDetails] = useState(false);
 
   // 获取搜索对方的所有交易明细
-  // 先尝试精确匹配，如果没有则使用第一个模糊匹配结果
   const searchedCounterpart = searchTerm.trim() 
     ? data.find(d => d.name.toLowerCase() === searchTerm.toLowerCase()) || 
       data.find(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -112,9 +111,13 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
             {detailedTransactions.length > 0 && (
               <button
                 onClick={() => setShowDetails(!showDetails)}
-                className="text-xs px-2 py-1 rounded bg-indigo/10 text-indigo hover:bg-indigo/20 transition-colors"
+                className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${
+                  showDetails
+                    ? 'bg-emerald-ok/20 text-emerald-ok hover:bg-emerald-ok/30'
+                    : 'bg-emerald-ok text-white hover:bg-emerald-ok/90'
+                }`}
               >
-                {showDetails ? '隐藏' : '显示'}详细流水
+                {showDetails ? '隐藏详细流水' : '显示详细流水'}
               </button>
             )}
           </div>
@@ -141,44 +144,7 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
         </motion.div>
       )}
 
-      {/* 详细交易明细 */}
-      {showDetails && detailedTransactions.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-muted/30 rounded-lg border border-border"
-        >
-          <p className="text-sm font-medium text-foreground mb-4">全部交易明细 ({detailedTransactions.length}笔)</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">日期时间</th>
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">交易类型</th>
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">交易方式</th>
-                  <th className="text-right py-2 px-3 font-medium text-muted-foreground">金额</th>
-                  <th className="text-left py-2 px-3 font-medium text-muted-foreground">收/支</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detailedTransactions.map((tx, i) => (
-                  <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                    <td className="py-2 px-3 text-muted-foreground">{format(tx.date, 'MM-dd HH:mm:ss')}</td>
-                    <td className="py-2 px-3">{tx.type}</td>
-                    <td className="py-2 px-3 text-muted-foreground">{tx.method}</td>
-                    <td className="py-2 px-3 text-right font-medium tabular-nums">{formatCurrency(tx.amount)}</td>
-                    <td className={`py-2 px-3 font-medium ${tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'}`}>
-                      {tx.direction}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-      )}
-
-      {/* 详细交易明细 */}
+      {/* 详细交易明细（只显示一次） */}
       {showDetails && detailedTransactions.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}

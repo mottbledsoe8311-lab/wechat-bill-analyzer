@@ -87,8 +87,21 @@ function extractAccountInfo(textContent: string): AccountInfo {
   };
 
   // 尝试匹配姓名
-  const nameMatch = textContent.match(/姓\s*名[：:]\s*(.+?)(?:\s|$)/);
-  if (nameMatch) info.name = nameMatch[1].trim();
+  // 方式1：微信账单格式 "兹证明：姓名（" 或 "兹证明 姓名（"
+  const zizhenming = textContent.match(/兹证明[：:]?\s*([\u4e00-\u9fa5a-zA-Z]{2,10})\s*[（(]/);
+  if (zizhenming) {
+    info.name = zizhenming[1].trim();
+  } else {
+    // 方式2："兹证明 XXX 名下/的/持有/账户"
+    const zizhenming2 = textContent.match(/兹证明\s+([\u4e00-\u9fa5a-zA-Z]{2,10})\s+(?:名下|的|持有|账户)/);
+    if (zizhenming2) {
+      info.name = zizhenming2[1].trim();
+    } else {
+      // 方式3：传统格式 "姓名：XXX"
+      const nameMatch = textContent.match(/姓\s*名[：:]\s*(.+?)(?:\s|$)/);
+      if (nameMatch) info.name = nameMatch[1].trim();
+    }
+  }
 
   // 尝试匹配证件号
   const idMatch = textContent.match(/证件号[码]?[：:]\s*(.+?)(?:\s|$)/);

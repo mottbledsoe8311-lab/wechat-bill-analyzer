@@ -23,6 +23,21 @@ export interface AnalysisResult {
   loanDetection: LoanPattern[];
   monthlyBreakdown: MonthlyData[];
   counterpartSummary: CounterpartSummary[];
+  customerScore: CustomerScore;
+}
+
+export interface CustomerScore {
+  total: number;           // 总分 1-100
+  grade: 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C' | 'D';  // 等级
+  dimensions: {
+    incomeLevel: number;       // 收入水平 (0-25)
+    cashFlow: number;          // 资金流动性 (0-25)
+    consumptionQuality: number; // 消费质量 (0-20)
+    stability: number;         // 财务稳定性 (0-20)
+    repaymentAbility: number;  // 还款能力 (0-10)
+  };
+  analysis: string[];        // 评分说明条目
+  summary: string;           // 总结评语
 }
 
 export interface OverviewStats {
@@ -51,8 +66,10 @@ export interface RegularTransferGroup {
 
 export interface RepaymentRecord {
   counterpart: string;
-  totalRepaid: number;
-  repayments: Transaction[];
+  totalRepaid: number;        // 支出给对方的总金额（我还款给对方）
+  totalReceived: number;      // 从对方收到的总金额（对方还款给我）
+  repayments: Transaction[];  // 支出记录
+  incomings: Transaction[];   // 收入记录
   sources: { method: string; count: number; total: number }[];
   frequency: string;
   isRegular: boolean;
@@ -125,6 +142,48 @@ export async function analyzeTransactions(
   // 5. 还款追踪
   onProgress?.(60, '追踪还款记录...');
   const repaymentTracking = trackRepayments(transactions);
+  
+  // 将规律还款（金额相同次数>=2）并入规律转账识别
+  for (const record of repaymentTracking) {
+    if (!record.isRegular) continue;
+    // 检查是否有金额相同的还款（>=2次）
+    const amounts = record.repayments.map(t => t.amount);
+    const amountMap: Record<string, number> = {};
+    for (const amt of amounts) {
+      const key = Math.round(amt).toString();
+      amountMap[key] = (amountMap[key] || 0) + 1;
+    }
+    const maxSameAmount = Math.max(...Object.values(amountMap));
+    if (maxSameAmount >= 2) {
+      // 检查是否已经在规律转账中存在
+      const alreadyExists = regularTransfers.some(
+        g => g.counterpart === record.counterpart && (g.direction === '支出' || g.direction === '支')
+      );
+      if (!alreadyExists) {
+        // 添加到规律转账列表
+        const intervals: number[] = [];
+        const sorted = [...record.repayments].sort((a, b) => a.date.getTime() - b.date.getTime());
+        for (let i = 1; i < sorted.length; i++) {
+          const days = differenceInDays(sorted[i].date, sorted[i - 1].date);
+          if (days > 0) intervals.push(days);
+        }
+        const pattern = intervals.length >= 2 ? detectPattern(intervals) : null;
+        const totalAmount = record.totalRepaid;
+        const avgAmount = totalAmount / record.repayments.length;
+        regularTransfers.push({
+          counterpart: record.counterpart,
+          direction: '支出',
+          pattern: pattern ? pattern.description : record.frequency,
+          intervalDays: pattern ? pattern.interval : 0,
+          avgAmount,
+          totalAmount,
+          transactions: sorted,
+          confidence: pattern ? pattern.confidence : 0.7,
+          riskLevel: avgAmount > 5000 ? 'high' : avgAmount > 1000 ? 'medium' : 'low',
+        });
+      }
+    }
+  }
 
   // 6. 大额入账监控
   onProgress?.(75, '监控大额入账...');
@@ -133,6 +192,10 @@ export async function analyzeTransactions(
   // 7. 借款排查
   onProgress?.(85, '排查借款模式...');
   const loanDetection = detectLoanPatterns(transactions);
+
+  // 8. 客户评分
+  onProgress?.(95, '计算客户评分...');
+  const customerScore = calculateCustomerScore(transactions, overview, regularTransfers, repaymentTracking, loanDetection, monthlyBreakdown);
 
   onProgress?.(100, '分析完成');
 
@@ -144,6 +207,7 @@ export async function analyzeTransactions(
     loanDetection,
     monthlyBreakdown,
     counterpartSummary,
+    customerScore,
   };
 }
 
@@ -456,32 +520,42 @@ function isMerchant(name: string): boolean {
 function trackRepayments(transactions: Transaction[]): RepaymentRecord[] {
   const results: RepaymentRecord[] = [];
   
-  // 找出所有支出给同一个人的记录（可能是还款）
-  // 过滤掉商户，只保留个人转账
-  const outflowsByPerson: Record<string, Transaction[]> = {};
+  // 按交易对方分组，同时记录收入和支出
+  const byPerson: Record<string, { outflows: Transaction[]; inflows: Transaction[] }> = {};
   
   for (const tx of transactions) {
     const name = tx.counterpart?.trim();
     if (!name || name === '/' || name === '-') continue;
-    if (tx.direction !== '支出' && tx.direction !== '支') continue;
     
     // 过滤商户 - 还款追踪只关注个人之间的转账
     if (isMerchant(name)) continue;
     
-    // 还款通常通过转账
-    if (!outflowsByPerson[name]) outflowsByPerson[name] = [];
-    outflowsByPerson[name].push(tx);
+    if (!byPerson[name]) byPerson[name] = { outflows: [], inflows: [] };
+    
+    if (tx.direction === '支出' || tx.direction === '支') {
+      byPerson[name].outflows.push(tx);
+    } else if (tx.direction === '收入' || tx.direction === '收') {
+      byPerson[name].inflows.push(tx);
+    }
   }
 
-  for (const [counterpart, txs] of Object.entries(outflowsByPerson)) {
-    if (txs.length < 2) continue; // 至少2笔才追踪
+  for (const [counterpart, data] of Object.entries(byPerson)) {
+    const { outflows, inflows } = data;
+    
+    // 至少有 2 款支出才追踪
+    if (outflows.length < 2) continue;
 
-    const sorted = [...txs].sort((a, b) => b.date.getTime() - a.date.getTime());
-    const totalRepaid = sorted.reduce((sum, t) => sum + t.amount, 0);
+    const sortedOut = [...outflows].sort((a, b) => b.date.getTime() - a.date.getTime());
+    const sortedIn = [...inflows].sort((a, b) => b.date.getTime() - a.date.getTime());
+    const totalRepaid = sortedOut.reduce((sum, t) => sum + t.amount, 0);
+    const totalReceived = sortedIn.reduce((sum, t) => sum + t.amount, 0);
+    
+    // 过滤小额：累计还款小于 100 元的不显示
+    if (totalRepaid < 100) continue;
 
     // 分析还款来源（交易方式）
     const sourceMap: Record<string, { count: number; total: number }> = {};
-    for (const tx of sorted) {
+    for (const tx of sortedOut) {
       const method = tx.method || '未知';
       if (!sourceMap[method]) sourceMap[method] = { count: 0, total: 0 };
       sourceMap[method].count++;
@@ -492,10 +566,10 @@ function trackRepayments(transactions: Transaction[]): RepaymentRecord[] {
       .map(([method, data]) => ({ method, ...data }))
       .sort((a, b) => b.total - a.total);
 
-    // 检查是否有规律
+    // 检查支出是否有规律
     const intervals: number[] = [];
-    for (let i = 1; i < sorted.length; i++) {
-      const days = Math.abs(differenceInDays(sorted[i].date, sorted[i - 1].date));
+    for (let i = 1; i < sortedOut.length; i++) {
+      const days = Math.abs(differenceInDays(sortedOut[i].date, sortedOut[i - 1].date));
       if (days > 0) intervals.push(days);
     }
 
@@ -507,7 +581,9 @@ function trackRepayments(transactions: Transaction[]): RepaymentRecord[] {
     results.push({
       counterpart,
       totalRepaid,
-      repayments: sorted,
+      totalReceived,
+      repayments: sortedOut,
+      incomings: sortedIn,
       sources,
       frequency,
       isRegular,
@@ -703,4 +779,187 @@ export function formatDate(date: Date): string {
 
 export function formatDateShort(date: Date): string {
   return format(date, 'MM-dd');
+}
+
+// ============ 客户评分系统 ============
+
+function calculateCustomerScore(
+  transactions: Transaction[],
+  overview: OverviewStats,
+  regularTransfers: RegularTransferGroup[],
+  repaymentTracking: RepaymentRecord[],
+  loanDetection: LoanPattern[],
+  monthlyBreakdown: MonthlyData[]
+): CustomerScore {
+  const analysis: string[] = [];
+
+  // ---- 维度1：收入水平 (0-25分) ----
+  let incomeLevel = 0;
+  const monthlyIncome = overview.avgDailyIncome * 30;
+  if (monthlyIncome >= 50000) {
+    incomeLevel = 25;
+    analysis.push(`月均收入 ${formatCurrency(monthlyIncome)}，属于高收入群体`);
+  } else if (monthlyIncome >= 20000) {
+    incomeLevel = 20;
+    analysis.push(`月均收入 ${formatCurrency(monthlyIncome)}，收入水平较高`);
+  } else if (monthlyIncome >= 10000) {
+    incomeLevel = 15;
+    analysis.push(`月均收入 ${formatCurrency(monthlyIncome)}，收入水平中等偏上`);
+  } else if (monthlyIncome >= 5000) {
+    incomeLevel = 10;
+    analysis.push(`月均收入 ${formatCurrency(monthlyIncome)}，收入水平中等`);
+  } else if (monthlyIncome >= 2000) {
+    incomeLevel = 5;
+    analysis.push(`月均收入 ${formatCurrency(monthlyIncome)}，收入水平偏低`);
+  } else {
+    incomeLevel = 2;
+    analysis.push(`月均收入 ${formatCurrency(monthlyIncome)}，收入水平较低`);
+  }
+
+  // ---- 维度2：资金流动性 (0-25分) ----
+  let cashFlow = 0;
+  const totalFlow = overview.totalIncome + overview.totalExpense;
+  const monthCount = monthlyBreakdown.length || 1;
+  const avgMonthlyFlow = totalFlow / monthCount;
+
+  if (avgMonthlyFlow >= 100000) {
+    cashFlow = 25;
+    analysis.push(`月均资金流水 ${formatCurrency(avgMonthlyFlow)}，资金流动性极强`);
+  } else if (avgMonthlyFlow >= 50000) {
+    cashFlow = 20;
+    analysis.push(`月均资金流水 ${formatCurrency(avgMonthlyFlow)}，资金流动性强`);
+  } else if (avgMonthlyFlow >= 20000) {
+    cashFlow = 15;
+    analysis.push(`月均资金流水 ${formatCurrency(avgMonthlyFlow)}，资金流动性良好`);
+  } else if (avgMonthlyFlow >= 10000) {
+    cashFlow = 10;
+    analysis.push(`月均资金流水 ${formatCurrency(avgMonthlyFlow)}，资金流动性一般`);
+  } else if (avgMonthlyFlow >= 5000) {
+    cashFlow = 6;
+    analysis.push(`月均资金流水 ${formatCurrency(avgMonthlyFlow)}，资金流动性偏低`);
+  } else {
+    cashFlow = 3;
+    analysis.push(`月均资金流水 ${formatCurrency(avgMonthlyFlow)}，资金流动性较弱`);
+  }
+
+  // ---- 维度3：消费质量 (0-20分) ----
+  let consumptionQuality = 0;
+  // 分析高消费交易（单笔>1000元的支出）
+  const highValueExpenses = transactions.filter(t =>
+    (t.direction === '支出' || t.direction === '支') && t.amount >= 1000
+  );
+  const highValueRatio = overview.totalExpense > 0 
+    ? highValueExpenses.reduce((s, t) => s + t.amount, 0) / overview.totalExpense 
+    : 0;
+  const avgExpense = overview.totalExpense / Math.max(transactions.filter(t => t.direction === '支出' || t.direction === '支').length, 1);
+
+  if (avgExpense >= 500 || highValueRatio >= 0.4) {
+    consumptionQuality = 20;
+    analysis.push(`单笔消费均值 ${formatCurrency(avgExpense)}，高消费占比 ${Math.round(highValueRatio * 100)}%，消费能力强`);
+  } else if (avgExpense >= 200 || highValueRatio >= 0.2) {
+    consumptionQuality = 15;
+    analysis.push(`单笔消费均值 ${formatCurrency(avgExpense)}，消费能力较强`);
+  } else if (avgExpense >= 100) {
+    consumptionQuality = 10;
+    analysis.push(`单笔消费均值 ${formatCurrency(avgExpense)}，消费能力中等`);
+  } else if (avgExpense >= 50) {
+    consumptionQuality = 6;
+    analysis.push(`单笔消费均值 ${formatCurrency(avgExpense)}，消费能力一般`);
+  } else {
+    consumptionQuality = 3;
+    analysis.push(`单笔消费均值 ${formatCurrency(avgExpense)}，消费能力偏弱`);
+  }
+
+  // ---- 维度4：财务稳定性 (0-20分) ----
+  let stability = 0;
+  // 检查月度收入的稳定性（变异系数）
+  const monthlyIncomes = monthlyBreakdown.map(m => m.income).filter(v => v > 0);
+  let incomeCV = 1; // 变异系数（标准差/均值）
+  if (monthlyIncomes.length >= 2) {
+    const mean = monthlyIncomes.reduce((s, v) => s + v, 0) / monthlyIncomes.length;
+    const variance = monthlyIncomes.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / monthlyIncomes.length;
+    incomeCV = mean > 0 ? Math.sqrt(variance) / mean : 1;
+  }
+
+  // 检查是否有规律转账（稳定性指标）
+  const regularCount = regularTransfers.length;
+  
+  if (incomeCV < 0.3 && regularCount >= 2) {
+    stability = 20;
+    analysis.push(`收入波动系数 ${incomeCV.toFixed(2)}，有 ${regularCount} 组规律转账，财务极稳定`);
+  } else if (incomeCV < 0.5 || regularCount >= 2) {
+    stability = 15;
+    analysis.push(`收入较为稳定，有 ${regularCount} 组规律转账`);
+  } else if (incomeCV < 0.8) {
+    stability = 10;
+    analysis.push(`收入波动适中，财务状况一般`);
+  } else if (incomeCV < 1.2) {
+    stability = 6;
+    analysis.push(`收入波动较大，财务稳定性偏低`);
+  } else {
+    stability = 3;
+    analysis.push(`收入波动很大，财务稳定性较差`);
+  }
+
+  // ---- 维度5：还款能力 (0-10分) ----
+  let repaymentAbility = 5; // 默认中等
+  const highRiskLoans = loanDetection.filter(l => l.riskLevel === 'high').length;
+  const mediumRiskLoans = loanDetection.filter(l => l.riskLevel === 'medium').length;
+  const regularRepayments = repaymentTracking.filter(r => r.isRegular).length;
+
+  if (highRiskLoans === 0 && mediumRiskLoans === 0 && regularRepayments >= 1) {
+    repaymentAbility = 10;
+    analysis.push(`无高风险借款，有 ${regularRepayments} 组规律还款，还款能力优秀`);
+  } else if (highRiskLoans === 0 && mediumRiskLoans <= 1) {
+    repaymentAbility = 8;
+    analysis.push(`借款风险较低，还款能力良好`);
+  } else if (highRiskLoans <= 1) {
+    repaymentAbility = 5;
+    analysis.push(`存在 ${highRiskLoans} 笔高风险借款，还款能力一般`);
+  } else {
+    repaymentAbility = 2;
+    analysis.push(`存在 ${highRiskLoans} 笔高风险借款，还款能力存疑`);
+  }
+
+  // ---- 汇总评分 ----
+  const total = Math.min(100, Math.max(1, incomeLevel + cashFlow + consumptionQuality + stability + repaymentAbility));
+
+  let grade: CustomerScore['grade'];
+  let summary: string;
+  if (total >= 90) {
+    grade = 'A+';
+    summary = '优质客户，收入高、流水大、消费能力强，财务状况极为健康，综合资质卓越。';
+  } else if (total >= 80) {
+    grade = 'A';
+    summary = '高质量客户，收入稳定、资金流动性好，具备较强的消费和还款能力。';
+  } else if (total >= 70) {
+    grade = 'B+';
+    summary = '良好客户，收入水平中上，财务状况较为健康，具备一定的消费能力。';
+  } else if (total >= 60) {
+    grade = 'B';
+    summary = '普通客户，收入和消费水平中等，财务状况基本稳定。';
+  } else if (total >= 50) {
+    grade = 'C+';
+    summary = '一般客户，收入偏低或波动较大，财务稳定性有待提升。';
+  } else if (total >= 40) {
+    grade = 'C';
+    summary = '资质一般，收入水平较低，资金流动性弱，需关注财务风险。';
+  } else {
+    grade = 'D';
+    summary = '资质较差，收入低、流水少，财务状况不稳定，存在一定风险。';
+  }
+
+  return {
+    total,
+    grade,
+    dimensions: {
+      incomeLevel,
+      cashFlow,
+      consumptionQuality,
+      stability,
+      repaymentAbility,
+    },
+    analysis,
+    summary,
+  };
 }

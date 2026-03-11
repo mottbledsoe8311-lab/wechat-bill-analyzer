@@ -1,12 +1,13 @@
 /**
  * 还款追踪展示
  * 设计：极简数据叙事 - 清晰的还款来源追踪
+ * 功能：同时显示支出（我还款）和收入（对方还款给我）
  */
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatDate, type RepaymentRecord } from '@/lib/analyzer';
-import { ChevronDown, Wallet, CreditCard } from 'lucide-react';
+import { ChevronDown, Wallet, CreditCard, TrendingUp, TrendingDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface Props {
@@ -83,16 +84,30 @@ export default function RepaymentTracking({ records }: Props) {
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                      <span>{record.repayments.length} 笔还款</span>
+                      <span>{record.repayments.length} 笔支出</span>
+                      {record.incomings.length > 0 && (
+                        <>
+                          <span>·</span>
+                          <span>{record.incomings.length} 笔收入</span>
+                        </>
+                      )}
                       <span>·</span>
                       <span>{record.frequency}</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="font-bold tabular-nums">{formatCurrency(record.totalRepaid)}</p>
-                    <p className="text-xs text-muted-foreground">累计还款</p>
+                  <div className="text-right space-y-1">
+                    <div className="flex items-center gap-1.5 justify-end">
+                      <TrendingDown className="w-3.5 h-3.5 text-destructive" />
+                      <p className="font-bold tabular-nums text-destructive">{formatCurrency(record.totalRepaid)}</p>
+                    </div>
+                    {record.totalReceived > 0 && (
+                      <div className="flex items-center gap-1.5 justify-end">
+                        <TrendingUp className="w-3.5 h-3.5 text-emerald-ok" />
+                        <p className="font-bold tabular-nums text-emerald-ok">{formatCurrency(record.totalReceived)}</p>
+                      </div>
+                    )}
                   </div>
                   <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${
                     isExpanded ? 'rotate-180' : ''
@@ -126,9 +141,12 @@ export default function RepaymentTracking({ records }: Props) {
                         </div>
                       </div>
 
-                      {/* 还款明细 */}
+                      {/* 支出明细 */}
                       <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-3">还款明细</h4>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+                          <TrendingDown className="w-3.5 h-3.5 text-destructive" />
+                          支出明细（我还款给对方）
+                        </h4>
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="text-muted-foreground">
@@ -142,8 +160,8 @@ export default function RepaymentTracking({ records }: Props) {
                               <tr key={i} className="border-t border-border/30">
                                 <td className="py-2 tabular-nums">{formatDate(tx.date)}</td>
                                 <td className="py-2">{tx.method}</td>
-                                <td className="py-2 text-right tabular-nums font-medium">
-                                  {formatCurrency(tx.amount)}
+                                <td className="py-2 text-right tabular-nums font-medium text-destructive">
+                                  -{formatCurrency(tx.amount)}
                                 </td>
                               </tr>
                             ))}
@@ -155,6 +173,41 @@ export default function RepaymentTracking({ records }: Props) {
                           </p>
                         )}
                       </div>
+
+                      {/* 收入明细（对方还款给我） */}
+                      {record.incomings.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+                            <TrendingUp className="w-3.5 h-3.5 text-emerald-ok" />
+                            收入明细（对方还款给我）
+                          </h4>
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="text-muted-foreground">
+                                <th className="text-left py-2 font-medium">日期</th>
+                                <th className="text-left py-2 font-medium">来源</th>
+                                <th className="text-right py-2 font-medium">金额</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {record.incomings.slice(0, 20).map((tx, i) => (
+                                <tr key={i} className="border-t border-border/30">
+                                  <td className="py-2 tabular-nums">{formatDate(tx.date)}</td>
+                                  <td className="py-2">{tx.method}</td>
+                                  <td className="py-2 text-right tabular-nums font-medium text-emerald-ok">
+                                    +{formatCurrency(tx.amount)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {record.incomings.length > 20 && (
+                            <p className="text-xs text-muted-foreground mt-2 text-center">
+                              仅显示前20条，共 {record.incomings.length} 条
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
