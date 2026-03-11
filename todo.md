@@ -81,3 +81,9 @@
 - [x] 统一 PDF.js 版本为 5.5.207（API 和 Worker 版本必须匹配）
 - [x] 改进 worker 初始化逻辑，添加详细日志
 - [x] 修复 iOS 上的 worker 初始化问题
+
+
+## Worker 禁用修复（第三轮）
+- [x] 对所有浏览器禁用 PDF.js worker，使用主线程处理
+- [x] 避免 ESM worker 加载问题和跨域问题
+- [x] 验证 PDF 可以被正确提取（包含日期和时间）

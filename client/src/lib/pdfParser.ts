@@ -17,31 +17,14 @@ function initPDFWorker() {
   workerInitialized = true;
   
   try {
-    // 检测浏览器类型（延迟检测，避免顶层错误）
-    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-    const isIOS = /iPad|iPhone|iPod/.test(ua);
-    const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
-    const isIOSDevice = isIOS || isSafari;
-    
-    console.log('[PDF.js] Initializing worker. UA:', ua.substring(0, 50));
-    
-    if (isIOSDevice) {
-      // iOS 和 Safari 上禁用 worker，强制使用主线程模式
-      console.log('[PDF.js] iOS/Safari detected - disabling worker');
-      (pdfjsLib as any).disableWorker = true;
-      // 确保 GlobalWorkerOptions 被正确设置
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-    } else {
-      // 其他浏览器使用 CDN worker（版本必须与 pdfjs-dist 匹配：5.5.207）
-      const workerUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.5.207/pdf.worker.min.js';
-      console.log('[PDF.js] Setting worker URL:', workerUrl);
-      pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
-    }
-    
+    // 对所有浏览器都禁用 worker，使用主线程处理
+    // 这避免了 ESM worker 加载问题和跨域问题
+    console.log('[PDF.js] Disabling worker - using main thread processing');
+    (pdfjsLib as any).disableWorker = true;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
     console.log('[PDF.js] Worker initialization complete');
   } catch (e) {
     console.error('[PDF.js] Failed to initialize PDF worker:', e);
-    // 降级方案：禁用 worker
     (pdfjsLib as any).disableWorker = true;
     pdfjsLib.GlobalWorkerOptions.workerSrc = '';
   }
