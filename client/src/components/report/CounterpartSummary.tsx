@@ -1,13 +1,13 @@
 /**
  * 交易对方汇总
  * 设计：极简数据叙事 - 清晰的对方关系网络
- * 功能：点击对方名字直接展开全部交易明细
+ * 功能：点击对方名字直接展开全部交易明细，按支出/收入/净额排序
  */
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, type CounterpartSummary as CounterpartSummaryType } from '@/lib/analyzer';
-import { Users, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, Search, ChevronDown, ChevronUp, ArrowDown, ArrowUp } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Props {
@@ -15,9 +15,12 @@ interface Props {
   allTransactions?: any[];
 }
 
+type SortKey = 'totalIn' | 'totalOut' | 'netFlow';
+
 export default function CounterpartSummary({ data, allTransactions = [] }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'count' | 'totalIn' | 'totalOut' | 'netFlow'>('count');
+  const [sortBy, setSortBy] = useState<SortKey>('totalOut');
+  const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [showDetails, setShowDetails] = useState(false);
   const [expandedName, setExpandedName] = useState<string | null>(null);
 
@@ -32,19 +35,30 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
 
   // 获取点击展开对方的交易明细
   const expandedTransactions = expandedName
-    ? allTransactions.filter(tx => tx.counterpart.toLowerCase() === expandedName.toLowerCase())
+    ? allTransactions
+        .filter(tx => tx.counterpart.toLowerCase() === expandedName.toLowerCase())
+        .sort((a: any, b: any) => b.date.getTime() - a.date.getTime())
     : [];
+
+  const handleSort = (key: SortKey) => {
+    if (sortBy === key) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortBy(key);
+      setSortDir('desc');
+    }
+  };
 
   const filtered = data
     .filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => {
+      let diff = 0;
       switch (sortBy) {
-        case 'count': return b.transactionCount - a.transactionCount;
-        case 'totalIn': return b.totalIn - a.totalIn;
-        case 'totalOut': return b.totalOut - a.totalOut;
-        case 'netFlow': return Math.abs(b.netFlow) - Math.abs(a.netFlow);
-        default: return 0;
+        case 'totalIn':  diff = b.totalIn - a.totalIn; break;
+        case 'totalOut': diff = b.totalOut - a.totalOut; break;
+        case 'netFlow':  diff = Math.abs(b.netFlow) - Math.abs(a.netFlow); break;
       }
+      return sortDir === 'desc' ? diff : -diff;
     });
 
   // 计算搜索结果的汇总统计
@@ -57,6 +71,13 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
 
   const handleRowClick = (name: string) => {
     setExpandedName(prev => prev === name ? null : name);
+  };
+
+  const SortIcon = ({ col }: { col: SortKey }) => {
+    if (sortBy !== col) return <ArrowDown className="w-3 h-3 opacity-20 inline ml-0.5" />;
+    return sortDir === 'desc'
+      ? <ArrowDown className="w-3 h-3 text-indigo inline ml-0.5" />
+      : <ArrowUp className="w-3 h-3 text-indigo inline ml-0.5" />;
   };
 
   return (
@@ -90,21 +111,21 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
         </div>
         <div className="flex gap-1 bg-muted rounded-md p-1">
           {([
-            { key: 'count', label: '笔数' },
-            { key: 'totalIn', label: '收入' },
-            { key: 'totalOut', label: '支出' },
-            { key: 'netFlow', label: '净额' },
-          ] as const).map(item => (
+            { key: 'totalOut' as SortKey, label: '支出' },
+            { key: 'totalIn'  as SortKey, label: '收入' },
+            { key: 'netFlow'  as SortKey, label: '净额' },
+          ]).map(item => (
             <button
               key={item.key}
-              onClick={() => setSortBy(item.key)}
-              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+              onClick={() => handleSort(item.key)}
+              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors flex items-center gap-0.5 ${
                 sortBy === item.key
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {item.label}
+              <SortIcon col={item.key} />
             </button>
           ))}
         </div>
@@ -118,22 +139,18 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
           className="mb-6 p-4 bg-muted/50 rounded-xl border border-border"
         >
           <p className="text-sm font-semibold text-foreground mb-3">搜索结果统计</p>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-background rounded-lg p-3">
-              <p className="text-xs text-muted-foreground mb-1">笔数</p>
-              <p className="text-xl font-bold text-foreground">{searchStats.totalCount}</p>
-            </div>
+          <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="bg-background rounded-lg p-3">
               <p className="text-xs text-muted-foreground mb-1">收入</p>
-              <p className="text-xl font-bold text-emerald-ok">{formatCurrency(searchStats.totalIn)}</p>
+              <p className="text-lg font-bold text-emerald-ok">{formatCurrency(searchStats.totalIn)}</p>
             </div>
             <div className="bg-background rounded-lg p-3">
               <p className="text-xs text-muted-foreground mb-1">支出</p>
-              <p className="text-xl font-bold text-destructive">{formatCurrency(searchStats.totalOut)}</p>
+              <p className="text-lg font-bold text-destructive">{formatCurrency(searchStats.totalOut)}</p>
             </div>
             <div className="bg-background rounded-lg p-3">
               <p className="text-xs text-muted-foreground mb-1">净额</p>
-              <p className={`text-xl font-bold ${searchStats.netFlow >= 0 ? 'text-emerald-ok' : 'text-destructive'}`}>
+              <p className={`text-lg font-bold ${searchStats.netFlow >= 0 ? 'text-emerald-ok' : 'text-destructive'}`}>
                 {searchStats.netFlow >= 0 ? '+' : ''}{formatCurrency(searchStats.netFlow)}
               </p>
             </div>
@@ -163,23 +180,29 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                 {searchedCounterpart?.name} · 全部交易明细（{detailedTransactions.length}笔）
               </p>
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+                <table className="w-full text-xs" style={{ tableLayout: 'fixed' }}>
+                  <colgroup>
+                    <col style={{ width: '34%' }} />
+                    <col style={{ width: '26%' }} />
+                    <col style={{ width: '26%' }} />
+                    <col style={{ width: '14%' }} />
+                  </colgroup>
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">日期时间</th>
-                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">类型</th>
-                      <th className="text-right py-2 px-2 font-medium text-muted-foreground">金额</th>
-                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">收/支</th>
+                      <th className="text-left py-2 pr-1 font-medium text-muted-foreground">日期时间</th>
+                      <th className="text-left py-2 pr-1 font-medium text-muted-foreground">类型</th>
+                      <th className="text-right py-2 pr-1 font-medium text-muted-foreground">金额</th>
+                      <th className="text-center py-2 font-medium text-muted-foreground">收/支</th>
                     </tr>
                   </thead>
                   <tbody>
                     {detailedTransactions.map((tx: any, i: number) => (
                       <tr key={i} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
-                        <td className="py-2 px-2 text-muted-foreground tabular-nums">{format(tx.date, 'MM-dd HH:mm')}</td>
-                        <td className="py-2 px-2">{tx.type}</td>
-                        <td className="py-2 px-2 text-right font-medium tabular-nums">{formatCurrency(tx.amount)}</td>
-                        <td className={`py-2 px-2 font-medium ${tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'}`}>
-                          {tx.direction === '收入' || tx.direction === '收' ? '收入' : '支出'}
+                        <td className="py-1.5 pr-1 text-muted-foreground tabular-nums whitespace-nowrap overflow-hidden text-ellipsis">{format(tx.date, 'yy-MM-dd HH:mm')}</td>
+                        <td className="py-1.5 pr-1 overflow-hidden text-ellipsis whitespace-nowrap">{tx.type}</td>
+                        <td className="py-1.5 pr-1 text-right font-medium tabular-nums overflow-hidden text-ellipsis">{formatCurrency(tx.amount)}</td>
+                        <td className={`py-1.5 text-center font-medium ${tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'}`}>
+                          {tx.direction === '收入' || tx.direction === '收' ? '收' : '支'}
                         </td>
                       </tr>
                     ))}
@@ -191,16 +214,30 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
         )}
       </AnimatePresence>
 
-      {/* 表格 */}
+      {/* 主表格 */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
               <th className="text-left py-3 px-3 font-medium text-muted-foreground">交易对方</th>
-              <th className="text-right py-3 px-3 font-medium text-muted-foreground">笔数</th>
-              <th className="text-right py-3 px-3 font-medium text-muted-foreground">收入</th>
-              <th className="text-right py-3 px-3 font-medium text-muted-foreground">支出</th>
-              <th className="text-right py-3 px-3 font-medium text-muted-foreground hidden sm:table-cell">净额</th>
+              <th
+                className="text-right py-3 px-3 font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none"
+                onClick={() => handleSort('totalIn')}
+              >
+                收入 <SortIcon col="totalIn" />
+              </th>
+              <th
+                className="text-right py-3 px-3 font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none"
+                onClick={() => handleSort('totalOut')}
+              >
+                支出 <SortIcon col="totalOut" />
+              </th>
+              <th
+                className="text-right py-3 px-3 font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none hidden sm:table-cell"
+                onClick={() => handleSort('netFlow')}
+              >
+                净额 <SortIcon col="netFlow" />
+              </th>
               <th className="text-right py-3 px-3 font-medium text-muted-foreground hidden md:table-cell">首次</th>
               <th className="text-right py-3 px-3 font-medium text-muted-foreground hidden md:table-cell">最近</th>
             </tr>
@@ -241,7 +278,6 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                       }
                     </div>
                   </td>
-                  <td className="py-3 px-3 text-right tabular-nums">{item.transactionCount}</td>
                   <td className="py-3 px-3 text-right tabular-nums text-emerald-ok">
                     {item.totalIn > 0 ? formatCurrency(item.totalIn) : '-'}
                   </td>
@@ -254,17 +290,17 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                     {item.netFlow >= 0 ? '+' : ''}{formatCurrency(item.netFlow)}
                   </td>
                   <td className="py-3 px-3 text-right tabular-nums text-muted-foreground hidden md:table-cell text-xs">
-                    {format(item.firstDate, 'yy-MM-dd HH:mm')}
+                    {format(item.firstDate, 'yy-MM-dd')}
                   </td>
                   <td className="py-3 px-3 text-right tabular-nums text-muted-foreground hidden md:table-cell text-xs">
-                    {format(item.lastDate, 'yy-MM-dd HH:mm')}
+                    {format(item.lastDate, 'yy-MM-dd')}
                   </td>
                 </motion.tr>
 
                 {/* 展开的交易明细行 */}
                 {expandedName === item.name && expandedTransactions.length > 0 && (
                   <tr key={`${item.name}-details`}>
-                    <td colSpan={7} className="p-0">
+                    <td colSpan={6} className="p-0">
                       <AnimatePresence>
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
