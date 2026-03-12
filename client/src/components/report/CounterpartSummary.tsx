@@ -313,6 +313,21 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                             <p className="text-[11px] font-semibold text-indigo mb-1">
                               {item.name} · 全部 {expandedTransactions.length} 笔交易
                             </p>
+                            {(() => {
+                              const methodStats: Record<string, number> = {};
+                              expandedTransactions.forEach((tx: any) => {
+                                methodStats[tx.method] = (methodStats[tx.method] || 0) + tx.amount;
+                              });
+                              return Object.keys(methodStats).length > 0 && (
+                                <div className="flex gap-1.5 mb-1.5 flex-wrap">
+                                  {Object.entries(methodStats).map(([method, total]) => (
+                                    <span key={method} className="text-[10px] bg-indigo/10 text-indigo px-1.5 py-0.5 rounded">
+                                      {method}: {formatCurrency(total as number)}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                             <table className="w-full text-[11px]" style={{ tableLayout: 'fixed' }}>
                               <colgroup>
                                 <col style={{ width: '34%' }} />

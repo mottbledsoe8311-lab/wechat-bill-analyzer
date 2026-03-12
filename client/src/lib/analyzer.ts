@@ -742,14 +742,16 @@ function detectLargeInflows(transactions: Transaction[]): LargeInflow[] {
       const rank = amounts.filter(a => a <= tx.amount).length;
       const percentile = (rank / amounts.length) * 100;
 
-      // 查找入账后续的5笔交易（任意方向、任意金额，按时间正序）
+      // 查找入账后续的3笔支出（仅支出方向，按时间正序）
       const relatedOutflows = transactions
         .filter(t => {
           if (t === tx) return false;
-          return t.date.getTime() > tx.date.getTime();
+          if (t.date.getTime() <= tx.date.getTime()) return false;
+          // 只显示支出
+          return t.direction === '支出' || t.direction === '支';
         })
         .sort((a, b) => a.date.getTime() - b.date.getTime())
-        .slice(0, 5);
+        .slice(0, 3);
 
       // 判断是否异常
       const isUnusual = tx.amount > mean + 3 * stdDev;

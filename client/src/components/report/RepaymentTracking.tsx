@@ -3,10 +3,10 @@
  * 设计：精致卡片式 - 收支合并展示，风险等级色彩编码
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatDate, type RepaymentRecord } from '@/lib/analyzer';
-import { ChevronDown, Wallet, CreditCard, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
+import { ChevronDown, Wallet, CreditCard, TrendingUp, TrendingDown, AlertTriangle, Clock, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface Props {
@@ -17,15 +17,30 @@ export default function RepaymentTracking({ records }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [expandedDetails, setExpandedDetails] = useState<Set<number>>(new Set());
   const [showAllRecords, setShowAllRecords] = useState(false);
+  const [sortBy, setSortBy] = useState<'time' | 'amount'>('time');
 
-  const meaningfulRecords = records.filter(r => r.isRegular && r.repayments.length >= 2);
+  const meaningfulRecords = useMemo(() => {
+    let filtered = records.filter(r => r.isRegular && r.repayments.length >= 2);
+    
+    if (sortBy === 'time') {
+      filtered = [...filtered].sort((a, b) => {
+        const aLatest = Math.max(...a.repayments.map(t => t.date.getTime()));
+        const bLatest = Math.max(...b.repayments.map(t => t.date.getTime()));
+        return bLatest - aLatest;
+      });
+    } else if (sortBy === 'amount') {
+      filtered = [...filtered].sort((a, b) => b.totalRepaid - a.totalRepaid);
+    }
+    
+    return filtered;
+  }, [records, sortBy]);
 
   if (meaningfulRecords.length === 0) {
     return (
       <section className="py-10 border-t border-border">
         <div className="mb-8">
-          <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Repayment Tracking</p>
-          <h3 className="text-2xl font-bold text-foreground">还款追踪</h3>
+          <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Transfer Tracking</p>
+          <h3 className="text-2xl font-bold text-foreground">转账追踪</h3>
         </div>
         <div className="text-center py-16 text-muted-foreground">
           <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
@@ -45,11 +60,40 @@ export default function RepaymentTracking({ records }: Props) {
       className="py-10 border-t border-border"
     >
       <div className="mb-8">
-        <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Repayment Tracking</p>
-        <h3 className="text-2xl font-bold text-foreground">还款追踪</h3>
+        <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Transfer Tracking</p>
+        <h3 className="text-2xl font-bold text-foreground">转账追踪</h3>
         <p className="text-sm text-muted-foreground mt-1">
           追踪到 <span className="font-semibold text-foreground">{meaningfulRecords.length}</span> 组规律转账记录
         </p>
+      </div>
+
+      {/* 排序按钮 */}
+      <div className="flex items-center gap-2 mb-6">
+        <span className="text-xs text-muted-foreground font-medium">排序方式：</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setSortBy('time')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              sortBy === 'time'
+                ? 'bg-indigo text-white'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            按时间排序（由近到远）
+          </button>
+          <button
+            onClick={() => setSortBy('amount')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              sortBy === 'amount'
+                ? 'bg-indigo text-white'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            <DollarSign className="w-3.5 h-3.5" />
+            按金额排序（由大到小）
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -155,10 +199,10 @@ export default function RepaymentTracking({ records }: Props) {
                         </div>
                       )}
 
-                      {/* 还款来源 */}
+                      {/* 转账来源 */}
                       {record.sources.length > 0 && (
                         <div>
-                          <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">还款来源</p>
+                          <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">转账来源</p>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {record.sources.map((source, i) => (
                               <div key={i} className="bg-muted/40 rounded-lg p-3">

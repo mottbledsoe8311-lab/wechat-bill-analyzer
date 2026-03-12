@@ -25,8 +25,12 @@ export default function FileUpload({ onFilesSelected, isAnalyzing, onStartAnalys
     const errors: string[] = [];
 
     Array.from(fileList).forEach(file => {
-      if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-        errors.push(`${file.name} 不是PDF文件`);
+      const fileName = file.name.toLowerCase();
+      const isPDF = file.type === 'application/pdf' || fileName.endsWith('.pdf');
+      const isWPS = fileName.endsWith('.wps') || fileName.endsWith('.wpt');
+      
+      if (!isPDF && !isWPS) {
+        errors.push(`${file.name} 不是PDF或WPS文件`);
         return;
       }
       if (file.size > 100 * 1024 * 1024) {
@@ -104,7 +108,7 @@ export default function FileUpload({ onFilesSelected, isAnalyzing, onStartAnalys
         >
           <input
             type="file"
-            accept=".pdf,application/pdf"
+            accept=".pdf,application/pdf,.wps,.wpt"
             multiple
             onChange={handleFileInput}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -124,7 +128,7 @@ export default function FileUpload({ onFilesSelected, isAnalyzing, onStartAnalys
                 拖拽微信账单PDF到此处
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                或点击选择文件 · 支持多文件上传 · 仅限PDF格式
+                或点击选择文件 · 支持多文件上传 · 支持PDF和WPS格式
               </p>
             </div>
           </div>
