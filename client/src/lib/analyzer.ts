@@ -360,9 +360,10 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
     // 支持英文和特殊符号
     name = name.replace(/[^\u4e00-\u9fa5a-zA-Z0-9\s\-_()（）]/g, '').trim();
     if (!name) continue;
-    
-    // 过滤银行提现、充值等非个人转账
+       // 过滤齐行齐列、个人转账等非个人转账
     if (isBankOrWithdraw(name)) continue;
+    // 过滤商户消費
+    if (isMerchant(name)) continue;
     
     // 也包含所有收支记录
     const key = `${name}|${tx.direction}`;
@@ -433,6 +434,10 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
     }
   }
 
+  // 检测日均规律转账（每天连续3天以上＋金额一致）
+  const dailyRegularTransfers = detectDailyRegularTransfers(transactions);
+  results.push(...dailyRegularTransfers);
+
   // 按风险等级排序（高风险优先），再按置信度排序
   const riskOrder = { high: 0, medium: 1, low: 2 };
   return results.sort((a, b) => {
@@ -441,6 +446,88 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
     }
     return b.confidence - a.confidence;
   });
+}
+
+// 检测日均规律转账（每天连续3天以上＋金额一致）
+function detectDailyRegularTransfers(transactions: Transaction[]): RegularTransferGroup[] {
+  const results: RegularTransferGroup[] = [];
+  
+  // 按交易对方+方向分组
+  const groups: Record<string, Transaction[]> = {};
+  for (const tx of transactions) {
+    let name = tx.counterpart?.trim();
+    if (!name || name === '/' || name === '-') continue;
+    name = name.replace(/[^\u4e00-\u9fa5a-zA-Z0-9\s\-_()\uff08\uff09]/g, '').trim();
+    if (!name) continue;
+    
+    // 过滤齐行齐列、商户消費
+    if (isBankOrWithdraw(name) || isMerchant(name)) continue;
+    
+    const key = `${name}|${tx.direction}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(tx);
+  }
+  
+  for (const [key, txs] of Object.entries(groups)) {
+    if (txs.length < 3) continue;
+    
+    const [counterpart, direction] = key.split('|');
+    const sorted = [...txs].sort((a, b) => a.date.getTime() - b.date.getTime());
+    
+    // 检测是否有连续3天以上的每天一笔且金额一致的交易
+    let maxConsecutiveDays = 0;
+    let bestSequence: Transaction[] = [];
+    let bestAmount = 0;
+    
+    for (let i = 0; i < sorted.length; i++) {
+      const startTx = sorted[i];
+      const sequence: Transaction[] = [startTx];
+      let currentDate = new Date(startTx.date);
+      let currentAmount = startTx.amount;
+      
+      // 查找后续每天一笔且金额一致的交易
+      for (let j = i + 1; j < sorted.length; j++) {
+        const nextTx = sorted[j];
+        const daysDiff = differenceInDays(nextTx.date, currentDate);
+        const amountDiff = Math.abs(nextTx.amount - currentAmount) / currentAmount;
+        
+        // 必须是每天一笔（间隔正好1天）且金额一致（差异<5%）
+        if (daysDiff === 1 && amountDiff < 0.05) {
+          sequence.push(nextTx);
+          currentDate = new Date(nextTx.date);
+        } else {
+          break;
+        }
+      }
+      
+      // 如果找到连续3天以上的序列，记录
+      if (sequence.length >= 3 && sequence.length > maxConsecutiveDays) {
+        maxConsecutiveDays = sequence.length;
+        bestSequence = sequence;
+        bestAmount = currentAmount;
+      }
+    }
+    
+    // 如果找到有效的日均规律转账，添加到结果中
+    if (bestSequence.length >= 3) {
+      const totalAmount = bestSequence.reduce((sum, t) => sum + t.amount, 0);
+      const avgAmount = totalAmount / bestSequence.length;
+      
+      results.push({
+        counterpart,
+        direction,
+        pattern: '每天',
+        intervalDays: 1,
+        avgAmount,
+        totalAmount,
+        transactions: bestSequence,
+        confidence: 1.0, // 每天一笔且金额一致，置信度100%
+        riskLevel: 'medium', // 日均规律转账默认为中风险
+      });
+    }
+  }
+  
+  return results;
 }
 
 interface PatternResult {
@@ -655,12 +742,14 @@ function detectLargeInflows(transactions: Transaction[]): LargeInflow[] {
       const rank = amounts.filter(a => a <= tx.amount).length;
       const percentile = (rank / amounts.length) * 100;
 
-      // 查找相关的支出（入账后7天内的大额支出）
-      const relatedOutflows = transactions.filter(t => {
-        if (t.direction !== '支出' && t.direction !== '支') return false;
-        const daysDiff = differenceInDays(t.date, tx.date);
-        return daysDiff >= 0 && daysDiff <= 7 && t.amount >= tx.amount * 0.3;
-      });
+      // 查找入账后续的5笔交易（任意方向、任意金额，按时间正序）
+      const relatedOutflows = transactions
+        .filter(t => {
+          if (t === tx) return false;
+          return t.date.getTime() > tx.date.getTime();
+        })
+        .sort((a, b) => a.date.getTime() - b.date.getTime())
+        .slice(0, 5);
 
       // 判断是否异常
       const isUnusual = tx.amount > mean + 3 * stdDev;
