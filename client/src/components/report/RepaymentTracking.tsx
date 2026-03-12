@@ -15,8 +15,6 @@ interface Props {
 
 export default function RepaymentTracking({ records }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const [expandedDetails, setExpandedDetails] = useState<Set<number>>(new Set());
-  const [showAllRecords, setShowAllRecords] = useState(false);
 
   const meaningfulRecords = records.filter(r => r.isRegular && r.repayments.length >= 2);
 
@@ -53,7 +51,7 @@ export default function RepaymentTracking({ records }: Props) {
       </div>
 
       <div className="space-y-3">
-        {meaningfulRecords.slice(0, showAllRecords ? meaningfulRecords.length : 20).map((record, index) => {
+        {meaningfulRecords.slice(0, 30).map((record, index) => {
           const isExpanded = expandedIndex === index;
 
           const allTxs = [
@@ -173,24 +171,9 @@ export default function RepaymentTracking({ records }: Props) {
 
                       {/* 收支合并明细 */}
                       <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            全部交易明细（{allTxs.length} 笔）
-                          </p>
-                          {allTxs.length > 20 && (
-                            <button
-                              onClick={() => setExpandedDetails(prev => {
-                                const next = new Set(prev);
-                                if (next.has(index)) next.delete(index);
-                                else next.add(index);
-                                return next;
-                              })}
-                              className="text-xs text-indigo hover:text-indigo/80 font-medium"
-                            >
-                              {expandedDetails.has(index) ? '收起' : `展开全部 (${allTxs.length})`}
-                            </button>
-                          )}
-                        </div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
+                          全部交易明细（{allTxs.length} 笔）
+                        </p>
                         <div className="overflow-x-auto">
                           <table className="w-full text-xs">
                             <thead>
@@ -202,7 +185,7 @@ export default function RepaymentTracking({ records }: Props) {
                               </tr>
                             </thead>
                             <tbody>
-                              {allTxs.slice(0, expandedDetails.has(index) ? allTxs.length : 20).map((tx, i) => (
+                              {allTxs.slice(0, 30).map((tx, i) => (
                                 <tr key={i} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
                                   <td className="py-2 pr-3 tabular-nums text-muted-foreground">{formatDate(tx.date)}</td>
                                   <td className="py-2 pr-3">{tx.method}</td>
@@ -219,6 +202,11 @@ export default function RepaymentTracking({ records }: Props) {
                             </tbody>
                           </table>
                         </div>
+                        {allTxs.length > 30 && (
+                          <p className="text-xs text-muted-foreground mt-3 text-center">
+                            仅显示前 30 条，共 {allTxs.length} 条记录
+                          </p>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -227,16 +215,6 @@ export default function RepaymentTracking({ records }: Props) {
             </motion.div>
           );
         })}
-        {meaningfulRecords.length > 20 && !showAllRecords && (
-          <div className="text-center pt-2">
-            <button
-              onClick={() => setShowAllRecords(true)}
-              className="text-xs text-indigo hover:text-indigo/80 font-medium"
-            >
-              查看全部 {meaningfulRecords.length} 个对方
-            </button>
-          </div>
-        )}
       </div>
     </motion.section>
   );
