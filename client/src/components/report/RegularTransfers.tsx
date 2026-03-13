@@ -145,8 +145,11 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-1">
                         <Repeat className="w-3 h-3" />
-                        {g.pattern} · {g.transactions.length}笔支出 · 规律度：{(g.confidence * 100).toFixed(0)}%
+                        {g.pattern} · {g.transactions.length}笔支出
                       </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      规律度：<span className="font-semibold text-foreground">{(g.confidence * 100).toFixed(0)}%</span>
                     </div>
                   </div>
                 </div>
