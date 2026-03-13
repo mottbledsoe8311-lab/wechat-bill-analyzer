@@ -316,7 +316,9 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                             {(() => {
                               const methodStats: Record<string, number> = {};
                               expandedTransactions.forEach((tx: any) => {
-                                methodStats[tx.method] = (methodStats[tx.method] || 0) + tx.amount;
+                                if (tx.direction === '支出' || tx.direction === '支') {
+                                  methodStats[tx.method] = (methodStats[tx.method] || 0) + tx.amount;
+                                }
                               });
                               return Object.keys(methodStats).length > 0 && (
                                 <div className="flex gap-1.5 mb-1.5 flex-wrap">
