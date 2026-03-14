@@ -379,22 +379,6 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
     // 按日期排序
     const sorted = [...txs].sort((a, b) => a.date.getTime() - b.date.getTime());
     
-    // 计算累积金额，过滤掉200以下的交易
-    const totalAmount = sorted.reduce((sum, t) => sum + t.amount, 0);
-    if (totalAmount < 200) continue;
-    
-    // 支出方向需要连续2笔相同金额
-    if (direction === '支出' || direction === '支') {
-      let hasConsecutiveSameAmount = false;
-      for (let i = 1; i < sorted.length; i++) {
-        if (sorted[i].amount === sorted[i - 1].amount) {
-          hasConsecutiveSameAmount = true;
-          break;
-        }
-      }
-      if (!hasConsecutiveSameAmount) continue;
-    }
-    
     // 计算相邻交易的间隔天数
     const intervals: number[] = [];
     for (let i = 1; i < sorted.length; i++) {
@@ -414,6 +398,7 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
       const amountRegularity = detectAmountRegularity(amounts);
       if (!amountRegularity.valid) continue; // 如果金额没有规律，跳过
       
+      const totalAmount = sorted.reduce((sum, t) => sum + t.amount, 0);
       const avgAmount = totalAmount / sorted.length;
       
       // 置信度100%需要至少2笔金额相同
