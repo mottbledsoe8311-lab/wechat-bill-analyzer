@@ -75,7 +75,7 @@ export default function RepaymentTracking({ records }: Props) {
             onClick={() => setSortBy('time')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
               sortBy === 'time'
-                ? 'bg-emerald-ok text-white'
+                ? 'bg-blue-500 text-white'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
@@ -86,7 +86,7 @@ export default function RepaymentTracking({ records }: Props) {
             onClick={() => setSortBy('amount')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
               sortBy === 'amount'
-                ? 'bg-emerald-ok text-white'
+                ? 'bg-blue-500 text-white'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
