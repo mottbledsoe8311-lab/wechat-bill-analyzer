@@ -478,6 +478,10 @@ function detectDailyRegularTransfers(transactions: Transaction[]): RegularTransf
     if (txs.length < 3) continue;
     
     const [counterpart, direction] = key.split('|');
+    
+    // 条件1：只显示支出方向
+    if (direction !== '支出' && direction !== '支') continue;
+    
     const sorted = [...txs].sort((a, b) => a.date.getTime() - b.date.getTime());
     
     // 检测是否有连续3天以上的每天一笔且金额一致的交易
@@ -519,6 +523,9 @@ function detectDailyRegularTransfers(transactions: Transaction[]): RegularTransf
       const totalAmount = bestSequence.reduce((sum, t) => sum + t.amount, 0);
       const avgAmount = totalAmount / bestSequence.length;
       
+      // 条件2：不显示累积金额200以下的交易
+      if (totalAmount < 200) continue;
+      
       results.push({
         counterpart,
         direction,
@@ -528,7 +535,7 @@ function detectDailyRegularTransfers(transactions: Transaction[]): RegularTransf
         totalAmount,
         transactions: bestSequence,
         confidence: 1.0, // 每天一笔且金额一致，置信度100%
-        riskLevel: 'medium', // 日均规律转账默认为中风险
+        riskLevel: 'high', // 日均规律转账且金额一致，置信度100%标记为高风险
       });
     }
   }
@@ -626,13 +633,28 @@ function detectPattern(intervals: number[]): PatternResult | null {
 
 // 常见商户名称列表 - 用于过滤非个人转账
 const MERCHANT_KEYWORDS = [
-  '滴滴', '美团', '京东', '淘宝', '拼多多', '支付宝', '饿了么',
-  '超市', '便利店', '商城', '商店', '药店', '医院', '银行',
-  '电信', '移动', '联通', '水电', '燃气', '物业', '保险',
-  '出行', '打车', '公交', '地铁', '加油', '停车',
-  '餐饮', '酒店', '旅游', '航空', '铁路', '12306',
-  '腾讯', '网易', '百度', '阿里', '字节', '华为', '小米',
-  '公司工资', '投资收益', '理财', '基金', '股票',
+  // 电商平台
+  '滴滴', '美团', '京东', '淘宝', '拼多多', '支付宝', '饿了么', '抖音', '快手', '小红书',
+  '亚马逊', '沃尔玛', 'ebay', '考拉', '唯品会', '蘑菇街',
+  // 超市便利
+  '超市', '便利店', '商城', '商店', '药店', '医院', '银行', '7-11', '便利蜂', '罗森',
+  '家乐福', '大润发', '永辉', '盒马', '朴朴', '每日优鲜',
+  // 通讯运营商
+  '电信', '移动', '联通', '水电', '燃气', '物业', '保险', '中国电信', '中国移动', '中国联通',
+  // 出行交通
+  '出行', '打车', '公交', '地铁', '加油', '停车', '高铁', '火车', '飞机', '航班',
+  '神州租车', '瑞卡租车', '携程', '去哪儿', '飞猪',
+  // 餐饮酒店
+  '餐饮', '酒店', '旅游', '航空', '铁路', '12306', '餐厅', '饭店', '咖啡', '奶茶',
+  '麦当劳', '肯德基', '必胜客', '星巴克', '喜茶', '奈雪', '茶颜悦色',
+  // 科技公司
+  '腾讯', '网易', '百度', '阿里', '字节', '华为', '小米', '苹果', '微软', 'google',
+  '爱奇艺', '优酷', 'b站', '哔哩哔哩', '网飞', 'netflix', '迪士尼',
+  // 财务投资
+  '公司工资', '投资收益', '理财', '基金', '股票', '证券', '期货',
+  // 其他商户
+  '商户', '收款', '转账', '支付', '充值', '购买', '订阅', '会员', '续费',
+  '广告', '推广', '代理', '加盟', '分销', '佣金',
 ];
 
 function isMerchant(name: string): boolean {
