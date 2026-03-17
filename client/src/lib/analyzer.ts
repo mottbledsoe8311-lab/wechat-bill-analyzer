@@ -376,6 +376,9 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
 
     const [counterpart, direction] = key.split('|');
     
+    // 条件1：只显示支出方向
+    if (direction !== '支出' && direction !== '支') continue;
+    
     // 按日期排序
     const sorted = [...txs].sort((a, b) => a.date.getTime() - b.date.getTime());
     
@@ -391,12 +394,22 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
     // 检测规律性
     const regularPattern = detectPattern(intervals);
     if (regularPattern) {
+      // 条件3：不显示规律为40天以上的规律转账
+      if (regularPattern.interval >= 40) continue;
+      
       // 检测金额规律性 - 金额必须有规律（至屑50%的金额相同或相近）
       const amounts = sorted.map(t => t.amount);
       const amountRegularity = detectAmountRegularity(amounts);
       if (!amountRegularity.valid) continue; // 如果金额没有规律，跳过
       
+      // 条件4：支出要连续2笔且金额相同才能显示
+      if (amountRegularity.maxSameCount < 2) continue;
+      
       const totalAmount = sorted.reduce((sum, t) => sum + t.amount, 0);
+      
+      // 条件2：不显示累积金额200以下的交易
+      if (totalAmount < 200) continue;
+      
       const avgAmount = totalAmount / sorted.length;
       
       // 置信度100%需要至少2笔金额相同
@@ -405,19 +418,12 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
         finalConfidence = 0.95; // 降级为95%，不达到100%
       }
       
-      // 判断风险等级（收入和支出都参与评级）
+      // 条件5：规律度为100%的标记为高风险，50%以上标记中风险
       let riskLevel: 'low' | 'medium' | 'high' = 'low';
-      if (finalConfidence > 0.6 && avgAmount > 500) riskLevel = 'medium';
-      if (finalConfidence > 0.7 && avgAmount > 2000) riskLevel = 'medium';
-      if (finalConfidence > 0.8 && avgAmount > 5000) riskLevel = 'high';
-      // 支出方向风险更高
-      if (direction === '支出' || direction === '支') {
-        if (finalConfidence > 0.6 && avgAmount > 3000) riskLevel = 'high';
-      }
-      // 收入方向：高置信度+大额也是中/高风险
-      if (direction === '收入' || direction === '收') {
-        if (finalConfidence > 0.6 && avgAmount > 1000) riskLevel = 'medium';
-        if (finalConfidence > 0.8 && avgAmount > 5000) riskLevel = 'high';
+      if (finalConfidence >= 1.0) {
+        riskLevel = 'high';
+      } else if (finalConfidence >= 0.5) {
+        riskLevel = 'medium';
       }
 
       results.push({
