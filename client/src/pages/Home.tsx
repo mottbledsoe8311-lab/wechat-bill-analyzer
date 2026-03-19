@@ -45,6 +45,7 @@ export default function Home() {
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const reportRef = useRef<HTMLDivElement>(null);
+  const reportContentRef = useRef<HTMLDivElement>(null);
 
   const handleFilesSelected = useCallback((selectedFiles: File[]) => {
     setFiles(selectedFiles);
@@ -397,7 +398,7 @@ export default function Home() {
                 <div className="container flex items-center justify-between h-14">
                   <h2 className="text-lg font-bold">账单分析报表</h2>
                   <div className="flex gap-2">
-                    <ShareButton />
+                    <ShareButton reportRef={reportContentRef} />
                     <Button
                       variant="outline"
                       size="sm"
@@ -411,7 +412,7 @@ export default function Home() {
                 </div>
               </nav>
               {/* 报表内容 */}
-              <div className="container">
+              <div className="container" ref={reportContentRef}>
                 {analysisResult && <OverviewSection stats={analysisResult.overview} />}
                 <MonthlyChart data={analysisResult?.monthlyBreakdown || []} />
                 <RegularTransfers groups={analysisResult?.regularTransfers || []} allTransactions={allTransactions} />

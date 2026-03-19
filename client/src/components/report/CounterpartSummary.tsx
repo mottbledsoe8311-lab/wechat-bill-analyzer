@@ -36,7 +36,11 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
   // 获取点击展开对方的交易明细
   const expandedTransactions = expandedName
     ? allTransactions
-        .filter(tx => tx.counterpart.toLowerCase() === expandedName.toLowerCase())
+        .filter(tx => {
+          // 确保 tx.counterpart 存在并进行大小写不敏感的比较
+          const txCounterpart = tx.counterpart || '';
+          return txCounterpart.toLowerCase() === expandedName.toLowerCase();
+        })
         .sort((a: any, b: any) => b.date.getTime() - a.date.getTime())
     : [];
 
@@ -298,7 +302,7 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                 </motion.tr>
 
                 {/* 展开的交易明细行 */}
-                {expandedName === item.name && expandedTransactions.length > 0 && (
+                {expandedName === item.name && expandedTransactions.length > 0 ? (
                   <tr key={`${item.name}-details`}>
                     <td colSpan={6} className="p-0">
                       <AnimatePresence>
@@ -370,7 +374,15 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                       </AnimatePresence>
                     </td>
                   </tr>
-                )}
+                ) : expandedName === item.name ? (
+                  <tr key={`${item.name}-empty`}>
+                    <td colSpan={6} className="p-0">
+                      <div className="px-3 py-4 bg-indigo/3 border-b border-indigo/10 text-center text-sm text-muted-foreground">
+                        没有找到 {item.name} 的交易明细
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
               </>
             ))}
           </tbody>
