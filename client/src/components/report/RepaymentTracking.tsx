@@ -68,29 +68,29 @@ export default function RepaymentTracking({ records }: Props) {
       </div>
 
       {/* 排序按钮 */}
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
         <span className="text-xs text-muted-foreground font-medium">排序方式：</span>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setSortBy('time')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
               sortBy === 'time'
-                ? 'bg-blue-500 text-white'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'bg-emerald-ok text-white shadow-md hover:shadow-lg hover:brightness-110'
+                : 'bg-emerald-ok/10 text-emerald-ok border border-emerald-ok/30 hover:bg-emerald-ok/20'
             }`}
           >
-            <Clock className="w-3.5 h-3.5" />
+            <Clock className="w-4 h-4" />
             按时间排序（由近到远）
           </button>
           <button
             onClick={() => setSortBy('amount')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
               sortBy === 'amount'
-                ? 'bg-blue-500 text-white'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'bg-emerald-ok text-white shadow-md hover:shadow-lg hover:brightness-110'
+                : 'bg-emerald-ok/10 text-emerald-ok border border-emerald-ok/30 hover:bg-emerald-ok/20'
             }`}
           >
-            <DollarSign className="w-3.5 h-3.5" />
+            <DollarSign className="w-4 h-4" />
             按金额排序（由大到小）
           </button>
         </div>
