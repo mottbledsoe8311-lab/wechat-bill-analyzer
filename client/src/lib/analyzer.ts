@@ -379,10 +379,6 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
     // 条件1：只显示支出方向
     if (direction !== '支出' && direction !== '支') continue;
     
-    // 过滤掉商户消费交易（类型为"消费"的）
-    const hasConsumerTx = txs.some((tx: any) => tx.type === '消费' || tx.type?.includes('消费'));
-    if (hasConsumerTx) continue;
-    
     // 按日期排序
     const sorted = [...txs].sort((a, b) => a.date.getTime() - b.date.getTime());
     
