@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, reports, type InsertReport, type Report } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,51 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// 报表相关查询
+export async function createReport(data: InsertReport): Promise<Report | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create report: database not available");
+    return undefined;
+  }
+
+  try {
+    await db.insert(reports).values(data);
+    // 获取插入的记录
+    const created = await db.select().from(reports).where(eq(reports.id, data.id)).limit(1);
+    return created.length > 0 ? created[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to create report:", error);
+    throw error;
+  }
+}
+
+export async function getReportById(reportId: string): Promise<Report | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get report: database not available");
+    return undefined;
+  }
+
+  try {
+    const result = await db.select().from(reports).where(eq(reports.id, reportId)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to get report:", error);
+    throw error;
+  }
+}
+
+export async function deleteExpiredReports(): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete reports: database not available");
+    return;
+  }
+
+  try {
+    await db.delete(reports).where(gt(reports.expiresAt, new Date()));
+  } catch (error) {
+    console.error("[Database] Failed to delete expired reports:", error);
+  }
+}
