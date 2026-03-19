@@ -314,8 +314,8 @@ export default function Home() {
                     color: 'bg-indigo/10 text-indigo',
                   },
                   {
-                    title: '其它版本',
-                    desc: '微信小程序已上架，扫码使用（目前为测试版，正在优化中）\n\n功能特性：\n• 支持离线分析\n• 实时数据更新\n• 一键分享报表\n• 数据云端备份',
+                    title: '其他版本',
+                    desc: '(微信小程序已上线，仅为测试版，正式版正在开发)',
                     color: 'bg-emerald-ok/10 text-emerald-ok',
                     image: WECHAT_MINI_QR,
                   },

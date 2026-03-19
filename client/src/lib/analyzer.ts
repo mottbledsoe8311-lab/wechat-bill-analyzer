@@ -52,6 +52,7 @@ export interface OverviewStats {
   avgDailyIncome: number;
   topCounterpart: string;
   largestSingleTransaction: number;
+  accountName?: string;  // 客户名字
 }
 
 export interface RegularTransferGroup {
@@ -245,6 +246,11 @@ function calculateOverview(transactions: Transaction[]): OverviewStats {
     ? `${format(dates[0], 'yyyy-MM-dd')} 至 ${format(dates[dates.length - 1], 'yyyy-MM-dd')}`
     : '未知';
 
+  // 获取账户名字（从第一条交易记录中获取）
+  const accountName = transactions.length > 0 && (transactions[0] as any).accountName 
+    ? (transactions[0] as any).accountName 
+    : undefined;
+
   return {
     totalTransactions: transactions.length,
     totalIncome,
@@ -255,6 +261,7 @@ function calculateOverview(transactions: Transaction[]): OverviewStats {
     avgDailyIncome: totalIncome / daySpan,
     topCounterpart,
     largestSingleTransaction: Math.max(...transactions.map(t => t.amount), 0),
+    accountName,
   };
 }
 

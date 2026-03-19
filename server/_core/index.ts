@@ -35,6 +35,34 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  
+  // Public report retrieval endpoint (no authentication required)
+  app.get('/api/reports/:reportId', async (req, res) => {
+    try {
+      const { reportId } = req.params;
+      const { getReportById } = await import('../db');
+      
+      const report = await getReportById(reportId);
+      
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found' });
+      }
+      
+      if (new Date() > report.expiresAt) {
+        return res.status(404).json({ error: 'Report has expired' });
+      }
+      
+      res.json({
+        success: true,
+        title: report.title,
+        data: report.data,
+      });
+    } catch (error: any) {
+      console.error('Failed to get report:', error);
+      res.status(500).json({ error: 'Failed to get report' });
+    }
+  });
+  
   // tRPC API
   app.use(
     "/api/trpc",
