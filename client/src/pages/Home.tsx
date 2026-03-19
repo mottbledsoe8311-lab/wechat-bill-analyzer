@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 
 import FileUpload from '@/components/FileUpload';
 import AnalysisProgress from '@/components/AnalysisProgress';
+import FeedbackForm from '@/components/FeedbackForm';
 import OverviewSection from '@/components/report/OverviewSection';
 import MonthlyChart from '@/components/report/MonthlyChart';
 import RegularTransfers from '@/components/report/RegularTransfers';
@@ -30,6 +31,8 @@ type AppState = 'upload' | 'analyzing' | 'report';
 
 const HERO_BG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663413101752/gJ9cYUELDfjcatYy8Yce6Q/hero-bg-fqhFpYZYJrJZisccv6Q5DA.webp';
 const UPLOAD_ILLUSTRATION = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663413101752/gJ9cYUELDfjcatYy8Yce6Q/upload-illustration-Fapr2KvCmYJqQf65NjXJvu.webp';
+const WECHAT_MINI_QR = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663269350406/SXgJ57d4GB9RBvAf3PYHaj/Screenshot_20260316_121241_com_android_chrome_CustomTabActivity_edit_205135733414453_582afb3c.jpg';
+const SPONSOR_QR = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663269350406/SXgJ57d4GB9RBvAf3PYHaj/mm_facetoface_collect_qrcode_1773241754726_edit_1188154995462534_feeb1fad.png';
 
 export default function Home() {
   const [state, setState] = useState<AppState>('upload');
@@ -166,8 +169,6 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-
-
   return (
     <div className="min-h-screen bg-background">
       {/* 导航栏 */}
@@ -175,11 +176,11 @@ export default function Home() {
         <div className="container flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
             <img 
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663269350406/SXgJ57d4GB9RBvAf3PYHaj/orange-logo_9f1e46c0.png" 
-              alt="橙子账单" 
-              className="w-10 h-10 rounded-xl object-cover"
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663269350406/SXgJ57d4GB9RBvAf3PYHaj/57da3f797bc6e8316f697d6b38c89a14_c3c1d23e.webp" 
+              alt="WeChat" 
+              className="w-8 h-8 rounded-lg"
             />
-            <span className="font-bold text-lg tracking-tight" style={{ color: '#ff8800' }}>橙子账单分析系统</span>
+            <span className="font-bold text-lg tracking-tight" style={{ color: '#ff8800' }}>大橙子账单分析系统</span>
           </div>
           {state === 'report' && (
             <Button
@@ -231,8 +232,8 @@ export default function Home() {
                       <span className="text-indigo">智能分析系统</span>
                     </h1>
                     <p className="text-lg text-muted-foreground mt-6 max-w-xl leading-relaxed">
-                      上传微信账单PDF，自动识别规律转账、追踪还款来源、
-                      监控大额入账、排查借款行为，生成专业分析报表。
+                      上传微信账单PDF，自动识别规律转账、追踪转账来源、
+                      监控大额入账、排查转账行为，生成专业分析报表。
                     </p>
                   </motion.div>
 
@@ -247,6 +248,7 @@ export default function Home() {
                       { icon: Shield, text: '数据不上传服务器' },
                       { icon: Zap, text: '浏览器本地分析' },
                       { icon: Eye, text: '无需登录注册' },
+                      { icon: Eye, text: '每日更新升级' },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
                         <item.icon className="w-3.5 h-3.5 text-indigo" />
@@ -305,24 +307,26 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {[
                   {
-                    title: '规律转账识别',
-                    desc: '自动检测每7天、10天、15天或每月的固定周期转账模式',
+                    title: '如何使用',
+                    desc: '安卓用户，直接点击上传页面后，选择WPS应用，从应用中选择对应的PDF文件\n\n苹果用户，需要先在WPS应用中，另存PDF文件到本机任意文件，然后打开网站点击上传',
                     color: 'bg-indigo/10 text-indigo',
                   },
                   {
-                    title: '还款来源追踪',
-                    desc: '追踪每笔还款的来源渠道，分析还款方式和频率',
+                    title: '其它版本',
+                    desc: '微信小程序已上架，扫码使用（目前为测试版，正在优化中）',
                     color: 'bg-emerald-ok/10 text-emerald-ok',
+                    image: WECHAT_MINI_QR,
                   },
                   {
-                    title: '大额入账监控',
-                    desc: '智能识别异常大额收入，关联分析后续资金流向',
+                    title: '功能更新与建议',
+                    desc: '在这里开发一个文本输入框，可以上传文字和图片，完成后有提交按钮，提交后在APP中通知我',
                     color: 'bg-amber-warn/10 text-amber-warn',
                   },
                   {
-                    title: '借款行为排查',
-                    desc: '识别借入-还款模式，计算还款进度和剩余欠款',
+                    title: '支持开发者（感谢赞助）',
+                    desc: '',
                     color: 'bg-destructive/10 text-destructive',
+                    image: SPONSOR_QR,
                   },
                 ].map((feature, i) => (
                   <motion.div
@@ -336,7 +340,15 @@ export default function Home() {
                       <span className="text-lg font-bold">{i + 1}</span>
                     </div>
                     <h3 className="font-semibold text-lg">{feature.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
+                    {i === 2 ? (
+                      <FeedbackForm />
+                    ) : feature.image ? (
+                      <div className="flex justify-center">
+                        <img src={feature.image} alt={feature.title} className="w-32 h-32 object-contain rounded" />
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{feature.desc}</p>
+                    )}
                   </motion.div>
                 ))}
               </div>
@@ -348,125 +360,45 @@ export default function Home() {
             <footer className="container py-8 border-t border-border">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
                 <p>所有数据仅在您的浏览器中处理，不会上传至任何服务器</p>
-                <p>微信账单智能分析系统</p>
               </div>
             </footer>
           </motion.div>
         )}
 
-        {/* 分析中 */}
+        {/* 分析进度 */}
         {state === 'analyzing' && (
           <motion.div
             key="analyzing"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="container"
           >
-            <AnalysisProgress
-              progress={progress}
+            <AnalysisProgress 
+              progress={progress} 
               message={progressMessage}
               stage={progressStage}
             />
           </motion.div>
         )}
 
-        {/* 分析报表 */}
-        {state === 'report' && analysisResult && (
+        {/* 报表页面 */}
+        {state === 'report' && analysisResult && parseResult && (
           <motion.div
             key="report"
-            ref={reportRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
+            exit={{ opacity: 0 }}
+            ref={reportRef}
           >
-            {/* 报表头部 */}
-            <section className="bg-muted/30 border-b border-border">
-              <div className="container py-8">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div>
-                    <p className="text-sm font-semibold tracking-widest uppercase text-indigo mb-1">
-                      Analysis Report
-                    </p>
-                    <h1 className="text-2xl font-bold">
-                      {parseResult?.accountInfo.name 
-                        ? `${parseResult.accountInfo.name} 的账单分析报告` 
-                        : '微信账单分析报告'
-                      }
-                    </h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      共分析 {analysisResult.overview.totalTransactions} 笔交易 · 
-                      {parseResult?.totalPages || 0} 页PDF · 
-                      {files.length} 个文件
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleReset}
-                    className="gap-1.5 shrink-0"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    重新分析
-                  </Button>
-                </div>
-
-                {/* 快速导航 */}
-                <div className="flex flex-wrap gap-2 mt-6">
-                  {[
-                    { id: 'overview', label: '概览' },
-                    { id: 'monthly', label: '月度趋势' },
-                    { id: 'regular', label: '规律转账' },
-                    { id: 'repayment', label: '还款追踪' },
-                    { id: 'large', label: '大额入账' },
-                    { id: 'counterpart', label: '交易对方' },
-                  ].map(nav => (
-                    <button
-                      key={nav.id}
-                      onClick={() => {
-                        document.getElementById(nav.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }}
-                      className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-background border border-border rounded-full transition-colors hover:border-indigo/30"
-                    >
-                      {nav.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            {/* 日期范围选择器 - 已移除 */}
-
-            {/* 报表内容 */}
-            <div className="container">
-              <div id="overview">
-                <OverviewSection stats={analysisResult.overview} />
-              </div>
-              <div id="monthly">
-                <MonthlyChart data={analysisResult.monthlyBreakdown} />
-              </div>
-              <div id="regular">
-                <RegularTransfers groups={analysisResult.regularTransfers} allTransactions={allTransactions} />
-              </div>
-              <div id="repayment">
-                <RepaymentTracking records={analysisResult.repaymentTracking} />
-              </div>
-              <div id="large">
-                <LargeInflows inflows={analysisResult.largeInflows} />
-              </div>
-
-              <div id="counterpart">
-                <CounterpartSummary data={analysisResult.counterpartSummary} allTransactions={allTransactions} />
-              </div>
+            <div className="min-h-screen bg-background">
+              {/* 报表内容 */}
+              <OverviewSection accountInfo={parseResult.accountInfo} analysisResult={analysisResult} />
+              <MonthlyChart transactions={allTransactions} />
+              <RegularTransfers analysisResult={analysisResult} transactions={allTransactions} />
+              <RepaymentTracking analysisResult={analysisResult} transactions={allTransactions} />
+              <LargeInflows analysisResult={analysisResult} transactions={allTransactions} />
+              <CounterpartSummary transactions={allTransactions} />
             </div>
-
-            {/* 报表底部 */}
-            <footer className="container py-12 border-t border-border mt-8">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
-                <p>所有分析均在浏览器本地完成，数据不会上传至服务器</p>
-                <p>微信账单智能分析系统 · 报表生成时间: {new Date().toLocaleString('zh-CN')}</p>
-              </div>
-            </footer>
           </motion.div>
         )}
       </AnimatePresence>
