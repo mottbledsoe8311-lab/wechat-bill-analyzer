@@ -164,3 +164,8 @@
 - [x] 在"其它版本"模块增加微信小程序详细说明
 - [x] 修复 OverviewSection 中 analysisResult 的 undefined 错误
 - [x] 为报表添加微信分享功能
+
+## 网站部署问题修复
+- [x] 修复报表组件的 Props 传递错误
+- [x] 修复 vite.config.ts 中的 TypeScript 类型错误
+- [x] 所有测试通过

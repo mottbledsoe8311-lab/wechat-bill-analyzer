@@ -413,11 +413,11 @@ export default function Home() {
               {/* 报表内容 */}
               <div className="container">
                 {analysisResult && <OverviewSection stats={analysisResult.overview} />}
-                <MonthlyChart transactions={allTransactions} />
-                <RegularTransfers analysisResult={analysisResult} transactions={allTransactions} />
-                <RepaymentTracking analysisResult={analysisResult} transactions={allTransactions} />
-                <LargeInflows analysisResult={analysisResult} transactions={allTransactions} />
-                <CounterpartSummary transactions={allTransactions} />
+                <MonthlyChart data={analysisResult?.monthlyBreakdown || []} />
+                <RegularTransfers groups={analysisResult?.regularTransfers || []} allTransactions={allTransactions} />
+                <RepaymentTracking records={analysisResult?.repaymentTracking || []} />
+                <LargeInflows inflows={analysisResult?.largeInflows || []} />
+                <CounterpartSummary data={analysisResult?.counterpartSummary || []} />
               </div>
             </div>
           </motion.div>
