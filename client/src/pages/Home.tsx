@@ -406,15 +406,7 @@ export default function Home() {
                       largeInflows: analysisResult?.largeInflows || [],
                       counterpartSummary: analysisResult?.counterpartSummary || [],
                     } : undefined} />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleReset}
-                      className="gap-1.5"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      重新分析
-                    </Button>
+
                   </div>
                 </div>
               </nav>
