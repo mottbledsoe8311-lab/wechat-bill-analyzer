@@ -1,20 +1,20 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Share2, Loader2, Check, Copy } from 'lucide-react';
+import { Share2, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import html2canvas from 'html2canvas';
 
 interface ShareButtonProps {
-  reportRef?: React.RefObject<HTMLDivElement>;
-  title?: string;
-  description?: string;
+  reportData?: {
+    title: string;
+    summary: string;
+    regularTransfers: any[];
+    repaymentTracking: any[];
+    largeInflows: any[];
+    counterpartSummary: any[];
+  };
 }
 
-export default function ShareButton({ 
-  reportRef,
-  title = '微信账单智能分析报表',
-  description = '我用大橙子账单分析系统生成了我的微信账单分析报表，快来试试吧！'
-}: ShareButtonProps) {
+export default function ShareButton({ reportData }: ShareButtonProps) {
   const [isSharing, setIsSharing] = useState(false);
   const [shared, setShared] = useState(false);
 
@@ -29,56 +29,29 @@ export default function ShareButton({
 
     setIsSharing(true);
     try {
-      // 如果提供了报表 ref，尝试生成报表截图
-      if (reportRef?.current) {
-        try {
-          // 生成报表截图
-          const canvas = await html2canvas(reportRef.current, {
-            scale: 1,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff',
-            logging: false,
-          });
-          
-          // 将 canvas 转换为 blob
-          canvas.toBlob(async (blob) => {
-            if (!blob) {
-              throw new Error('Failed to generate image');
-            }
-
-            // 创建图片 URL
-            const imageUrl = URL.createObjectURL(blob);
-            
-            // 在微信中分享
-            // 由于微信的限制，我们主要通过复制到剪贴板的方式分享
-            const shareText = `${title}\n${description}\n\n${window.location.href}`;
-            await navigator.clipboard.writeText(shareText);
-            
-            toast.success('报表已复制到剪贴板，可在微信中粘贴分享');
-            setShared(true);
-            setTimeout(() => setShared(false), 3000);
-            
-            // 清理 blob URL
-            URL.revokeObjectURL(imageUrl);
-          });
-        } catch (error) {
-          console.error('Failed to generate report image:', error);
-          // 降级方案：仅复制分享链接
-          const shareText = `${title}\n${description}\n${window.location.href}`;
-          await navigator.clipboard.writeText(shareText);
-          toast.success('报表链接已复制到剪贴板');
-          setShared(true);
-          setTimeout(() => setShared(false), 3000);
-        }
-      } else {
-        // 没有报表 ref，仅分享链接
-        const shareText = `${title}\n${description}\n${window.location.href}`;
-        await navigator.clipboard.writeText(shareText);
-        toast.success('分享内容已复制到剪贴板');
-        setShared(true);
-        setTimeout(() => setShared(false), 3000);
+      if (!reportData) {
+        toast.error('报表数据不可用');
+        return;
       }
+
+      // 生成报表摘要
+      const summary = `
+📊 微信账单智能分析报表
+
+📈 规律转账识别：${reportData.regularTransfers?.length || 0} 个规律模式
+💰 还款追踪：${reportData.repaymentTracking?.length || 0} 笔规律还款
+🔔 大额入账：${reportData.largeInflows?.length || 0} 笔异常入账
+👥 交易对方：${reportData.counterpartSummary?.length || 0} 个主要对方
+
+使用大橙子账单分析系统生成，快来试试吧！
+${window.location.href}
+      `.trim();
+
+      // 复制到剪贴板
+      await navigator.clipboard.writeText(summary);
+      toast.success('报表已复制到剪贴板，可在微信中粘贴分享');
+      setShared(true);
+      setTimeout(() => setShared(false), 3000);
     } catch (error: any) {
       console.error('Share error:', error);
       toast.error('分享失败，请重试');

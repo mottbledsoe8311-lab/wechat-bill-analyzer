@@ -398,7 +398,14 @@ export default function Home() {
                 <div className="container flex items-center justify-between h-14">
                   <h2 className="text-lg font-bold">账单分析报表</h2>
                   <div className="flex gap-2">
-                    <ShareButton reportRef={reportContentRef} />
+                    <ShareButton reportData={analysisResult ? {
+                      title: '微信账单智能分析报表',
+                      summary: `账单分析完成`,
+                      regularTransfers: analysisResult?.regularTransfers || [],
+                      repaymentTracking: analysisResult?.repaymentTracking || [],
+                      largeInflows: analysisResult?.largeInflows || [],
+                      counterpartSummary: analysisResult?.counterpartSummary || [],
+                    } : undefined} />
                     <Button
                       variant="outline"
                       size="sm"
@@ -418,7 +425,7 @@ export default function Home() {
                 <RegularTransfers groups={analysisResult?.regularTransfers || []} allTransactions={allTransactions} />
                 <RepaymentTracking records={analysisResult?.repaymentTracking || []} />
                 <LargeInflows inflows={analysisResult?.largeInflows || []} />
-                <CounterpartSummary data={analysisResult?.counterpartSummary || []} />
+                <CounterpartSummary data={analysisResult?.counterpartSummary || []} allTransactions={allTransactions} />
               </div>
             </div>
           </motion.div>
