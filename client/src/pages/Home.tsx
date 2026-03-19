@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import FileUpload from '@/components/FileUpload';
 import AnalysisProgress from '@/components/AnalysisProgress';
 import FeedbackForm from '@/components/FeedbackForm';
+import ShareButton from '@/components/ShareButton';
 import OverviewSection from '@/components/report/OverviewSection';
 import MonthlyChart from '@/components/report/MonthlyChart';
 import RegularTransfers from '@/components/report/RegularTransfers';
@@ -313,7 +314,7 @@ export default function Home() {
                   },
                   {
                     title: '其它版本',
-                    desc: '微信小程序已上架，扫码使用（目前为测试版，正在优化中）',
+                    desc: '微信小程序已上架，扫码使用（目前为测试版，正在优化中）\n\n功能特性：\n• 支持离线分析\n• 实时数据更新\n• 一键分享报表\n• 数据云端备份',
                     color: 'bg-emerald-ok/10 text-emerald-ok',
                     image: WECHAT_MINI_QR,
                   },
@@ -391,13 +392,33 @@ export default function Home() {
             ref={reportRef}
           >
             <div className="min-h-screen bg-background">
+              {/* 报表导航栏 */}
+              <nav className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
+                <div className="container flex items-center justify-between h-14">
+                  <h2 className="text-lg font-bold">账单分析报表</h2>
+                  <div className="flex gap-2">
+                    <ShareButton />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleReset}
+                      className="gap-1.5"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      重新分析
+                    </Button>
+                  </div>
+                </div>
+              </nav>
               {/* 报表内容 */}
-              <OverviewSection accountInfo={parseResult.accountInfo} analysisResult={analysisResult} />
-              <MonthlyChart transactions={allTransactions} />
-              <RegularTransfers analysisResult={analysisResult} transactions={allTransactions} />
-              <RepaymentTracking analysisResult={analysisResult} transactions={allTransactions} />
-              <LargeInflows analysisResult={analysisResult} transactions={allTransactions} />
-              <CounterpartSummary transactions={allTransactions} />
+              <div className="container">
+                {analysisResult && <OverviewSection stats={analysisResult.overview} />}
+                <MonthlyChart transactions={allTransactions} />
+                <RegularTransfers analysisResult={analysisResult} transactions={allTransactions} />
+                <RepaymentTracking analysisResult={analysisResult} transactions={allTransactions} />
+                <LargeInflows analysisResult={analysisResult} transactions={allTransactions} />
+                <CounterpartSummary transactions={allTransactions} />
+              </div>
             </div>
           </motion.div>
         )}

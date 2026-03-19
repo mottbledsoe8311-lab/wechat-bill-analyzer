@@ -159,3 +159,8 @@
   - [x] 提交按钮
 - [x] 在 Home.tsx 中集成 FeedbackForm
 - [x] 所有测试通过
+
+## 报表错误修复和功能改进（紧急）
+- [x] 在"其它版本"模块增加微信小程序详细说明
+- [x] 修复 OverviewSection 中 analysisResult 的 undefined 错误
+- [x] 为报表添加微信分享功能
