@@ -364,6 +364,8 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
     if (isBankOrWithdraw(name)) continue;
     // 过滤商户消費
     if (isMerchant(name)) continue;
+    // 过滤交易类型为"商户消费"的交易
+    if (tx.type === '商户消费' || tx.type?.includes('商户消费')) continue;
     
     // 也包含所有收支记录
     const key = `${name}|${tx.direction}`;

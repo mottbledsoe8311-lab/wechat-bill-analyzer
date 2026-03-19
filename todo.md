@@ -131,3 +131,10 @@
   - [x] 选中状态显示实体蓝色背景和阴影
   - [x] 未选中状态显示蓝色边框和浅蓝色背景
   - [x] 按钮左右排列（gap-3）
+
+## 规律转账识别商户消费过滤验证和修复
+- [x] 验证真实PDF中的商户消费数量（约1027条）
+- [x] 发现问题：detectRegularTransfers 中缺少交易类型过滤
+- [x] 修复：在 detectRegularTransfers 中添加交易类型为"商户消费"的过滤
+- [x] 确保 detectDailyRegularTransfers 中也有商户消费过滤
+- [x] 所有测试通过
