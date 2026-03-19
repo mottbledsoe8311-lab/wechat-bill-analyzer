@@ -68,32 +68,29 @@ export default function RepaymentTracking({ records }: Props) {
       </div>
 
       {/* 排序按钮 */}
-      <div className="flex items-center gap-2 mb-6">
-        <span className="text-xs text-muted-foreground font-medium">排序方式：</span>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setSortBy('time')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              sortBy === 'time'
-                ? 'bg-blue-500 text-white'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            按时间排序（由近到远）
-          </button>
-          <button
-            onClick={() => setSortBy('amount')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              sortBy === 'amount'
-                ? 'bg-blue-500 text-white'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
-          >
-            <DollarSign className="w-3.5 h-3.5" />
-            按金额排序（由大到小）
-          </button>
-        </div>
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => setSortBy('time')}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            sortBy === 'time'
+              ? 'bg-blue-500 text-white shadow-md hover:shadow-lg hover:brightness-110'
+              : 'bg-blue-500/10 text-blue-600 border border-blue-500/30 hover:bg-blue-500/20'
+          }`}
+        >
+          <Clock className="w-4 h-4" />
+          按时间排序（由近到远）
+        </button>
+        <button
+          onClick={() => setSortBy('amount')}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            sortBy === 'amount'
+              ? 'bg-blue-500 text-white shadow-md hover:shadow-lg hover:brightness-110'
+              : 'bg-blue-500/10 text-blue-600 border border-blue-500/30 hover:bg-blue-500/20'
+          }`}
+        >
+          <DollarSign className="w-4 h-4" />
+          按金额排序（由大到小）
+        </button>
       </div>
 
       <div className="space-y-3">
