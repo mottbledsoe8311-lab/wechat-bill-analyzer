@@ -62,7 +62,15 @@ export default function ReportView() {
 
         const data = await response.json();
         setReportTitle(data.title || '微信账单分析报表');
-        setReportData(JSON.parse(data.data));
+        
+        // 处理 data 字段：可能是对象或字符串
+        let parsedData;
+        if (typeof data.data === 'string') {
+          parsedData = JSON.parse(data.data);
+        } else {
+          parsedData = data.data;
+        }
+        setReportData(parsedData);
       } catch (err) {
         console.error('Failed to fetch report:', err);
         setError('加载报表失败，请检查网络连接');
