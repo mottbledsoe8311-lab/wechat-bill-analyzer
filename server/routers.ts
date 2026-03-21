@@ -96,6 +96,46 @@ export const appRouter = router({
         }
       }),
   }),
+
+  // 反馈相关路由
+  feedback: router({
+    submit: publicProcedure
+      .input(z.object({
+        text: z.string().min(1, '反馈内容不能为空'),
+        imageUrls: z.array(z.string()).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        try {
+          console.log('[tRPC] Submitting feedback - user:', ctx.user?.id || 'anonymous');
+          
+          // 调用 notifyOwner 向开发者发送应用内通知
+          const { notifyOwner } = await import('./_core/notification');
+          
+          const feedbackContent = `
+用户反馈：
+${input.text}
+${input.imageUrls && input.imageUrls.length > 0 ? `\n图片：${input.imageUrls.join(', ')}` : ''}
+用户ID：${ctx.user?.id || '匿名'}
+时间：${new Date().toLocaleString('zh-CN')}
+          `.trim();
+          
+          const success = await notifyOwner({
+            title: '📬 新用户反馈',
+            content: feedbackContent,
+          });
+          
+          console.log('[tRPC] Feedback notification sent:', success);
+          
+          return {
+            success: true,
+            message: '感谢您的反馈！我们会尽快查看',
+          };
+        } catch (error: any) {
+          console.error('[tRPC] Failed to submit feedback:', error?.message || error);
+          throw new Error(error?.message || 'Failed to submit feedback');
+        }
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

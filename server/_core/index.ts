@@ -3,6 +3,7 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import fileUpload from "express-fileupload";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -33,8 +34,51 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Configure file upload middleware
+  app.use(fileUpload({
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  
+  // Image upload endpoint
+  app.post('/api/upload', async (req, res) => {
+    try {
+      const { storagePut } = await import('../storage');
+      
+      // 从 multipart/form-data 中获取文件
+      if (!req.files || Object.keys(req.files).length === 0) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      
+      const file = Array.isArray(req.files.file) ? req.files.file[0] : req.files.file;
+      
+      if (!file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      
+      // 验证文件类型
+      if (!file.mimetype.startsWith('image/')) {
+        return res.status(400).json({ error: 'Only image files are allowed' });
+      }
+      
+      // 生成唯一的文件名
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 8);
+      const fileKey = `feedback/${timestamp}-${random}-${file.name}`;
+      
+      // 上传到 S3
+      const { url } = await storagePut(fileKey, file.data, file.mimetype);
+      
+      res.json({
+        success: true,
+        url: url,
+      });
+    } catch (error: any) {
+      console.error('Failed to upload file:', error);
+      res.status(500).json({ error: 'Failed to upload file' });
+    }
+  });
   
   // Public report retrieval endpoint (no authentication required)
   app.get('/api/reports/:reportId', async (req, res) => {

@@ -304,55 +304,75 @@ export default function Home() {
               </div>
             </section>
 
-            {/* 功能说明 */}
+            {/* 底部 4 个模块 */}
             <section className="container py-16 border-t border-border">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                {[
-                  {
-                    title: '1. 如何使用',
-                    desc: '安卓用户，直接点击上传页面后，选择WPS应用，从应用中选择对应的PDF文件\n\n苹果用户，需要先在WPS应用中，另存PDF文件到本机任意文件，然后打开网站点击上传',
-                    color: 'bg-indigo/10 text-indigo',
-                  },
-                  {
-                    title: '2. 其它版本',
-                    desc: '(测试版小程序已上线)',
-                    color: 'bg-emerald-ok/10 text-emerald-ok',
-                    image: WECHAT_MINI_QR,
-                  },
-                  {
-                    title: '3. 打赏开发者',
-                    desc: '(感谢赞助)',
-                    color: 'bg-destructive/10 text-destructive',
-                    image: SPONSOR_QR,
-                  },
-                  {
-                    title: '4. 功能更新与建议',
-                    desc: '在这里开发一个文本输入框，可以上传文字和图片，完成后有提交按钮，提交后在APP中通知我',
-                    color: 'bg-amber-warn/10 text-amber-warn',
-                  },
-                ].map((feature, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * i + 0.5 }}
-                    className="space-y-3"
-                  >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${feature.color}`}>
-                      <span className="text-lg font-bold">{i + 1}</span>
-                    </div>
-                    <h3 className="font-semibold text-lg">{feature.title}</h3>
-                    {i === 3 ? (
-                      <FeedbackForm />
-                    ) : feature.image ? (
-                      <div className="flex justify-center">
-                        <img src={feature.image} alt={feature.title} className="w-32 h-32 object-contain rounded" />
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{feature.desc}</p>
-                    )}
-                  </motion.div>
-                ))}
+                {/* 模块 1: 如何使用 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="space-y-3"
+                >
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-indigo/10 text-indigo">
+                    <span className="text-lg font-bold">1</span>
+                  </div>
+                  <h3 className="font-semibold text-lg">如何使用？</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    <strong>安卓用户：</strong>直接点击上传页面后，选择WPS应用，从应用中选择对应的PDF文件
+                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    <strong>苹果用户：</strong>需要先在WPS应用中，另存PDF文件到本机任意文件，然后打开网站点击上传
+                  </p>
+                </motion.div>
+
+                {/* 模块 2: 其它版本 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="space-y-3"
+                >
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-ok/10 text-emerald-ok">
+                    <span className="text-lg font-bold">2</span>
+                  </div>
+                  <h3 className="font-semibold text-lg">其它版本</h3>
+                  <p className="text-sm text-muted-foreground mb-3">测试版小程序已上线</p>
+                  <div className="flex justify-center">
+                    <img src={WECHAT_MINI_QR} alt="微信小程序" className="w-32 h-32 object-contain rounded" />
+                  </div>
+                </motion.div>
+
+                {/* 模块 3: 打赏开发者 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="space-y-3"
+                >
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-destructive/10 text-destructive">
+                    <span className="text-lg font-bold">3</span>
+                  </div>
+                  <h3 className="font-semibold text-lg">打赏开发者</h3>
+                  <p className="text-sm text-muted-foreground mb-3">感谢赞助</p>
+                  <div className="flex justify-center">
+                    <img src={SPONSOR_QR} alt="赞助二维码" className="w-32 h-32 object-contain rounded" />
+                  </div>
+                </motion.div>
+
+                {/* 模块 4: 功能更新与建议 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="space-y-3"
+                >
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-warn/10 text-amber-warn">
+                    <span className="text-lg font-bold">4</span>
+                  </div>
+                  <h3 className="font-semibold text-lg">功能更新与建议</h3>
+                  <FeedbackForm />
+                </motion.div>
               </div>
             </section>
 

@@ -2,12 +2,14 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Upload, Send, Loader2 } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
 export default function FeedbackForm() {
   const [text, setText] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const submitFeedback = trpc.feedback.submit.useMutation();
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -32,13 +34,43 @@ export default function FeedbackForm() {
 
     setIsSubmitting(true);
     try {
-      // 这里可以调用后端API提交反馈
-      // 暂时只显示成功提示
+      // 上传图片到 S3
+      let uploadedUrls: string[] = [];
+      if (images.length > 0) {
+        for (const image of images) {
+          try {
+            const formData = new FormData();
+            formData.append('file', image);
+            
+            // 调用后端上传 API
+            const response = await fetch('/api/upload', {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              uploadedUrls.push(data.url);
+            }
+          } catch (error) {
+            console.error('Image upload failed:', error);
+            toast.warning(`图片 ${image.name} 上传失败`);
+          }
+        }
+      }
+
+      // 提交反馈
+      await submitFeedback.mutateAsync({
+        text: text.trim(),
+        imageUrls: uploadedUrls.length > 0 ? uploadedUrls : undefined,
+      });
+
       toast.success('感谢您的反馈！我们会尽快查看');
       setText('');
       setImages([]);
-    } catch (error) {
-      toast.error('提交失败，请重试');
+    } catch (error: any) {
+      console.error('Submit feedback failed:', error);
+      toast.error(error?.message || '提交失败，请重试');
     } finally {
       setIsSubmitting(false);
     }
@@ -97,10 +129,10 @@ export default function FeedbackForm() {
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={isSubmitting || (!text.trim() && images.length === 0)}
+          disabled={isSubmitting || (!text.trim() && images.length === 0) || submitFeedback.isPending}
           className="gap-2 flex-1"
         >
-          {isSubmitting ? (
+          {isSubmitting || submitFeedback.isPending ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
               提交中...
