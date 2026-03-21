@@ -54,6 +54,7 @@ export interface Transaction {
   amount: number;        // 金额
   counterpart: string;   // 交易对方
   merchantId: string;    // 商家单号
+  accountName?: string;  // 账户名字（从 PDF 头部提取）
 }
 
 export interface AccountInfo {
@@ -658,6 +659,13 @@ export async function parsePDF(
       accountInfo.endDate = formatDateSimple(dates[dates.length - 1]);
     }
 
+    // 将账户名字附加到所有交易记录
+    if (accountInfo.name) {
+      uniqueTransactions.forEach(t => {
+        (t as any).accountName = accountInfo.name;
+      });
+    }
+
     onProgress?.(100, `解析完成，共提取 ${uniqueTransactions.length} 条交易记录`);
 
     return {
@@ -669,6 +677,12 @@ export async function parsePDF(
   } catch (error: any) {
     errors.push(`PDF解析失败: ${error.message}`);
     onProgress?.(100, `解析出错: ${error.message}`);
+    // 即使出错也尝试附加账户名字
+    if (accountInfo.name) {
+      transactions.forEach(t => {
+        (t as any).accountName = accountInfo.name;
+      });
+    }
     return {
       accountInfo,
       transactions,
