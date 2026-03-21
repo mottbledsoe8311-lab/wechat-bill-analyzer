@@ -28,7 +28,7 @@ export type InsertUser = typeof users.$inferInsert;
 // 报表存储表
 export const reports = mysqlTable("reports", {
   id: varchar("id", { length: 32 }).primaryKey(), // 唯一报表ID
-  userId: int("userId").notNull(), // 用户ID
+  userId: int("userId"), // 用户ID（可选，支持匿名分享）
   title: text("title").notNull(), // 报表标题
   data: text("data").notNull(), // JSON格式的报表数据
   createdAt: timestamp("createdAt").defaultNow().notNull(), // 创建时间

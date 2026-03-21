@@ -1,0 +1,1 @@
+ALTER TABLE `reports` MODIFY COLUMN `userId` int;

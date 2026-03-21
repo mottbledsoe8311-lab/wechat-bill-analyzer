@@ -22,7 +22,7 @@ export const appRouter = router({
 
   // 报表相关路由
   reports: router({
-    create: protectedProcedure
+    create: publicProcedure
       .input(z.object({
         title: z.string(),
         data: z.any(),
@@ -30,7 +30,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         try {
-          console.log('[tRPC] Creating report for user:', ctx.user.id);
+          console.log('[tRPC] Creating report - user:', ctx.user?.id || 'anonymous');
           
           const reportId = randomUUID().substring(0, 12);
           const expiresAt = new Date();
@@ -45,7 +45,7 @@ export const appRouter = router({
 
           const report = await createReport({
             id: reportId,
-            userId: ctx.user.id,
+            userId: ctx.user?.id || null,
             title: input.title,
             data: JSON.stringify(reportData),
             expiresAt,
@@ -56,11 +56,12 @@ export const appRouter = router({
             throw new Error('Failed to create report: database operation failed');
           }
 
-          console.log('[tRPC] Report created successfully:', report.id);
+          const shareUrl = `${process.env.VITE_FRONTEND_URL || 'https://vixi.manus.space'}/report/${report.id}`;
+          console.log('[tRPC] Report created successfully:', report.id, 'Share URL:', shareUrl);
           return {
             success: true,
             reportId: report.id,
-            shareUrl: `/report/${report.id}`,
+            shareUrl: shareUrl,
           };
         } catch (error: any) {
           console.error('[tRPC] Failed to create report:', error?.message || error);
