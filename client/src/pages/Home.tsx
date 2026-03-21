@@ -309,24 +309,24 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {[
                   {
-                    title: '如何使用',
+                    title: '1. 如何使用',
                     desc: '安卓用户，直接点击上传页面后，选择WPS应用，从应用中选择对应的PDF文件\n\n苹果用户，需要先在WPS应用中，另存PDF文件到本机任意文件，然后打开网站点击上传',
                     color: 'bg-indigo/10 text-indigo',
                   },
                   {
-                    title: '其他版本',
-                    desc: '(测试版小程序已上线，正式版正在更新)',
+                    title: '2. 其它版本',
+                    desc: '(测试版小程序已上线)',
                     color: 'bg-emerald-ok/10 text-emerald-ok',
                     image: WECHAT_MINI_QR,
                   },
                   {
-                    title: '支持开发者（感谢赞助）',
-                    desc: '',
+                    title: '3. 打赏开发者',
+                    desc: '(感谢赞助)',
                     color: 'bg-destructive/10 text-destructive',
                     image: SPONSOR_QR,
                   },
                   {
-                    title: '功能更新与建议',
+                    title: '4. 功能更新与建议',
                     desc: '在这里开发一个文本输入框，可以上传文字和图片，完成后有提交按钮，提交后在APP中通知我',
                     color: 'bg-amber-warn/10 text-amber-warn',
                   },
@@ -342,7 +342,7 @@ export default function Home() {
                       <span className="text-lg font-bold">{i + 1}</span>
                     </div>
                     <h3 className="font-semibold text-lg">{feature.title}</h3>
-                    {i === 1 ? (
+                    {i === 3 ? (
                       <FeedbackForm />
                     ) : feature.image ? (
                       <div className="flex justify-center">

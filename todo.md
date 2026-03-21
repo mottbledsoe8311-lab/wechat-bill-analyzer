@@ -213,3 +213,10 @@
 - [x] 修复报表查看页面不需要登录
 - [x] 修复账户概况模块显示客户名字
 - [x] 更新主页"其他版本"文本
+
+## 分享报表数据库插入错误修复（紧急）
+- [x] 修复 createReport 函数中的 createdAt 字段插入错误
+  - [x] 改为只在 userId 存在时才添加它
+  - [x] 让 Drizzle ORM 自动处理 createdAt 的默认值
+  - [x] 修复 vite.config.ts 中的 TypeScript 类型错误
+  - [x] 所有 5 个测试通过

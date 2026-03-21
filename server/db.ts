@@ -100,9 +100,20 @@ export async function createReport(data: InsertReport): Promise<Report | undefin
   try {
     console.log("[Database] Creating report:", { id: data.id, userId: data.userId, title: data.title });
     
-    // 排除 createdAt 字段，让数据库使用默认值
-    const { createdAt, ...reportData } = data;
-    await db.insert(reports).values(reportData as InsertReport);
+    // 直接使用 Drizzle insert，让它自动处理 createdAt 的默认值
+    const insertData: any = {
+      id: data.id,
+      title: data.title,
+      data: data.data,
+      expiresAt: data.expiresAt
+    };
+    
+    // 只在 userId 存在时才添加它
+    if (data.userId !== null && data.userId !== undefined) {
+      insertData.userId = data.userId;
+    }
+    
+    await db.insert(reports).values(insertData);
     console.log("[Database] Insert completed for report:", data.id);
     
     // 获取插入的记录
