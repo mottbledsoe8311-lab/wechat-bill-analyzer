@@ -70,7 +70,7 @@ export const appRouter = router({
             throw new Error('Report not found');
           }
 
-          if (new Date() > report.expiresAt) {
+          if (report.expiresAt < new Date()) {
             throw new Error('Report has expired');
           }
 

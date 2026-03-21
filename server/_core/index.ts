@@ -48,7 +48,7 @@ async function startServer() {
         return res.status(404).json({ error: 'Report not found' });
       }
       
-      if (new Date() > report.expiresAt) {
+      if (report.expiresAt < new Date()) {
         return res.status(404).json({ error: 'Report has expired' });
       }
       

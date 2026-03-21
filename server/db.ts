@@ -132,7 +132,8 @@ export async function deleteExpiredReports(): Promise<void> {
   }
 
   try {
-    await db.delete(reports).where(gt(reports.expiresAt, new Date()));
+    const now = new Date();
+    await db.delete(reports).where(gt(now, reports.expiresAt));
   } catch (error) {
     console.error("[Database] Failed to delete expired reports:", error);
   }
