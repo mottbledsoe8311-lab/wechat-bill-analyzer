@@ -17,6 +17,7 @@ import RepaymentTracking from '@/components/report/RepaymentTracking';
 import LargeInflows from '@/components/report/LargeInflows';
 import CounterpartSummary from '@/components/report/CounterpartSummary';
 import ShareButton from '@/components/ShareButton';
+import { useAuth } from '@/_core/hooks/useAuth';
 
 interface ReportData {
   overview?: any;
@@ -34,6 +35,7 @@ export default function ReportView() {
   const [error, setError] = useState<string | null>(null);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [reportTitle, setReportTitle] = useState('');
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     if (!match || !params?.reportId) {
@@ -115,14 +117,16 @@ export default function ReportView() {
         <div className="container flex items-center justify-between h-14">
           <h2 className="text-lg font-bold">{reportTitle}</h2>
           <div className="flex gap-2">
-            <ShareButton reportData={{
-              title: reportTitle,
-              summary: '账单分析完成',
-              regularTransfers: reportData.regularTransfers || [],
-              repaymentTracking: reportData.repaymentTracking || [],
-              largeInflows: reportData.largeInflows || [],
-              counterpartSummary: reportData.counterpartSummary || [],
-            }} />
+            {!authLoading && user && (
+              <ShareButton reportData={{
+                title: reportTitle,
+                summary: '账单分析完成',
+                regularTransfers: reportData.regularTransfers || [],
+                repaymentTracking: reportData.repaymentTracking || [],
+                largeInflows: reportData.largeInflows || [],
+                counterpartSummary: reportData.counterpartSummary || [],
+              }} />
+            )}
             <Button
               variant="outline"
               size="sm"
