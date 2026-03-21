@@ -320,15 +320,15 @@ export default function Home() {
                     image: WECHAT_MINI_QR,
                   },
                   {
-                    title: '功能更新与建议',
-                    desc: '在这里开发一个文本输入框，可以上传文字和图片，完成后有提交按钮，提交后在APP中通知我',
-                    color: 'bg-amber-warn/10 text-amber-warn',
-                  },
-                  {
                     title: '支持开发者（感谢赞助）',
                     desc: '',
                     color: 'bg-destructive/10 text-destructive',
                     image: SPONSOR_QR,
+                  },
+                  {
+                    title: '功能更新与建议',
+                    desc: '在这里开发一个文本输入框，可以上传文字和图片，完成后有提交按钮，提交后在APP中通知我',
+                    color: 'bg-amber-warn/10 text-amber-warn',
                   },
                 ].map((feature, i) => (
                   <motion.div
@@ -342,7 +342,7 @@ export default function Home() {
                       <span className="text-lg font-bold">{i + 1}</span>
                     </div>
                     <h3 className="font-semibold text-lg">{feature.title}</h3>
-                    {i === 2 ? (
+                    {i === 1 ? (
                       <FeedbackForm />
                     ) : feature.image ? (
                       <div className="flex justify-center">

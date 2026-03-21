@@ -100,7 +100,9 @@ export async function createReport(data: InsertReport): Promise<Report | undefin
   try {
     console.log("[Database] Creating report:", { id: data.id, userId: data.userId, title: data.title });
     
-    await db.insert(reports).values(data);
+    // 排除 createdAt 字段，让数据库使用默认值
+    const { createdAt, ...reportData } = data;
+    await db.insert(reports).values(reportData as InsertReport);
     console.log("[Database] Insert completed for report:", data.id);
     
     // 获取插入的记录
