@@ -45,9 +45,9 @@ export default function ShareButton({ reportData }: ShareButtonProps) {
         allTransactions: reportData.allTransactions || [],
       });
 
-      if (result.shareUrl) {
-        // 生成完整的分享链接
-        const shareUrl = `${window.location.origin}${result.shareUrl}`;
+      if (result.sharePath) {
+        // 使用后端返回的相对路径，根据当前 origin 拼接完整 URL
+        const shareUrl = new URL(result.sharePath, window.location.origin).toString();
         
         // 检查是否在微信中
         const isWeChat = /micromessenger/i.test(navigator.userAgent);

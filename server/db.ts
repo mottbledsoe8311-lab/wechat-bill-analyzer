@@ -104,7 +104,7 @@ export async function createReport(data: InsertReport): Promise<Report | undefin
     const insertData: any = {
       id: data.id,
       title: data.title,
-      data: data.data,
+      data: typeof data.data === 'string' ? JSON.parse(data.data) : data.data,
       expiresAt: data.expiresAt
     };
     
@@ -112,6 +112,8 @@ export async function createReport(data: InsertReport): Promise<Report | undefin
     if (data.userId !== null && data.userId !== undefined) {
       insertData.userId = data.userId;
     }
+    
+    console.log("[Database] Insert data:", { id: insertData.id, title: insertData.title, dataSize: JSON.stringify(insertData.data).length });
     
     await db.insert(reports).values(insertData);
     console.log("[Database] Insert completed for report:", data.id);

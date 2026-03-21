@@ -1,10 +1,10 @@
-import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { createReport, getReportById } from "./db";
 import { randomUUID } from "crypto";
+import { COOKIE_NAME } from "../shared/const";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -36,9 +36,10 @@ export const appRouter = router({
           const expiresAt = new Date();
           expiresAt.setDate(expiresAt.getDate() + 7);
 
+          // 不存储 allTransactions 以减少数据大小
           const reportData = {
             ...input.data,
-            allTransactions: input.allTransactions || [],
+            // 不包含 allTransactions 以减少数据大小
           };
 
           console.log('[tRPC] Report data size:', JSON.stringify(reportData).length);
@@ -47,7 +48,7 @@ export const appRouter = router({
             id: reportId,
             userId: ctx.user?.id || null,
             title: input.title,
-            data: JSON.stringify(reportData),
+            data: reportData, // 传入对象，让 Drizzle 自动 JSON 序列化
             expiresAt,
           });
 
@@ -56,12 +57,13 @@ export const appRouter = router({
             throw new Error('Failed to create report: database operation failed');
           }
 
-          const shareUrl = `${process.env.VITE_FRONTEND_URL || 'https://vixi.manus.space'}/report/${report.id}`;
-          console.log('[tRPC] Report created successfully:', report.id, 'Share URL:', shareUrl);
+          // 只返回相对路径，让前端根据 origin 拼接
+          const sharePath = `/report/${report.id}`;
+          console.log('[tRPC] Report created successfully:', report.id, 'Share path:', sharePath);
           return {
             success: true,
             reportId: report.id,
-            shareUrl: shareUrl,
+            sharePath: sharePath, // 相对路径
           };
         } catch (error: any) {
           console.error('[tRPC] Failed to create report:', error?.message || error);
@@ -88,7 +90,7 @@ export const appRouter = router({
           return {
             success: true,
             title: report.title,
-            data: report.data,
+            data: report.data, // 已经是对象（通过 JSON mode）
           };
         } catch (error) {
           console.error('Failed to get report:', error);
