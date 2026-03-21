@@ -10,6 +10,14 @@ interface Props {
   stats: OverviewStats;
 }
 
+// 帮助函数：根据是否有账户名字来构建标题
+function buildTitle(accountName?: string): string {
+  if (accountName) {
+    return `${accountName} 账户概况`;
+  }
+  return '账户概况';
+}
+
 export default function OverviewSection({ stats }: Props) {
   return (
     <motion.section
@@ -23,17 +31,18 @@ export default function OverviewSection({ stats }: Props) {
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <div className="text-2xl">📊</div>
-              <h3 className="text-2xl font-bold text-foreground">账户概况</h3>
+              <div className="text-2xl">📄</div>
+              <h3 className="text-2xl font-bold text-foreground">
+                {stats.accountName && (
+                  <span className="text-indigo">{stats.accountName}</span>
+                )}
+                {stats.accountName && <span className="mx-2 text-foreground">账户概况</span>}
+                {!stats.accountName && <span>账户概况</span>}
+              </h3>
             </div>
             <p className="text-sm text-muted-foreground">{stats.dateRange}</p>
           </div>
         </div>
-        {stats.accountName && (
-          <div className="text-lg font-semibold text-indigo mb-4">
-            {stats.accountName}
-          </div>
-        )}
       </div>
 
       {/* 2x2 网格卡片 */}

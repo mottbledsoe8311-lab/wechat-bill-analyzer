@@ -47,10 +47,15 @@ export const appRouter = router({
             expiresAt,
           });
 
+          if (!report || !report.id) {
+            console.error('Failed to create report: report is undefined or has no id');
+            throw new Error('Failed to create report: database operation failed');
+          }
+
           return {
             success: true,
-            reportId: report?.id,
-            shareUrl: `/report/${report?.id}`,
+            reportId: report.id,
+            shareUrl: `/report/${report.id}`,
           };
         } catch (error) {
           console.error('Failed to create report:', error);

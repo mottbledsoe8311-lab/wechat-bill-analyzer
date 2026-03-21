@@ -315,7 +315,7 @@ export default function Home() {
                   },
                   {
                     title: '其他版本',
-                    desc: '(微信小程序已上线，仅为测试版，正式版正在开发)',
+                    desc: '(测试版小程序已上线，正式版正在更新)',
                     color: 'bg-emerald-ok/10 text-emerald-ok',
                     image: WECHAT_MINI_QR,
                   },

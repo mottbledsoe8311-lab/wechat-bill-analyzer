@@ -93,15 +93,19 @@ export async function getUserByOpenId(openId: string) {
 export async function createReport(data: InsertReport): Promise<Report | undefined> {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot create report: database not available");
-    return undefined;
+    console.error("[Database] Cannot create report: database not available");
+    throw new Error("Database connection not available");
   }
 
   try {
     await db.insert(reports).values(data);
     // 获取插入的记录
     const created = await db.select().from(reports).where(eq(reports.id, data.id)).limit(1);
-    return created.length > 0 ? created[0] : undefined;
+    if (created.length === 0) {
+      console.error("[Database] Failed to retrieve created report");
+      throw new Error("Failed to retrieve created report");
+    }
+    return created[0];
   } catch (error) {
     console.error("[Database] Failed to create report:", error);
     throw error;
