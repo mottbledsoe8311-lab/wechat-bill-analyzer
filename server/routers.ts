@@ -30,6 +30,8 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         try {
+          console.log('[tRPC] Creating report for user:', ctx.user.id);
+          
           const reportId = randomUUID().substring(0, 12);
           const expiresAt = new Date();
           expiresAt.setDate(expiresAt.getDate() + 7);
@@ -38,6 +40,8 @@ export const appRouter = router({
             ...input.data,
             allTransactions: input.allTransactions || [],
           };
+
+          console.log('[tRPC] Report data size:', JSON.stringify(reportData).length);
 
           const report = await createReport({
             id: reportId,
@@ -48,18 +52,19 @@ export const appRouter = router({
           });
 
           if (!report || !report.id) {
-            console.error('Failed to create report: report is undefined or has no id');
+            console.error('[tRPC] Failed to create report: report is undefined or has no id');
             throw new Error('Failed to create report: database operation failed');
           }
 
+          console.log('[tRPC] Report created successfully:', report.id);
           return {
             success: true,
             reportId: report.id,
             shareUrl: `/report/${report.id}`,
           };
-        } catch (error) {
-          console.error('Failed to create report:', error);
-          throw new Error('Failed to create report');
+        } catch (error: any) {
+          console.error('[tRPC] Failed to create report:', error?.message || error);
+          throw new Error(error?.message || 'Failed to create report');
         }
       }),
     

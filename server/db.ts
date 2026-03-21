@@ -98,13 +98,21 @@ export async function createReport(data: InsertReport): Promise<Report | undefin
   }
 
   try {
+    console.log("[Database] Creating report:", { id: data.id, userId: data.userId, title: data.title });
+    
     await db.insert(reports).values(data);
+    console.log("[Database] Insert completed for report:", data.id);
+    
     // 获取插入的记录
     const created = await db.select().from(reports).where(eq(reports.id, data.id)).limit(1);
+    console.log("[Database] Retrieved report:", created.length > 0 ? created[0].id : "not found");
+    
     if (created.length === 0) {
-      console.error("[Database] Failed to retrieve created report");
+      console.error("[Database] Failed to retrieve created report after insert");
       throw new Error("Failed to retrieve created report");
     }
+    
+    console.log("[Database] Report created successfully:", created[0].id);
     return created[0];
   } catch (error) {
     console.error("[Database] Failed to create report:", error);

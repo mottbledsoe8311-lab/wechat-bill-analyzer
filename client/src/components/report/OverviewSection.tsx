@@ -29,8 +29,8 @@ export default function OverviewSection({ stats }: Props) {
       {/* 标题和客户名字 */}
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-1">
-          <div className="text-xl">📄</div>
-          <h3 className="text-xl font-bold text-foreground">
+          <div className="text-lg">📄</div>
+          <h3 className="text-lg font-bold text-foreground">
             {stats.accountName && (
               <span className="text-indigo">{stats.accountName}</span>
             )}
@@ -51,7 +51,7 @@ export default function OverviewSection({ stats }: Props) {
           className="bg-emerald-ok/10 border border-emerald-ok/20 rounded-lg p-3"
         >
           <p className="text-xs font-medium text-emerald-ok/70 mb-1">总收入</p>
-          <p className="text-2xl font-bold text-emerald-ok tabular-nums">
+          <p className="text-xl font-bold text-emerald-ok tabular-nums">
             {formatCurrency(stats.totalIncome)}
           </p>
         </motion.div>
@@ -64,7 +64,7 @@ export default function OverviewSection({ stats }: Props) {
           className="bg-destructive/10 border border-destructive/20 rounded-lg p-3"
         >
           <p className="text-xs font-medium text-destructive/70 mb-1">总支出</p>
-          <p className="text-2xl font-bold text-destructive tabular-nums">
+          <p className="text-xl font-bold text-destructive tabular-nums">
             {formatCurrency(stats.totalExpense)}
           </p>
         </motion.div>
@@ -77,7 +77,7 @@ export default function OverviewSection({ stats }: Props) {
           className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3"
         >
           <p className="text-xs font-medium text-blue-500/70 mb-1">净流水</p>
-          <p className="text-2xl font-bold text-blue-500 tabular-nums">
+          <p className="text-xl font-bold text-blue-500 tabular-nums">
             {stats.netFlow >= 0 ? '+' : ''}{formatCurrency(stats.netFlow)}
           </p>
         </motion.div>
@@ -90,7 +90,7 @@ export default function OverviewSection({ stats }: Props) {
           className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3"
         >
           <p className="text-xs font-medium text-purple-500/70 mb-1">交易笔数</p>
-          <p className="text-2xl font-bold text-purple-500 tabular-nums">
+          <p className="text-xl font-bold text-purple-500 tabular-nums">
             {stats.totalTransactions}
           </p>
         </motion.div>
