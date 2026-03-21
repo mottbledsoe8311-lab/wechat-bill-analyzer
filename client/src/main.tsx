@@ -42,6 +42,13 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
+  // 不对报表分享页面重定向，允许未登录用户查看分享的报表
+  const currentPath = window.location.pathname;
+  if (currentPath.startsWith('/report/')) {
+    console.log('[Auth] Unauthorized on report page, allowing guest access');
+    return;
+  }
+
   window.location.href = getLoginUrl();
 };
 

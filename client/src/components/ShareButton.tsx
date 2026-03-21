@@ -81,7 +81,13 @@ ${shareUrl}
       }
     } catch (error: any) {
       console.error('Share error:', error);
-      toast.error('生成分享链接失败，请重试');
+      const errorMessage = error?.message || '生成分享链接失败，请重试';
+      console.error('Share error details:', {
+        message: errorMessage,
+        code: error?.code,
+        data: error?.data,
+      });
+      toast.error(errorMessage);
     } finally {
       setIsSharing(false);
     }
