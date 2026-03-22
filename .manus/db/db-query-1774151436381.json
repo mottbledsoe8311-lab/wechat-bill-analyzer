@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, title, LENGTH(data) as dataLength, SUBSTRING(data, 1, 50) as dataSample FROM reports ORDER BY createdAt DESC LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3m1JnqczaMGDvBR.5718a2793ceb --database SXgJ57d4GB9RBvAf3PYHaj --execute SELECT id, title, LENGTH(data) as dataLength, SUBSTRING(data, 1, 50) as dataSample FROM reports ORDER BY createdAt DESC LIMIT 1;",
+  "rows": [
+    {
+      "id": "bcdfff30-001",
+      "title": "微信账单智能分析报表",
+      "dataLength": "15",
+      "dataSample": "[object Object]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tdataLength\tdataSample\nbcdfff30-001\t微信账单智能分析报表\t15\t[object Object]\n",
+  "stderr": "",
+  "execution_time_ms": 1522
+}

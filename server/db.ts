@@ -100,11 +100,18 @@ export async function createReport(data: InsertReport): Promise<Report | undefin
   try {
     console.log("[Database] Creating report:", { id: data.id, userId: data.userId, title: data.title });
     
-    // 直接使用 Drizzle insert，让它自动处理 createdAt 的默认值
+    // 确保 data 字段被正确地序列化为 JSON 字符串
+    let jsonData: string;
+    if (typeof data.data === 'string') {
+      jsonData = data.data;
+    } else {
+      jsonData = JSON.stringify(data.data);
+    }
+    
     const insertData: any = {
       id: data.id,
       title: data.title,
-      data: typeof data.data === 'string' ? JSON.parse(data.data) : data.data,
+      data: jsonData, // 直接传入 JSON 字符串
       expiresAt: data.expiresAt
     };
     
@@ -113,7 +120,7 @@ export async function createReport(data: InsertReport): Promise<Report | undefin
       insertData.userId = data.userId;
     }
     
-    console.log("[Database] Insert data:", { id: insertData.id, title: insertData.title, dataSize: JSON.stringify(insertData.data).length });
+    console.log("[Database] Insert data:", { id: insertData.id, title: insertData.title, dataSize: jsonData.length });
     
     await db.insert(reports).values(insertData);
     console.log("[Database] Insert completed for report:", data.id);

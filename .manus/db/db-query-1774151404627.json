@@ -1,0 +1,45 @@
+{
+  "query": "SELECT id, title, createdAt, expiresAt, data FROM reports LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3m1JnqczaMGDvBR.5718a2793ceb --database SXgJ57d4GB9RBvAf3PYHaj --execute SELECT id, title, createdAt, expiresAt, data FROM reports LIMIT 5;",
+  "rows": [
+    {
+      "id": "07412436-5dd",
+      "title": "微信账单智能分析报表",
+      "createdAt": "2026-03-21 17:47:50",
+      "expiresAt": "2026-03-28 17:47:50",
+      "data": "[object Object]"
+    },
+    {
+      "id": "09495dda-a8c",
+      "title": "微信账单智能分析报表",
+      "createdAt": "2026-03-21 17:48:28",
+      "expiresAt": "2026-03-28 17:48:29",
+      "data": "[object Object]"
+    },
+    {
+      "id": "1792f9de-558",
+      "title": "WeChat Bill Analysis Report - Test",
+      "createdAt": "2026-03-21 16:55:01",
+      "expiresAt": "2026-03-28 16:55:02",
+      "data": "{\"overview\":{\"totalIncome\":50000,\"totalExpense\":30000,\"netFlow\":20000,\"totalTransactions\":150,\"accountName\":\"Test User\"},\"monthlyBreakdown\":[{\"month\":\"2024-01\",\"income\":5000,\"expense\":3000},{\"month\":\"2024-02\",\"income\":6000,\"expense\":3500}],\"regularTransfers\":[{\"pattern\":\"Every 7 days\",\"amount\":1000,\"count\":4}],\"repaymentTracking\":[{\"date\":\"2024-01-15\",\"amount\":2000,\"source\":\"Friend A\"}],\"largeInflows\":[{\"date\":\"2024-01-20\",\"amount\":10000,\"source\":\"Salary\"}],\"counterpartSummary\":[{\"name\":\"Friend A\",\"totalAmount\":5000,\"transactionCount\":10}],\"allTransactions\":[{\"date\":\"2024-01-15\",\"amount\":1000,\"counterpart\":\"Friend A\",\"type\":\"transfer\"},{\"date\":\"2024-01-20\",\"amount\":10000,\"counterpart\":\"Salary\",\"type\":\"income\"}]}"
+    },
+    {
+      "id": "2a5f74b6-75d",
+      "title": "微信账单智能分析报表",
+      "createdAt": "2026-03-21 17:47:16",
+      "expiresAt": "2026-03-28 17:47:16",
+      "data": "[object Object]"
+    },
+    {
+      "id": "3fd6f26a-1ee",
+      "title": "微信账单智能分析报表",
+      "createdAt": "2026-03-21 17:47:27",
+      "expiresAt": "2026-03-28 17:47:27",
+      "data": "[object Object]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tcreatedAt\texpiresAt\tdata\n07412436-5dd\t微信账单智能分析报表\t2026-03-21 17:47:50\t2026-03-28 17:47:50\t[object Object]\n09495dda-a8c\t微信账单智能分析报表\t2026-03-21 17:48:28\t2026-03-28 17:48:29\t[object Object]\n1792f9de-558\tWeChat Bill Analysis Report - Test\t2026-03-21 16:55:01\t2026-03-28 16:55:02\t{\"overview\":{\"totalIncome\":50000,\"totalExpense\":30000,\"netFlow\":20000,\"totalTransactions\":150,\"accountName\":\"Test User\"},\"monthlyBreakdown\":[{\"month\":\"2024-01\",\"income\":5000,\"expense\":3000},{\"month\":\"2024-02\",\"income\":6000,\"expense\":3500}],\"regularTransfers\":[{\"pattern\":\"Every 7 days\",\"amount\":1000,\"count\":4}],\"repaymentTracking\":[{\"date\":\"2024-01-15\",\"amount\":2000,\"source\":\"Friend A\"}],\"largeInflows\":[{\"date\":\"2024-01-20\",\"amount\":10000,\"source\":\"Salary\"}],\"counterpartSummary\":[{\"name\":\"Friend A\",\"totalAmount\":5000,\"transactionCount\":10}],\"allTransactions\":[{\"date\":\"2024-01-15\",\"amount\":1000,\"counterpart\":\"Friend A\",\"type\":\"transfer\"},{\"date\":\"2024-01-20\",\"amount\":10000,\"counterpart\":\"Salary\",\"type\":\"income\"}]}\n2a5f74b6-75d\t微信账单智能分析报表\t2026-03-21 17:47:16\t2026-03-28 17:47:16\t[object Object]\n3fd6f26a-1ee\t微信账单智能分析报表\t2026-03-21 17:47:27\t2026-03-28 17:47:27\t[object Object]\n",
+  "stderr": "",
+  "execution_time_ms": 1644
+}
