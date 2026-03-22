@@ -87,10 +87,21 @@ export const appRouter = router({
             throw new Error('Report has expired');
           }
 
+          // 确保 data 是对象，如果是字符串则解析
+          let parsedData = report.data;
+          if (typeof report.data === 'string') {
+            try {
+              parsedData = JSON.parse(report.data);
+            } catch (e) {
+              console.error('Failed to parse report data:', e);
+              parsedData = report.data;
+            }
+          }
+
           return {
             success: true,
             title: report.title,
-            data: report.data, // 已经是对象（通过 JSON mode）
+            data: parsedData,
           };
         } catch (error) {
           console.error('Failed to get report:', error);

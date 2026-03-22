@@ -108,11 +108,16 @@ export async function createReport(data: InsertReport): Promise<Report | undefin
       jsonData = JSON.stringify(data.data);
     }
     
+    // 显式处理所有字段，不依赖 Drizzle 的 default 处理
+    const now = new Date();
+    const expiresAt = new Date(data.expiresAt);
+    
     const insertData: any = {
       id: data.id,
       title: data.title,
       data: jsonData, // 直接传入 JSON 字符串
-      expiresAt: data.expiresAt
+      createdAt: now, // 显式设置当前时间
+      expiresAt: expiresAt // 显式设置过期时间
     };
     
     // 只在 userId 存在时才添加它
@@ -120,7 +125,13 @@ export async function createReport(data: InsertReport): Promise<Report | undefin
       insertData.userId = data.userId;
     }
     
-    console.log("[Database] Insert data:", { id: insertData.id, title: insertData.title, dataSize: jsonData.length });
+    console.log("[Database] Insert data:", { 
+      id: insertData.id, 
+      title: insertData.title, 
+      dataSize: jsonData.length,
+      createdAt: insertData.createdAt,
+      expiresAt: insertData.expiresAt
+    });
     
     await db.insert(reports).values(insertData);
     console.log("[Database] Insert completed for report:", data.id);
