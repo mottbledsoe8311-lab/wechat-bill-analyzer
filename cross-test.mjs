@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3002';
+const BASE_URL = 'http://localhost:3001';
 const TESTS = [];
 
 async function test(name, fn) {

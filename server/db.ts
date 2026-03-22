@@ -108,32 +108,32 @@ export async function createReport(data: InsertReport): Promise<Report | undefin
       jsonData = JSON.stringify(data.data);
     }
     
-    // 显式处理所有字段，不依赖 Drizzle 的 default 处理
+    // 显式处理所有字段
     const now = new Date();
     const expiresAt = new Date(data.expiresAt);
     
-    const insertData: any = {
-      id: data.id,
-      title: data.title,
-      data: jsonData, // 直接传入 JSON 字符串
-      createdAt: now, // 显式设置当前时间
-      expiresAt: expiresAt // 显式设置过期时间
-    };
+    // 使用原生 SQL 绕过 Drizzle ORM 的问题
+    const connection = (db as any).session.client;
     
-    // 只在 userId 存在时才添加它
-    if (data.userId !== null && data.userId !== undefined) {
-      insertData.userId = data.userId;
-    }
+    const sql = data.userId 
+      ? `INSERT INTO reports (id, userId, title, data, createdAt, expiresAt) VALUES (?, ?, ?, ?, ?, ?)`
+      : `INSERT INTO reports (id, title, data, createdAt, expiresAt) VALUES (?, ?, ?, ?, ?)`;
     
+    const params = data.userId
+      ? [data.id, data.userId, data.title, jsonData, now, expiresAt]
+      : [data.id, data.title, jsonData, now, expiresAt];
+    
+    console.log("[Database] Executing SQL:", sql);
     console.log("[Database] Insert data:", { 
-      id: insertData.id, 
-      title: insertData.title, 
+      id: data.id, 
+      userId: data.userId,
+      title: data.title, 
       dataSize: jsonData.length,
-      createdAt: insertData.createdAt,
-      expiresAt: insertData.expiresAt
+      createdAt: now,
+      expiresAt: expiresAt
     });
     
-    await db.insert(reports).values(insertData);
+    await connection.execute(sql, params);
     console.log("[Database] Insert completed for report:", data.id);
     
     // 获取插入的记录
