@@ -70,6 +70,34 @@ export default function ReportView() {
         } else {
           parsedData = data.data;
         }
+        
+        // 修复日期字段：将 ISO 字符串转换为 Date 对象
+        const convertDatesToObjects = (obj: any): any => {
+          if (!obj || typeof obj !== 'object') return obj;
+          
+          if (Array.isArray(obj)) {
+            return obj.map(item => convertDatesToObjects(item));
+          }
+          
+          const converted: any = {};
+          for (const key in obj) {
+            const value = obj[key];
+            
+            // 检查是否是日期字符串
+            if (key === 'date' && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+              converted[key] = new Date(value);
+            } else if (Array.isArray(value)) {
+              converted[key] = value.map(item => convertDatesToObjects(item));
+            } else if (typeof value === 'object' && value !== null) {
+              converted[key] = convertDatesToObjects(value);
+            } else {
+              converted[key] = value;
+            }
+          }
+          return converted;
+        };
+        
+        parsedData = convertDatesToObjects(parsedData);
         setReportData(parsedData);
       } catch (err) {
         console.error('Failed to fetch report:', err);
