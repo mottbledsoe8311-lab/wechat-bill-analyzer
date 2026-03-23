@@ -64,15 +64,36 @@ export default function ReportView() {
         const data = await response.json();
         setReportTitle(data.title || '微信账单分析报表');
         
-        // 使用 superjson 反序列化数据，自动处理 Date 等特殊类型
+        // 解析数据：先尝试 JSON.parse，再尝试 superjson.parse
         let parsedData;
         if (typeof data.data === 'string') {
-          // superjson.parse 返回反序列化后的对象
-          parsedData = superjson.parse(data.data);
+          try {
+            // 首先尝试普通 JSON 解析
+            parsedData = JSON.parse(data.data);
+            console.log('[ReportView] JSON.parse 成功');
+          } catch (err) {
+            // 如果 JSON 解析失败，尝试 superjson 解析
+            try {
+              parsedData = superjson.parse(data.data);
+              console.log('[ReportView] superjson.parse 成功');
+            } catch (err2) {
+              console.error('[ReportView] 数据解析失败:', err2);
+              parsedData = null;
+            }
+          }
         } else {
           // 如果已经是对象，直接使用
           parsedData = data.data;
         }
+        
+        // 验证解析的数据
+        if (!parsedData || typeof parsedData !== 'object') {
+          console.error('[ReportView] 解析的数据不是对象:', parsedData);
+          setError('报表数据格式错误');
+          return;
+        }
+        
+        console.log('[ReportView] 报表数据解析成功:', { overview: !!parsedData.overview, monthlyBreakdown: parsedData.monthlyBreakdown?.length || 0 });
         setReportData(parsedData);
       } catch (err) {
         console.error('Failed to fetch report:', err);
