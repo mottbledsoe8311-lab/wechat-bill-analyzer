@@ -421,10 +421,13 @@ export default function Home() {
                     <ShareButton reportData={analysisResult ? {
                       title: '微信账单智能分析报表',
                       summary: `账单分析完成`,
+                      overview: analysisResult?.overview,
+                      monthlyBreakdown: analysisResult?.monthlyBreakdown || [],
                       regularTransfers: analysisResult?.regularTransfers || [],
                       repaymentTracking: analysisResult?.repaymentTracking || [],
                       largeInflows: analysisResult?.largeInflows || [],
                       counterpartSummary: analysisResult?.counterpartSummary || [],
+                      allTransactions: allTransactions,
                     } : undefined} />
 
                   </div>

@@ -184,7 +184,18 @@ export default function ReportView() {
       >
         <div className="container py-8">
           {/* 账户概况 - 总是显示，即使数据为空 */}
-          <OverviewSection stats={reportData.overview || { totalIncome: 0, totalExpense: 0, netIncome: 0, transactionCount: 0 }} />
+          <OverviewSection stats={reportData.overview || { 
+            totalIncome: 0, 
+            totalExpense: 0, 
+            netFlow: 0, 
+            totalTransactions: 0,
+            dateRange: '',
+            avgDailyIncome: 0,
+            avgDailyExpense: 0,
+            topCounterpart: '',
+            largestSingleTransaction: 0,
+            accountName: ''
+          }} />
           
           {/* 月度收支趋势 - 总是显示，即使数据为空 */}
           <MonthlyChart data={reportData.monthlyBreakdown || []} />
