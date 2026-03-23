@@ -179,30 +179,8 @@ ${fullUrl}
           </DialogHeader>
           
           <div className="space-y-4">
-            {/* 分享链接 */}
-            <div className="bg-muted p-3 rounded-lg break-all text-sm">
-              {shareUrl}
-            </div>
-
-            {/* 复制按钮 */}
-            <Button
-              onClick={async () => {
-                const copied = await copyToClipboard(shareUrl);
-                if (copied) {
-                  toast.success('链接已复制');
-                  setShowShareDialog(false);
-                } else {
-                  toast.error('复制失败，请手动复制');
-                }
-              }}
-              className="w-full gap-2"
-            >
-              <Copy className="w-4 h-4" />
-              复制链接
-            </Button>
-
             {/* 微信分享内容 */}
-            <div className="border-t pt-4">
+            <div>
               <p className="text-sm font-semibold mb-2">微信分享内容（可选）：</p>
               <div className="bg-muted p-3 rounded-lg text-sm whitespace-pre-wrap break-words">
 {`📊 微信账单智能分析报表
@@ -221,9 +199,9 @@ ${shareUrl}
                 onClick={async () => {
                   const content = `📊 微信账单智能分析报表
 
-📈 规律转账识别：${reportData?.regularTransfers?.length || 0} 个规律模式
+📊 规律转账识别：${reportData?.regularTransfers?.length || 0} 个规律模式
 💰 还款追踪：${reportData?.repaymentTracking?.length || 0} 笔规律还款
-🔔 大额入账：${reportData?.largeInflows?.length || 0} 笔异常入账
+🚨 大额入账：${reportData?.largeInflows?.length || 0} 笔异常入账
 👥 交易对方：${reportData?.counterpartSummary?.length || 0} 个主要对方
 
 点击链接查看完整报表：
@@ -238,8 +216,7 @@ ${shareUrl}
                     toast.error('复制失败，请手动复制');
                   }
                 }}
-                variant="outline"
-                className="w-full gap-2 mt-2"
+                className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Copy className="w-4 h-4" />
                 复制分享内容

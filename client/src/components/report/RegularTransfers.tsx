@@ -23,11 +23,12 @@ const riskConfig = {
 export default function RegularTransfers({ groups, allTransactions = [] }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
-  // 只取转出方向的规律转账，且风险等级为中/高
+  // 只取转出方向的规律转账，且风险等级为中/高，且时间间隔1-40天
   const outGroups = groups.filter(g => {
     const isOut = g.direction === '支出' || g.direction === '支';
     const isMediumHigh = g.riskLevel === 'medium' || g.riskLevel === 'high';
-    return isOut && isMediumHigh;
+    const isWithin40Days = g.intervalDays && g.intervalDays <= 40; // 过滤条件：只显示40天以下的
+    return isOut && isMediumHigh && isWithin40Days;
   });
 
   // 按风险等级+置信度排序
