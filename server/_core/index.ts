@@ -9,6 +9,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { deleteExpiredReports } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -135,6 +136,23 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+  });
+  
+  // 启动定时任务：每小时清理一次过期报表
+  const cleanupInterval = setInterval(async () => {
+    try {
+      console.log('[Cleanup] Starting expired reports cleanup...');
+      await deleteExpiredReports();
+      console.log('[Cleanup] Expired reports cleanup completed');
+    } catch (error) {
+      console.error('[Cleanup] Failed to cleanup expired reports:', error);
+    }
+  }, 60 * 60 * 1000); // 每小时执行一次（3600000 毫秒）
+  
+  // 在服务器关闭时清理定时器
+  server.on('close', () => {
+    clearInterval(cleanupInterval);
+    console.log('[Cleanup] Cleanup interval cleared');
   });
 }
 
