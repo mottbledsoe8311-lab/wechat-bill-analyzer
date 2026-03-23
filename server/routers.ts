@@ -36,14 +36,30 @@ export const appRouter = router({
           const expiresAt = new Date();
           expiresAt.setDate(expiresAt.getDate() + 7);
 
-          // 不存储 allTransactions 以减少数据大小
+          // 确保所有字段都被保存
           const reportData = {
-            ...input.data,
-            // 包含 allTransactions 以支持交易对方明细展示
-            allTransactions: input.data.allTransactions || [],
+            overview: input.data.overview,
+            monthlyBreakdown: input.data.monthlyBreakdown || [],
+            regularTransfers: input.data.regularTransfers || [],
+            repaymentTracking: input.data.repaymentTracking || [],
+            largeInflows: input.data.largeInflows || [],
+            counterpartSummary: input.data.counterpartSummary || [],
+            allTransactions: input.allTransactions || input.data.allTransactions || [],
           };
 
+          // 详细日志：验证所有字段都被保存
+          console.log('[tRPC] Report data fields:', {
+            hasOverview: !!reportData.overview,
+            hasMonthlyBreakdown: reportData.monthlyBreakdown?.length > 0,
+            hasRegularTransfers: reportData.regularTransfers?.length > 0,
+            hasRepaymentTracking: reportData.repaymentTracking?.length > 0,
+            hasLargeInflows: reportData.largeInflows?.length > 0,
+            hasCounterpartSummary: reportData.counterpartSummary?.length > 0,
+            hasAllTransactions: reportData.allTransactions?.length > 0,
+          });
           console.log('[tRPC] Report data size:', JSON.stringify(reportData).length);
+          console.log('[tRPC] Overview data:', reportData.overview ? { totalIncome: reportData.overview.totalIncome, totalExpense: reportData.overview.totalExpense } : 'missing');
+          console.log('[tRPC] Monthly breakdown count:', reportData.monthlyBreakdown?.length || 0);
 
           const report = await createReport({
             id: reportId,
