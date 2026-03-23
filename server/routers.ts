@@ -34,7 +34,8 @@ export const appRouter = router({
           
           const reportId = randomUUID().substring(0, 12);
           const expiresAt = new Date();
-          expiresAt.setDate(expiresAt.getDate() + 7);
+          // 设置有效期为 48 小时
+          expiresAt.setHours(expiresAt.getHours() + 48);
 
           // 确保所有字段都被保存
           const reportData = {

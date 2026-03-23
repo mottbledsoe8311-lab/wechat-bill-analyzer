@@ -69,21 +69,8 @@ export default function ShareButton({ reportData }: ShareButtonProps) {
         return;
       }
 
-      // 优化：立即生成临时 URL 并显示对话框（不等待数据库）
-      // 使用时间戳和随机数生成唯一的临时 reportId
-      const tempReportId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-      const tempUrl = new URL(`/report/${tempReportId}`, window.location.origin).toString();
-      setShareUrl(tempUrl);
-      
-      // 立即显示分享对话框，让用户可以立即分享
-      setShowShareDialog(true);
-      setIsSharing(false);
-      setShared(true);
-      setTimeout(() => setShared(false), 3000);
-      
-      // 后台异步保存数据库（不阻塞 UI）
-      // 使用 fire-and-forget 模式
-      createReportMutation.mutateAsync({
+      // 调用 tRPC 创建报表并获取真实 reportId
+      const result = await createReportMutation.mutateAsync({
         title: reportData.title || '微信账单分析报表',
         data: {
           overview: reportData.overview,
@@ -94,11 +81,18 @@ export default function ShareButton({ reportData }: ShareButtonProps) {
           counterpartSummary: reportData.counterpartSummary || [],
         },
         allTransactions: reportData.allTransactions || [],
-      }).catch(err => {
-        console.error('后台保存报表失败:', err);
-        // 静默失败，不打扰用户，因为用户已经获得了分享链接
-        toast.error('报表保存失败，分享链接可能无法访问');
       });
+
+      if (result.sharePath) {
+        // 使用后端返回的真实 sharePath
+        const fullUrl = new URL(result.sharePath, window.location.origin).toString();
+        setShareUrl(fullUrl);
+        
+        // 显示分享对话框
+        setShowShareDialog(true);
+        setShared(true);
+        setTimeout(() => setShared(false), 3000);
+      }
     } catch (error: any) {
       console.error('Share error:', error);
       const errorMessage = error?.message || '生成分享链接失败，请重试';
@@ -108,6 +102,7 @@ export default function ShareButton({ reportData }: ShareButtonProps) {
         data: error?.data,
       });
       toast.error(errorMessage);
+    } finally {
       setIsSharing(false);
     }
   };
@@ -145,6 +140,9 @@ export default function ShareButton({ reportData }: ShareButtonProps) {
             <DialogTitle>分享报表</DialogTitle>
             <DialogDescription>
               复制下面的内容，在微信或其他应用中分享
+              <div className="text-xs text-muted-foreground mt-2">
+                有效期: 48 小时
+              </div>
             </DialogDescription>
           </DialogHeader>
           
