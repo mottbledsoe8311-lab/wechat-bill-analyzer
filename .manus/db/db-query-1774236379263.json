@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, title, LENGTH(data) as data_length, SUBSTRING(data, 1, 200) as data_preview FROM reports ORDER BY createdAt DESC LIMIT 1",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3m1JnqczaMGDvBR.5718a2793ceb --database SXgJ57d4GB9RBvAf3PYHaj --execute SELECT id, title, LENGTH(data) as data_length, SUBSTRING(data, 1, 200) as data_preview FROM reports ORDER BY createdAt DESC LIMIT 1",
+  "rows": [
+    {
+      "id": "b1ff7426-3f7",
+      "title": "微信账单智能分析报表",
+      "data_length": "535766",
+      "data_preview": "{\"monthlyBreakdown\":[],\"regularTransfers\":[{\"counterpart\":\"夏志华\",\"direction\":\"支出\",\"pattern\":\"每14天\",\"intervalDays\":14,\"avgAmount\":5600,\"totalAmount\":16800,\"transactions\":[{\"orderId\":\"5311000117315920260"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\tdata_length\tdata_preview\nb1ff7426-3f7\t微信账单智能分析报表\t535766\t{\"monthlyBreakdown\":[],\"regularTransfers\":[{\"counterpart\":\"夏志华\",\"direction\":\"支出\",\"pattern\":\"每14天\",\"intervalDays\":14,\"avgAmount\":5600,\"totalAmount\":16800,\"transactions\":[{\"orderId\":\"5311000117315920260\n",
+  "stderr": "",
+  "execution_time_ms": 1696
+}

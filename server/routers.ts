@@ -39,7 +39,8 @@ export const appRouter = router({
           // 不存储 allTransactions 以减少数据大小
           const reportData = {
             ...input.data,
-            // 不包含 allTransactions 以减少数据大小
+            // 包含 allTransactions 以支持交易对方明细展示
+            allTransactions: input.data.allTransactions || [],
           };
 
           console.log('[tRPC] Report data size:', JSON.stringify(reportData).length);

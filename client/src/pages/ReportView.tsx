@@ -183,14 +183,31 @@ export default function ReportView() {
         transition={{ duration: 0.4 }}
       >
         <div className="container py-8">
-          {reportData.overview && <OverviewSection stats={reportData.overview} />}
+          {/* 账户概况 - 总是显示，即使数据为空 */}
+          <OverviewSection stats={reportData.overview || { totalIncome: 0, totalExpense: 0, netIncome: 0, transactionCount: 0 }} />
+          
+          {/* 月度收支趋势 - 总是显示，即使数据为空 */}
           <MonthlyChart data={reportData.monthlyBreakdown || []} />
-          <RegularTransfers 
-            groups={reportData.regularTransfers || []} 
-            allTransactions={reportData.allTransactions || []} 
-          />
-          <RepaymentTracking records={reportData.repaymentTracking || []} />
-          <LargeInflows inflows={reportData.largeInflows || []} />
+          
+          {/* 规律转账识别 */}
+          {reportData.regularTransfers && reportData.regularTransfers.length > 0 && (
+            <RegularTransfers 
+              groups={reportData.regularTransfers} 
+              allTransactions={reportData.allTransactions || []} 
+            />
+          )}
+          
+          {/* 还款追踪 */}
+          {reportData.repaymentTracking && reportData.repaymentTracking.length > 0 && (
+            <RepaymentTracking records={reportData.repaymentTracking} />
+          )}
+          
+          {/* 大额入账监控 */}
+          {reportData.largeInflows && reportData.largeInflows.length > 0 && (
+            <LargeInflows inflows={reportData.largeInflows} />
+          )}
+          
+          {/* 交易对方分析 - 总是显示，即使数据为空 */}
           <CounterpartSummary 
             data={reportData.counterpartSummary || []} 
             allTransactions={reportData.allTransactions || []} 
