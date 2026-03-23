@@ -65,11 +65,25 @@ export default function ShareButton({ reportData }: ShareButtonProps) {
     try {
       if (!reportData) {
         toast.error('报表数据不可用');
+        setIsSharing(false);
         return;
       }
 
-      // 调用 tRPC 创建报表
-      const result = await createReportMutation.mutateAsync({
+      // 优化：立即生成临时 URL 并显示对话框（不等待数据库）
+      // 使用时间戳和随机数生成唯一的临时 reportId
+      const tempReportId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      const tempUrl = new URL(`/report/${tempReportId}`, window.location.origin).toString();
+      setShareUrl(tempUrl);
+      
+      // 立即显示分享对话框，让用户可以立即分享
+      setShowShareDialog(true);
+      setIsSharing(false);
+      setShared(true);
+      setTimeout(() => setShared(false), 3000);
+      
+      // 后台异步保存数据库（不阻塞 UI）
+      // 使用 fire-and-forget 模式
+      createReportMutation.mutateAsync({
         title: reportData.title || '微信账单分析报表',
         data: {
           overview: reportData.overview,
@@ -80,54 +94,11 @@ export default function ShareButton({ reportData }: ShareButtonProps) {
           counterpartSummary: reportData.counterpartSummary || [],
         },
         allTransactions: reportData.allTransactions || [],
+      }).catch(err => {
+        console.error('后台保存报表失败:', err);
+        // 静默失败，不打扰用户，因为用户已经获得了分享链接
+        toast.error('报表保存失败，分享链接可能无法访问');
       });
-
-      if (result.sharePath) {
-        // 使用后端返回的相对路径，根据当前 origin 拼接完整 URL
-        const fullUrl = new URL(result.sharePath, window.location.origin).toString();
-        setShareUrl(fullUrl);
-        
-        // 检查是否在微信中
-        const isWeChat = /micromessenger/i.test(navigator.userAgent);
-        
-        if (isWeChat) {
-          // 在微信中，显示分享对话框
-          const summary = `
-📊 微信账单智能分析报表
-
-📈 规律转账识别：${reportData.regularTransfers?.length || 0} 个规律模式
-💰 还款追踪：${reportData.repaymentTracking?.length || 0} 笔规律还款
-🔔 大额入账：${reportData.largeInflows?.length || 0} 笔异常入账
-👥 交易对方：${reportData.counterpartSummary?.length || 0} 个主要对方
-
-点击链接查看完整报表：
-${fullUrl}
-
-使用大橙子账单分析系统生成，快来试试吧！
-          `.trim();
-
-          const copied = await copyToClipboard(summary);
-          if (copied) {
-            toast.success('报表链接已复制到剪贴板，可在微信中分享');
-            setShared(true);
-            setTimeout(() => setShared(false), 3000);
-          } else {
-            // 如果复制失败，显示对话框让用户手动复制
-            setShowShareDialog(true);
-          }
-        } else {
-          // 在浏览器中，尝试复制链接
-          const copied = await copyToClipboard(fullUrl);
-          if (copied) {
-            toast.success('报表链接已复制到剪贴板');
-            setShared(true);
-            setTimeout(() => setShared(false), 3000);
-          } else {
-            // 如果复制失败，显示对话框让用户手动复制
-            setShowShareDialog(true);
-          }
-        }
-      }
     } catch (error: any) {
       console.error('Share error:', error);
       const errorMessage = error?.message || '生成分享链接失败，请重试';
@@ -137,7 +108,6 @@ ${fullUrl}
         data: error?.data,
       });
       toast.error(errorMessage);
-    } finally {
       setIsSharing(false);
     }
   };
@@ -158,7 +128,7 @@ ${fullUrl}
         ) : shared ? (
           <>
             <Check className="w-4 h-4" />
-            已复制
+            已生成
           </>
         ) : (
           <>
@@ -168,13 +138,13 @@ ${fullUrl}
         )}
       </Button>
 
-      {/* 分享对话框 - 当自动复制失败时显示 */}
+      {/* 分享对话框 */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>分享报表</DialogTitle>
             <DialogDescription>
-              复制下面的链接，在微信或其他应用中分享
+              复制下面的内容，在微信或其他应用中分享
             </DialogDescription>
           </DialogHeader>
           
@@ -199,9 +169,9 @@ ${shareUrl}
                 onClick={async () => {
                   const content = `📊 微信账单智能分析报表
 
-📊 规律转账识别：${reportData?.regularTransfers?.length || 0} 个规律模式
+📈 规律转账识别：${reportData?.regularTransfers?.length || 0} 个规律模式
 💰 还款追踪：${reportData?.repaymentTracking?.length || 0} 笔规律还款
-🚨 大额入账：${reportData?.largeInflows?.length || 0} 笔异常入账
+🔔 大额入账：${reportData?.largeInflows?.length || 0} 笔异常入账
 👥 交易对方：${reportData?.counterpartSummary?.length || 0} 个主要对方
 
 点击链接查看完整报表：

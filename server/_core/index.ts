@@ -4,6 +4,7 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import fileUpload from "express-fileupload";
+import superjson from "superjson";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -96,10 +97,13 @@ async function startServer() {
         return res.status(404).json({ error: 'Report has expired' });
       }
       
+      // 使用 superjson 序列化数据，自动处理 Date 等特殊类型
+      const serializedData = superjson.stringify(report.data);
+      
       res.json({
         success: true,
         title: report.title,
-        data: report.data,
+        data: serializedData,
       });
     } catch (error: any) {
       console.error('Failed to get report:', error);

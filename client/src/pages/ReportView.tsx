@@ -9,6 +9,7 @@ import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import superjson from 'superjson';
 
 import OverviewSection from '@/components/report/OverviewSection';
 import MonthlyChart from '@/components/report/MonthlyChart';
@@ -63,41 +64,15 @@ export default function ReportView() {
         const data = await response.json();
         setReportTitle(data.title || '微信账单分析报表');
         
-        // 处理 data 字段：可能是对象或字符串
+        // 使用 superjson 反序列化数据，自动处理 Date 等特殊类型
         let parsedData;
         if (typeof data.data === 'string') {
-          parsedData = JSON.parse(data.data);
+          // superjson.parse 返回反序列化后的对象
+          parsedData = superjson.parse(data.data);
         } else {
+          // 如果已经是对象，直接使用
           parsedData = data.data;
         }
-        
-        // 修复日期字段：将 ISO 字符串转换为 Date 对象
-        const convertDatesToObjects = (obj: any): any => {
-          if (!obj || typeof obj !== 'object') return obj;
-          
-          if (Array.isArray(obj)) {
-            return obj.map(item => convertDatesToObjects(item));
-          }
-          
-          const converted: any = {};
-          for (const key in obj) {
-            const value = obj[key];
-            
-            // 检查是否是日期字符串
-            if (key === 'date' && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
-              converted[key] = new Date(value);
-            } else if (Array.isArray(value)) {
-              converted[key] = value.map(item => convertDatesToObjects(item));
-            } else if (typeof value === 'object' && value !== null) {
-              converted[key] = convertDatesToObjects(value);
-            } else {
-              converted[key] = value;
-            }
-          }
-          return converted;
-        };
-        
-        parsedData = convertDatesToObjects(parsedData);
         setReportData(parsedData);
       } catch (err) {
         console.error('Failed to fetch report:', err);
