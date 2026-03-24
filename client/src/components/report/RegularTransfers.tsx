@@ -85,11 +85,12 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
         {sorted.map((g, index) => {
           const risk = riskConfig[g.riskLevel];
           const isExpanded = expandedIndex === index;
-          const isHighRisk = g.confidence >= 1.0;
+          // 重点核实条件：规律度100% 且 高风险
+          const isHighRisk = g.confidence >= 1.0 && g.riskLevel === 'high';
 
           // 获取该对方的所有进出流水（不限方向）
           const counterpartName = g.counterpart;
-          const relatedTxs = allTransactions.length > 0
+          const relatedTxs = allTransactions?.length > 0
             ? allTransactions
                 .filter(tx => tx.counterpart?.trim() === counterpartName)
                 .sort((a: any, b: any) => b.date.getTime() - a.date.getTime())

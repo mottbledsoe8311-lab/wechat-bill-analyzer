@@ -118,7 +118,7 @@ export default function MonthlyChart({ data }: Props) {
                 <td className="py-3 px-4 text-right tabular-nums text-destructive">
                   {formatCurrency(row.expense)}
                 </td>
-                <td className={`py-3 px-4 text-right tabular-nums font-medium ${
+                <td className={`py-3 px-4 text-right tabular-nums font-medium whitespace-nowrap ${
                   row.netFlow >= 0 ? 'text-emerald-ok' : 'text-destructive'
                 }`}>
                   {row.netFlow >= 0 ? '+' : ''}{formatCurrency(row.netFlow)}
