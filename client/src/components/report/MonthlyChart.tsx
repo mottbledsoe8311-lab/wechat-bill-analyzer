@@ -109,9 +109,8 @@ export default function MonthlyChart({ data }: Props) {
                 transition={{ delay: 0.3 + i * 0.03 }}
                 className="border-b border-border/50 hover:bg-muted/30 transition-colors"
               >
-                <td className="py-2 px-4 font-medium text-sm">
-                  <div>{row.month}</div>
-                  <div className="text-xs text-muted-foreground">月</div>
+                <td className="py-2 px-4 font-medium text-sm whitespace-nowrap">
+                  {row.month}
                 </td>
                 <td className="py-3 px-4 text-right tabular-nums text-emerald-ok">
                   {formatCurrency(row.income)}
