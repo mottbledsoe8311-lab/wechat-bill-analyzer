@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 
 interface ShareButtonProps {
   reportData?: {
@@ -23,13 +24,15 @@ interface ShareButtonProps {
     counterpartSummary?: any[];
     allTransactions?: any[];
   };
+  customerName?: string;
 }
 
-export default function ShareButton({ reportData }: ShareButtonProps) {
+export default function ShareButton({ reportData, customerName }: ShareButtonProps) {
   const [isSharing, setIsSharing] = useState(false);
   const [shared, setShared] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [progress, setProgress] = useState(0);
   const createReportMutation = trpc.reports.create.useMutation();
 
   const copyToClipboard = async (text: string) => {
@@ -62,10 +65,23 @@ export default function ShareButton({ reportData }: ShareButtonProps) {
 
   const handleShare = async () => {
     setIsSharing(true);
+    setProgress(0);
+    
+    // 模拟进度更新
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev < 90) {
+          return prev + Math.random() * 30;
+        }
+        return prev;
+      });
+    }, 300);
+    
     try {
       if (!reportData) {
         toast.error('报表数据不可用');
         setIsSharing(false);
+        clearInterval(progressInterval);
         return;
       }
 
@@ -88,6 +104,10 @@ export default function ShareButton({ reportData }: ShareButtonProps) {
         const fullUrl = new URL(result.sharePath, window.location.origin).toString();
         setShareUrl(fullUrl);
         
+        // 完成进度
+        clearInterval(progressInterval);
+        setProgress(100);
+        
         // 显示分享对话框
         setShowShareDialog(true);
         setShared(true);
@@ -102,8 +122,10 @@ export default function ShareButton({ reportData }: ShareButtonProps) {
         data: error?.data,
       });
       toast.error(errorMessage);
+      clearInterval(progressInterval);
     } finally {
       setIsSharing(false);
+      setProgress(0);
     }
   };
 
@@ -133,6 +155,23 @@ export default function ShareButton({ reportData }: ShareButtonProps) {
         )}
       </Button>
 
+      {/* 进度对话框 */}
+      {isSharing && (
+        <Dialog open={isSharing}>
+          <DialogContent className="max-w-sm" showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle>生成分享链接中...</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Progress value={Math.min(progress, 100)} className="w-full" />
+              <p className="text-center text-sm text-muted-foreground">
+                {Math.min(Math.round(progress), 100)}%
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* 分享对话框 */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
         <DialogContent className="max-w-md">
@@ -151,7 +190,7 @@ export default function ShareButton({ reportData }: ShareButtonProps) {
             <div>
               <p className="text-sm font-semibold mb-2">微信分享内容（可选）：</p>
               <div className="bg-muted p-3 rounded-lg text-sm whitespace-pre-wrap break-words">
-{`📊 微信账单智能分析报表
+{`📊 微信账单智能分析报表${customerName ? `（${customerName}）` : ''}
 
 📈 规律转账识别：${reportData?.regularTransfers?.length || 0} 个规律模式
 💰 还款追踪：${reportData?.repaymentTracking?.length || 0} 笔规律还款
@@ -165,7 +204,7 @@ ${shareUrl}
               </div>
               <Button
                 onClick={async () => {
-                  const content = `📊 微信账单智能分析报表
+                  const content = `📊 微信账单智能分析报表${customerName ? `（${customerName}）` : ''}
 
 📈 规律转账识别：${reportData?.regularTransfers?.length || 0} 个规律模式
 💰 还款追踪：${reportData?.repaymentTracking?.length || 0} 笔规律还款

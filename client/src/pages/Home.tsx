@@ -418,17 +418,20 @@ export default function Home() {
                 <div className="container flex items-center justify-between h-14">
                   <h2 className="text-lg font-bold">账单分析报表</h2>
                   <div className="flex gap-2">
-                    <ShareButton reportData={analysisResult ? {
-                      title: '微信账单智能分析报表',
-                      summary: `账单分析完成`,
-                      overview: analysisResult?.overview,
-                      monthlyBreakdown: analysisResult?.monthlyBreakdown || [],
-                      regularTransfers: analysisResult?.regularTransfers || [],
-                      repaymentTracking: analysisResult?.repaymentTracking || [],
-                      largeInflows: analysisResult?.largeInflows || [],
-                      counterpartSummary: analysisResult?.counterpartSummary || [],
-                      allTransactions: allTransactions,
-                    } : undefined} />
+                    <ShareButton 
+                      reportData={analysisResult ? {
+                        title: '微信账单智能分析报表',
+                        summary: `账单分析完成`,
+                        overview: analysisResult?.overview,
+                        monthlyBreakdown: analysisResult?.monthlyBreakdown || [],
+                        regularTransfers: analysisResult?.regularTransfers || [],
+                        repaymentTracking: analysisResult?.repaymentTracking || [],
+                        largeInflows: analysisResult?.largeInflows || [],
+                        counterpartSummary: analysisResult?.counterpartSummary || [],
+                        allTransactions: allTransactions,
+                      } : undefined}
+                      customerName={parseResult?.accountInfo?.name}
+                    />
 
                   </div>
                 </div>

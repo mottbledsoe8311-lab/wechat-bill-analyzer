@@ -15,10 +15,14 @@ interface Props {
 
 export default function MonthlyChart({ data }: Props) {
   // 由近到远排序后反转用于图表展示（图表从左到右是时间正序）
-  const chartData = [...data].reverse().map(d => ({
-    ...d,
-    month: d.month.slice(2), // "2024-01" -> "24-01"
-  }));
+  const chartData = [...data].reverse().map(d => {
+    const [year, month] = d.month.split('-');
+    return {
+      ...d,
+      month: `${year.slice(2)}/${month}`, // "2024-01" -> "24/01"
+      displayMonth: `${year}/${month}`, // 完整日期用于表格显示
+    };
+  });
 
   return (
     <motion.section
@@ -36,15 +40,16 @@ export default function MonthlyChart({ data }: Props) {
         </h3>
       </div>
 
-      <div className="h-[360px] w-full">
+      <div className="h-[280px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} barGap={2} barCategoryGap="20%">
             <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.004 264.542)" vertical={false} />
             <XAxis 
               dataKey="month" 
-              tick={{ fontSize: 12, fill: 'oklch(0.556 0.012 256.848)' }}
+              tick={{ fontSize: 11, fill: 'oklch(0.556 0.012 256.848)' }}
               axisLine={{ stroke: 'oklch(0.92 0.004 264.542)' }}
               tickLine={false}
+              height={40}
             />
             <YAxis 
               tick={{ fontSize: 12, fill: 'oklch(0.556 0.012 256.848)' }}
@@ -104,7 +109,10 @@ export default function MonthlyChart({ data }: Props) {
                 transition={{ delay: 0.3 + i * 0.03 }}
                 className="border-b border-border/50 hover:bg-muted/30 transition-colors"
               >
-                <td className="py-3 px-4 font-medium">{row.month}</td>
+                <td className="py-2 px-4 font-medium text-sm">
+                  <div>{row.month}</div>
+                  <div className="text-xs text-muted-foreground">月</div>
+                </td>
                 <td className="py-3 px-4 text-right tabular-nums text-emerald-ok">
                   {formatCurrency(row.income)}
                 </td>
