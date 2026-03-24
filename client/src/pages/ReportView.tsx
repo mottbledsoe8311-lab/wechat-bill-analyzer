@@ -30,6 +30,44 @@ interface ReportData {
   allTransactions?: any[];
 }
 
+/**
+ * 递归转换所有日期字符串为 Date 对象
+ */
+function convertDatesToObjects(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (typeof obj === 'string') {
+    // 检查是否是 ISO 8601 日期格式
+    const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
+    if (isoDateRegex.test(obj)) {
+      return new Date(obj);
+    }
+    return obj;
+  }
+  
+  if (obj instanceof Date) {
+    return obj;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => convertDatesToObjects(item));
+  }
+  
+  if (typeof obj === 'object') {
+    const converted: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        converted[key] = convertDatesToObjects(obj[key]);
+      }
+    }
+    return converted;
+  }
+  
+  return obj;
+}
+
 export default function ReportView() {
   const [match, params] = useRoute('/report/:reportId');
   const [loading, setLoading] = useState(true);
@@ -94,7 +132,12 @@ export default function ReportView() {
         }
         
         console.log('[ReportView] 报表数据解析成功:', { overview: !!parsedData.overview, monthlyBreakdown: parsedData.monthlyBreakdown?.length || 0 });
-        setReportData(parsedData);
+        
+        // 转换日期字符串为 Date 对象
+        const convertedData = convertDatesToObjects(parsedData);
+        console.log('[ReportView] 日期转换完成');
+        
+        setReportData(convertedData);
       } catch (err) {
         console.error('Failed to fetch report:', err);
         setError('加载报表失败，请检查网络连接');
