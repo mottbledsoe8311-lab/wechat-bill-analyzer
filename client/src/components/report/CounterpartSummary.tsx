@@ -268,8 +268,8 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                       }`}>
                         <Users className="w-3.5 h-3.5 text-indigo" />
                       </div>
-                      <span className={`font-medium truncate max-w-[120px] sm:max-w-[200px] ${
-                        expandedName === item.name ? 'text-indigo' : ''
+                      <span className={`font-medium ${
+                        expandedName === item.name ? 'text-indigo break-words' : 'truncate max-w-[120px] sm:max-w-[200px]'
                       }`}>{item.name}</span>
                       {item.isRegular && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo/10 text-indigo font-medium shrink-0">

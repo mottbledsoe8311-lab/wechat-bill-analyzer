@@ -167,7 +167,7 @@ export default function LargeInflows({ inflows }: Props) {
                             }`}>
                               {isIncome ? '收' : '支'}
                             </span>
-                            <span className="text-muted-foreground truncate">
+                            <span className="text-muted-foreground break-words">
                               {formatDate(tx.date)} · {tx.counterpart || '未知'}
                             </span>
                           </div>
