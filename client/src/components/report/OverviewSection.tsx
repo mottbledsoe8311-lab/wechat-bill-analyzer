@@ -1,6 +1,6 @@
 /**
  * 概览统计区域
- * 设计：马卡龙色系卡片式数据展示，清晰的数据层级
+ * 设计：马卡龙色系卡片式数据展示，每行两列
  */
 
 import { motion } from 'framer-motion';
@@ -8,14 +8,6 @@ import { formatCurrency, type OverviewStats } from '@/lib/analyzer';
 
 interface Props {
   stats: OverviewStats;
-}
-
-// 帮助函数：根据是否有账户名字来构建标题
-function buildTitle(accountName?: string): string {
-  if (accountName) {
-    return `${accountName} 账户概况`;
-  }
-  return '账户概况';
 }
 
 export default function OverviewSection({ stats }: Props) {
@@ -42,7 +34,7 @@ export default function OverviewSection({ stats }: Props) {
       </div>
 
       {/* 第一行：总收入、总支出 - 马卡龙绿和马卡龙粉 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         {/* 总收入 - 马卡龙绿 */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -71,7 +63,7 @@ export default function OverviewSection({ stats }: Props) {
       </div>
 
       {/* 第二行：净流水、交易笔数 - 马卡龙蓝和马卡龙紫 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         {/* 净流水 - 马卡龙蓝 */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -100,7 +92,7 @@ export default function OverviewSection({ stats }: Props) {
       </div>
 
       {/* 第三行：日均收入、日均支出 - 马卡龙黄和马卡龙薄荷 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         {/* 日均收入 - 马卡龙黄 */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -129,7 +121,7 @@ export default function OverviewSection({ stats }: Props) {
       </div>
 
       {/* 第四行：最大单笔收入、最大单笔支出 - 马卡龙珊瑚和马卡龙天蓝 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {/* 最大单笔收入 - 马卡龙珊瑚 */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
