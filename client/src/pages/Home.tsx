@@ -24,9 +24,11 @@ import RegularTransfers from '@/components/report/RegularTransfers';
 import RepaymentTracking from '@/components/report/RepaymentTracking';
 import LargeInflows from '@/components/report/LargeInflows';
 import CounterpartSummary from '@/components/report/CounterpartSummary';
+import CounterpartNetworkVisualization from '@/components/report/CounterpartNetworkVisualization';
 
 import { parsePDF, type ParseResult } from '@/lib/pdfParser';
 import { analyzeTransactions, type AnalysisResult } from '@/lib/analyzer';
+import { analyzeCounterpartNetwork } from '@/lib/counterpartNetworkAnalyzer';
 
 type AppState = 'upload' | 'analyzing' | 'report';
 
@@ -46,6 +48,7 @@ export default function Home() {
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const reportRef = useRef<HTMLDivElement>(null);
   const reportContentRef = useRef<HTMLDivElement>(null);
+  const [counterpartNetwork, setCounterpartNetwork] = useState<any>(null);
 
   const handleFilesSelected = useCallback((selectedFiles: File[]) => {
     setFiles(selectedFiles);
@@ -141,6 +144,10 @@ export default function Home() {
 
       setAnalysisResult(analysis);
       setAllTransactions(allTransactions);
+      
+      // 生成对方关系网络
+      const network = analyzeCounterpartNetwork(allTransactions);
+      setCounterpartNetwork(network);
       
       setProgressStage('done');
       setProgress(100);
@@ -444,6 +451,7 @@ export default function Home() {
                 <RepaymentTracking records={analysisResult?.repaymentTracking || []} />
                 <LargeInflows inflows={analysisResult?.largeInflows || []} />
                 <CounterpartSummary data={analysisResult?.counterpartSummary || []} allTransactions={allTransactions} />
+                {counterpartNetwork && counterpartNetwork.nodes.length > 0 && <CounterpartNetworkVisualization network={counterpartNetwork} />}
               </div>
             </div>
           </motion.div>
