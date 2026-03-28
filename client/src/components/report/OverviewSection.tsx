@@ -41,7 +41,8 @@ export default function OverviewSection({ stats }: Props) {
         <p className="text-xs text-muted-foreground ml-7">{stats.dateRange}</p>
       </div>
 
-      {/* 响应式网格 - 4个主要指标 */}
+      {/* 主要指标 - 分三行显示 */}
+      {/* 第一行：总收入、总支出 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
         {/* 总收入 - 绿色 */}
         <motion.div
@@ -68,7 +69,10 @@ export default function OverviewSection({ stats }: Props) {
             {formatCurrency(stats.totalExpense)}
           </p>
         </motion.div>
+      </div>
 
+      {/* 第二行：净流水、交易笔数 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
         {/* 净流水 - 蓝色 */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -116,8 +120,8 @@ export default function OverviewSection({ stats }: Props) {
           <p className="font-bold text-foreground text-sm">{formatCurrency(stats.largestSingleTransaction)}</p>
         </div>
         <div className="bg-muted/40 rounded-lg p-2.5">
-          <p className="text-xs text-muted-foreground mb-1">交易天数</p>
-          <p className="font-bold text-foreground text-sm">{stats.transactionDays || 0} 天</p>
+          <p className="text-xs text-muted-foreground mb-1">日均笔数</p>
+          <p className="font-bold text-foreground text-sm">{stats.transactionDays ? (stats.totalTransactions / stats.transactionDays).toFixed(1) : 0} 笔/天</p>
         </div>
       </motion.div>
     </motion.section>
