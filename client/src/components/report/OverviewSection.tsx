@@ -19,10 +19,10 @@ export default function OverviewSection({ stats }: Props) {
       className="py-6"
     >
       {/* 标题和客户名字 */}
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="flex items-center gap-2 mb-1">
-          <div className="text-lg">📄</div>
-          <h3 className="text-lg font-bold text-foreground break-words">
+          <div className="text-base">📄</div>
+          <h3 className="text-base font-bold text-foreground break-words">
             {stats.accountName && (
               <span className="text-indigo break-words">{stats.accountName}</span>
             )}
@@ -40,10 +40,10 @@ export default function OverviewSection({ stats }: Props) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-[#A8E6CF]/20 to-[#A8E6CF]/10 border border-[#A8E6CF]/30 rounded-xl p-4 hover:shadow-md transition-shadow"
+          className="bg-gradient-to-br from-[#A8E6CF]/20 to-[#A8E6CF]/10 border border-[#A8E6CF]/30 rounded-xl p-3 hover:shadow-md transition-shadow"
         >
-          <p className="text-xs font-semibold text-[#56AB91] mb-2 uppercase tracking-wide">总收入</p>
-          <p className="text-2xl font-bold text-[#2D6A4F] tabular-nums">
+          <p className="text-xs font-semibold text-[#56AB91] mb-1.5 uppercase tracking-wide">总收入</p>
+          <p className="text-lg font-bold text-[#2D6A4F] tabular-nums">
             {formatCurrency(stats.totalIncome)}
           </p>
         </motion.div>
@@ -53,10 +53,10 @@ export default function OverviewSection({ stats }: Props) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="bg-gradient-to-br from-[#FFB3D9]/20 to-[#FFB3D9]/10 border border-[#FFB3D9]/30 rounded-xl p-4 hover:shadow-md transition-shadow"
+          className="bg-gradient-to-br from-[#FFB3D9]/20 to-[#FFB3D9]/10 border border-[#FFB3D9]/30 rounded-xl p-3 hover:shadow-md transition-shadow"
         >
-          <p className="text-xs font-semibold text-[#E85D8A] mb-2 uppercase tracking-wide">总支出</p>
-          <p className="text-2xl font-bold text-[#C2185B] tabular-nums">
+          <p className="text-xs font-semibold text-[#E85D8A] mb-1.5 uppercase tracking-wide">总支出</p>
+          <p className="text-lg font-bold text-[#C2185B] tabular-nums">
             {formatCurrency(stats.totalExpense)}
           </p>
         </motion.div>
@@ -69,10 +69,10 @@ export default function OverviewSection({ stats }: Props) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-[#B4E7FF]/20 to-[#B4E7FF]/10 border border-[#B4E7FF]/30 rounded-xl p-4 hover:shadow-md transition-shadow"
+          className="bg-gradient-to-br from-[#B4E7FF]/20 to-[#B4E7FF]/10 border border-[#B4E7FF]/30 rounded-xl p-3 hover:shadow-md transition-shadow"
         >
-          <p className="text-xs font-semibold text-[#0288D1] mb-2 uppercase tracking-wide">净流水</p>
-          <p className="text-2xl font-bold text-[#01579B] tabular-nums">
+          <p className="text-xs font-semibold text-[#0288D1] mb-1.5 uppercase tracking-wide">净流水</p>
+          <p className="text-lg font-bold text-[#01579B] tabular-nums">
             {stats.netFlow >= 0 ? '+' : ''}{formatCurrency(stats.netFlow)}
           </p>
         </motion.div>
@@ -82,10 +82,10 @@ export default function OverviewSection({ stats }: Props) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="bg-gradient-to-br from-[#D7BEE8]/20 to-[#D7BEE8]/10 border border-[#D7BEE8]/30 rounded-xl p-4 hover:shadow-md transition-shadow"
+          className="bg-gradient-to-br from-[#D7BEE8]/20 to-[#D7BEE8]/10 border border-[#D7BEE8]/30 rounded-xl p-3 hover:shadow-md transition-shadow"
         >
-          <p className="text-xs font-semibold text-[#7B1FA2] mb-2 uppercase tracking-wide">交易笔数</p>
-          <p className="text-2xl font-bold text-[#4A148C] tabular-nums">
+          <p className="text-xs font-semibold text-[#7B1FA2] mb-1.5 uppercase tracking-wide">交易笔数</p>
+          <p className="text-lg font-bold text-[#4A148C] tabular-nums">
             {stats.totalTransactions}
           </p>
         </motion.div>
@@ -98,10 +98,10 @@ export default function OverviewSection({ stats }: Props) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-gradient-to-br from-[#FFE5B4]/20 to-[#FFE5B4]/10 border border-[#FFE5B4]/30 rounded-xl p-4 hover:shadow-md transition-shadow"
+          className="bg-gradient-to-br from-[#FFE5B4]/20 to-[#FFE5B4]/10 border border-[#FFE5B4]/30 rounded-xl p-3 hover:shadow-md transition-shadow"
         >
-          <p className="text-xs font-semibold text-[#F57F17] mb-2 uppercase tracking-wide">日均收入</p>
-          <p className="text-2xl font-bold text-[#E65100] tabular-nums">
+          <p className="text-xs font-semibold text-[#F57F17] mb-1.5 uppercase tracking-wide">日均收入</p>
+          <p className="text-lg font-bold text-[#E65100] tabular-nums">
             {formatCurrency(stats.avgDailyIncome)}
           </p>
         </motion.div>
@@ -111,10 +111,10 @@ export default function OverviewSection({ stats }: Props) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
-          className="bg-gradient-to-br from-[#C8E6C9]/20 to-[#C8E6C9]/10 border border-[#C8E6C9]/30 rounded-xl p-4 hover:shadow-md transition-shadow"
+          className="bg-gradient-to-br from-[#C8E6C9]/20 to-[#C8E6C9]/10 border border-[#C8E6C9]/30 rounded-xl p-3 hover:shadow-md transition-shadow"
         >
-          <p className="text-xs font-semibold text-[#388E3C] mb-2 uppercase tracking-wide">日均支出</p>
-          <p className="text-2xl font-bold text-[#1B5E20] tabular-nums">
+          <p className="text-xs font-semibold text-[#388E3C] mb-1.5 uppercase tracking-wide">日均支出</p>
+          <p className="text-lg font-bold text-[#1B5E20] tabular-nums">
             {formatCurrency(stats.avgDailyExpense)}
           </p>
         </motion.div>
@@ -129,9 +129,9 @@ export default function OverviewSection({ stats }: Props) {
           transition={{ delay: 0.4 }}
           className="bg-gradient-to-br from-[#FFAB91]/20 to-[#FFAB91]/10 border border-[#FFAB91]/30 rounded-xl p-3 hover:shadow-md transition-shadow"
         >
-          <p className="text-xs font-semibold text-[#D84315] mb-2 uppercase tracking-wide">最大单笔收入</p>
-          <div className="space-y-1">
-            <p className="text-lg font-bold text-[#BF360C] tabular-nums">
+          <p className="text-xs font-semibold text-[#D84315] mb-1.5 uppercase tracking-wide">最大单笔收入</p>
+          <div className="space-y-0.5">
+            <p className="text-base font-bold text-[#BF360C] tabular-nums">
               {formatCurrency(stats.largestIncome)}
             </p>
             {stats.largestIncomeDate && (
@@ -149,9 +149,9 @@ export default function OverviewSection({ stats }: Props) {
           transition={{ delay: 0.45 }}
           className="bg-gradient-to-br from-[#81D4FA]/20 to-[#81D4FA]/10 border border-[#81D4FA]/30 rounded-xl p-3 hover:shadow-md transition-shadow"
         >
-          <p className="text-xs font-semibold text-[#0277BD] mb-2 uppercase tracking-wide">最大单笔支出</p>
-          <div className="space-y-1">
-            <p className="text-lg font-bold text-[#01579B] tabular-nums">
+          <p className="text-xs font-semibold text-[#0277BD] mb-1.5 uppercase tracking-wide">最大单笔支出</p>
+          <div className="space-y-0.5">
+            <p className="text-base font-bold text-[#01579B] tabular-nums">
               {formatCurrency(stats.largestExpense)}
             </p>
             {stats.largestExpenseDate && (
