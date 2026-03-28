@@ -53,7 +53,9 @@ export interface OverviewStats {
   topCounterpart: string;
   largestSingleTransaction: number;
   largestIncome: number;  // 最大单笔收入
+  largestIncomeDate?: Date;  // 最大单笔收入的日期
   largestExpense: number; // 最大单笔支出
+  largestExpenseDate?: Date;  // 最大单笔支出的日期
   accountName?: string;  // 客户名字
 }
 
@@ -256,12 +258,26 @@ function calculateOverview(transactions: Transaction[]): OverviewStats {
   // 计算最大单笔收入和支出
   const incomeTransactions = transactions.filter(t => t.type === 'in');
   const expenseTransactions = transactions.filter(t => t.type === 'out');
-  const largestIncome = incomeTransactions.length > 0 
-    ? Math.max(...incomeTransactions.map(t => t.amount), 0)
-    : 0;
-  const largestExpense = expenseTransactions.length > 0
-    ? Math.max(...expenseTransactions.map(t => t.amount), 0)
-    : 0;
+  
+  let largestIncome = 0;
+  let largestIncomeDate: Date | undefined;
+  if (incomeTransactions.length > 0) {
+    const maxIncomeTransaction = incomeTransactions.reduce((max, t) => 
+      t.amount > max.amount ? t : max
+    );
+    largestIncome = maxIncomeTransaction.amount;
+    largestIncomeDate = maxIncomeTransaction.date;
+  }
+  
+  let largestExpense = 0;
+  let largestExpenseDate: Date | undefined;
+  if (expenseTransactions.length > 0) {
+    const maxExpenseTransaction = expenseTransactions.reduce((max, t) => 
+      t.amount > max.amount ? t : max
+    );
+    largestExpense = maxExpenseTransaction.amount;
+    largestExpenseDate = maxExpenseTransaction.date;
+  }
 
   return {
     totalTransactions: transactions.length,
@@ -274,7 +290,9 @@ function calculateOverview(transactions: Transaction[]): OverviewStats {
     topCounterpart,
     largestSingleTransaction: Math.max(...transactions.map(t => t.amount), 0),
     largestIncome,
+    largestIncomeDate,
     largestExpense,
+    largestExpenseDate,
     accountName,
   };
 }

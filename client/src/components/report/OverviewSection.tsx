@@ -130,9 +130,16 @@ export default function OverviewSection({ stats }: Props) {
           className="bg-gradient-to-br from-[#FFAB91]/20 to-[#FFAB91]/10 border border-[#FFAB91]/30 rounded-xl p-4 hover:shadow-md transition-shadow"
         >
           <p className="text-xs font-semibold text-[#D84315] mb-2 uppercase tracking-wide">最大单笔收入</p>
-          <p className="text-2xl font-bold text-[#BF360C] tabular-nums">
-            {formatCurrency(stats.largestIncome)}
-          </p>
+          <div className="flex items-baseline gap-1">
+            <p className="text-2xl font-bold text-[#BF360C] tabular-nums">
+              {formatCurrency(stats.largestIncome)}
+            </p>
+            {stats.largestIncomeDate && (
+              <p className="text-xs text-[#BF360C]/60">
+                ({stats.largestIncomeDate.getFullYear()}.{String(stats.largestIncomeDate.getMonth() + 1).padStart(2, '0')}.{String(stats.largestIncomeDate.getDate()).padStart(2, '0')})
+              </p>
+            )}
+          </div>
         </motion.div>
 
         {/* 最大单笔支出 - 马卡龙天蓝 */}
@@ -143,9 +150,16 @@ export default function OverviewSection({ stats }: Props) {
           className="bg-gradient-to-br from-[#81D4FA]/20 to-[#81D4FA]/10 border border-[#81D4FA]/30 rounded-xl p-4 hover:shadow-md transition-shadow"
         >
           <p className="text-xs font-semibold text-[#0277BD] mb-2 uppercase tracking-wide">最大单笔支出</p>
-          <p className="text-2xl font-bold text-[#01579B] tabular-nums">
-            {formatCurrency(stats.largestExpense)}
-          </p>
+          <div className="flex items-baseline gap-1">
+            <p className="text-2xl font-bold text-[#01579B] tabular-nums">
+              {formatCurrency(stats.largestExpense)}
+            </p>
+            {stats.largestExpenseDate && (
+              <p className="text-xs text-[#01579B]/60">
+                ({stats.largestExpenseDate.getFullYear()}.{String(stats.largestExpenseDate.getMonth() + 1).padStart(2, '0')}.{String(stats.largestExpenseDate.getDate()).padStart(2, '0')})
+              </p>
+            )}
+          </div>
         </motion.div>
       </div>
     </motion.section>
