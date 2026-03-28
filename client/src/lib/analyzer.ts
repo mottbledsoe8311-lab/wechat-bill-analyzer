@@ -256,8 +256,8 @@ function calculateOverview(transactions: Transaction[]): OverviewStats {
     : undefined;
 
   // 计算最大单笔收入和支出
-  const incomeTransactions = transactions.filter(t => t.type === 'in');
-  const expenseTransactions = transactions.filter(t => t.type === 'out');
+  const incomeTransactions = transactions.filter(t => t.direction === '收入' || t.direction === '收');
+  const expenseTransactions = transactions.filter(t => t.direction === '支出' || t.direction === '支');
   
   let largestIncome = 0;
   let largestIncomeDate: Date | undefined;
