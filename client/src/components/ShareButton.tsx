@@ -190,7 +190,7 @@ export default function ShareButton({ reportData, customerName }: ShareButtonPro
             <div>
               <p className="text-sm font-semibold mb-2">微信分享内容（可选）：</p>
               <div className="bg-muted p-3 rounded-lg text-sm whitespace-pre-wrap break-words">
-{`📊 微信账单智能分析报表${customerName ? `（${customerName}）` : ''}
+{`📄 ${reportData?.overview?.accountName ? reportData.overview.accountName : customerName ? customerName : '账户'}账单分析报表
 
 📈 规律转账识别：${reportData?.regularTransfers?.length || 0} 个规律模式
 💰 还款追踪：${reportData?.repaymentTracking?.length || 0} 笔规律还款
@@ -204,7 +204,7 @@ ${shareUrl}
               </div>
               <Button
                 onClick={async () => {
-                  const content = `📊 微信账单智能分析报表${customerName ? `（${customerName}）` : ''}
+                  const content = `📄 ${reportData?.overview?.accountName ? reportData.overview.accountName : customerName ? customerName : '账户'}账单分析报表
 
 📈 规律转账识别：${reportData?.regularTransfers?.length || 0} 个规律模式
 💰 还款追踪：${reportData?.repaymentTracking?.length || 0} 笔规律还款

@@ -122,7 +122,7 @@ export default function OverviewSection({ stats }: Props) {
 
       {/* 第四行：最大单笔收入、最大单笔支出 - 马卡龙珊瑚和马卡龙天蓝 */}
       <div className="grid grid-cols-2 gap-3">
-        {/* 最大单笔收入 - 马卡龙珊瑚 */}
+        {/* 最大单笔收入 - 马卡龙珊瑠 */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -131,7 +131,7 @@ export default function OverviewSection({ stats }: Props) {
         >
           <p className="text-xs font-semibold text-[#D84315] mb-2 uppercase tracking-wide">最大单笔收入</p>
           <p className="text-2xl font-bold text-[#BF360C] tabular-nums">
-            {formatCurrency(stats.largestSingleTransaction)}
+            {formatCurrency(stats.largestIncome)}
           </p>
         </motion.div>
 
@@ -144,7 +144,7 @@ export default function OverviewSection({ stats }: Props) {
         >
           <p className="text-xs font-semibold text-[#0277BD] mb-2 uppercase tracking-wide">最大单笔支出</p>
           <p className="text-2xl font-bold text-[#01579B] tabular-nums">
-            {formatCurrency(stats.largestSingleTransaction)}
+            {formatCurrency(stats.largestExpense)}
           </p>
         </motion.div>
       </div>

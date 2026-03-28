@@ -52,6 +52,8 @@ export interface OverviewStats {
   avgDailyIncome: number;
   topCounterpart: string;
   largestSingleTransaction: number;
+  largestIncome: number;  // 最大单笔收入
+  largestExpense: number; // 最大单笔支出
   accountName?: string;  // 客户名字
 }
 
@@ -251,6 +253,16 @@ function calculateOverview(transactions: Transaction[]): OverviewStats {
     ? (transactions[0] as any).accountName 
     : undefined;
 
+  // 计算最大单笔收入和支出
+  const incomeTransactions = transactions.filter(t => t.type === 'in');
+  const expenseTransactions = transactions.filter(t => t.type === 'out');
+  const largestIncome = incomeTransactions.length > 0 
+    ? Math.max(...incomeTransactions.map(t => t.amount), 0)
+    : 0;
+  const largestExpense = expenseTransactions.length > 0
+    ? Math.max(...expenseTransactions.map(t => t.amount), 0)
+    : 0;
+
   return {
     totalTransactions: transactions.length,
     totalIncome,
@@ -261,6 +273,8 @@ function calculateOverview(transactions: Transaction[]): OverviewStats {
     avgDailyIncome: totalIncome / daySpan,
     topCounterpart,
     largestSingleTransaction: Math.max(...transactions.map(t => t.amount), 0),
+    largestIncome,
+    largestExpense,
     accountName,
   };
 }
