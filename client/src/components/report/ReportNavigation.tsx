@@ -1,11 +1,11 @@
 /**
  * 报表导航栏
  * 显示报表各个模块的导航链接，支持快速跳转
+ * 使用网格布局，自动适配不同屏幕尺寸
  */
 
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronRight } from 'lucide-react';
 
 interface NavItem {
   id: string;
@@ -44,24 +44,26 @@ export default function ReportNavigation({ onNavigate }: Props) {
       transition={{ duration: 0.4 }}
       className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border/50 py-3 mb-8"
     >
-      <div className="container">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2" ref={scrollContainerRef}>
+      <div className="container px-4">
+        <div className="flex items-center gap-2 mb-2">
           <p className="text-xs font-semibold text-muted-foreground shrink-0">快速导航:</p>
-          <div className="flex gap-2 overflow-x-auto">
-            {NAV_ITEMS.map((item, index) => (
-              <motion.button
-                key={item.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                onClick={() => handleNavigate(item.id)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted text-sm font-medium text-foreground transition-colors whitespace-nowrap shrink-0"
-              >
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
-              </motion.button>
-            ))}
-          </div>
+        </div>
+        
+        {/* 响应式网格布局 */}
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6" ref={scrollContainerRef}>
+          {NAV_ITEMS.map((item, index) => (
+            <motion.button
+              key={item.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.05 }}
+              onClick={() => handleNavigate(item.id)}
+              className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg bg-muted/50 hover:bg-muted text-xs sm:text-sm font-medium text-foreground transition-colors"
+            >
+              <span className="text-base sm:text-lg">{item.icon}</span>
+              <span className="text-center line-clamp-2">{item.label}</span>
+            </motion.button>
+          ))}
         </div>
       </div>
     </motion.div>

@@ -40,21 +40,22 @@ export default function MonthlyChart({ data }: Props) {
         </h3>
       </div>
 
-      <div className="h-[280px] w-full">
+      <div className="h-[200px] sm:h-[280px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} barGap={2} barCategoryGap="20%">
             <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.004 264.542)" vertical={false} />
             <XAxis 
               dataKey="month" 
-              tick={{ fontSize: 11, fill: 'oklch(0.556 0.012 256.848)' }}
+              tick={{ fontSize: 10, fill: 'oklch(0.556 0.012 256.848)' }}
               axisLine={{ stroke: 'oklch(0.92 0.004 264.542)' }}
               tickLine={false}
-              height={40}
+              height={30}
             />
             <YAxis 
-              tick={{ fontSize: 12, fill: 'oklch(0.556 0.012 256.848)' }}
+              tick={{ fontSize: 10, fill: 'oklch(0.556 0.012 256.848)' }}
               axisLine={false}
               tickLine={false}
+              width={40}
               tickFormatter={(v) => v >= 10000 ? `${(v / 10000).toFixed(0)}万` : v.toLocaleString()}
             />
             <Tooltip
@@ -92,12 +93,12 @@ export default function MonthlyChart({ data }: Props) {
       <div className="mt-8 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border">
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">月份</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">收入</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">支出</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">净流水</th>
-              <th className="text-right py-3 px-4 font-medium text-muted-foreground">笔数</th>
+            <tr className="border-b border-border bg-muted/30">
+              <th className="text-left py-2 sm:py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground">月份</th>
+              <th className="text-right py-2 sm:py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground">收入</th>
+              <th className="text-right py-2 sm:py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground">支出</th>
+              <th className="text-right py-2 sm:py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground">净流水</th>
+              <th className="text-right py-2 sm:py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground">笔数</th>
             </tr>
           </thead>
           <tbody>
@@ -109,21 +110,21 @@ export default function MonthlyChart({ data }: Props) {
                 transition={{ delay: 0.3 + i * 0.03 }}
                 className="border-b border-border/50 hover:bg-muted/30 transition-colors"
               >
-                <td className="py-2 px-4 font-medium text-sm whitespace-nowrap">
+                <td className="py-1 sm:py-2 px-2 sm:px-4 font-medium text-xs sm:text-sm whitespace-nowrap">
                   {row.month}
                 </td>
-                <td className="py-3 px-4 text-right tabular-nums text-emerald-ok">
+                <td className="py-1 sm:py-3 px-2 sm:px-4 text-right tabular-nums text-xs sm:text-sm text-emerald-ok">
                   {formatCurrency(row.income)}
                 </td>
-                <td className="py-3 px-4 text-right tabular-nums text-destructive">
+                <td className="py-1 sm:py-3 px-2 sm:px-4 text-right tabular-nums text-xs sm:text-sm text-destructive">
                   {formatCurrency(row.expense)}
                 </td>
-                <td className={`py-3 px-4 text-right tabular-nums font-medium whitespace-nowrap ${
+                <td className={`py-1 sm:py-3 px-2 sm:px-4 text-right tabular-nums font-medium whitespace-nowrap text-xs sm:text-sm ${
                   row.netFlow >= 0 ? 'text-emerald-ok' : 'text-destructive'
                 }`}>
                   {row.netFlow >= 0 ? '+' : ''}{formatCurrency(row.netFlow)}
                 </td>
-                <td className="py-3 px-4 text-right tabular-nums text-muted-foreground">
+                <td className="py-1 sm:py-3 px-2 sm:px-4 text-right tabular-nums text-xs sm:text-sm text-muted-foreground">
                   {row.transactionCount}
                 </td>
               </motion.tr>

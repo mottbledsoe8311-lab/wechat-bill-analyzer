@@ -41,8 +41,8 @@ export default function OverviewSection({ stats }: Props) {
         <p className="text-xs text-muted-foreground ml-7">{stats.dateRange}</p>
       </div>
 
-      {/* 双列紧凑网格 - 4个主要指标 */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
+      {/* 响应式网格 - 4个主要指标 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
         {/* 总收入 - 绿色 */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
