@@ -111,9 +111,13 @@ export default function OverviewSection({ stats }: Props) {
           <p className="text-xs text-muted-foreground mb-1">日均支出</p>
           <p className="font-bold text-foreground text-sm">{formatCurrency(stats.avgDailyExpense)}</p>
         </div>
-        <div className="bg-muted/40 rounded-lg p-2.5 col-span-2">
+        <div className="bg-muted/40 rounded-lg p-2.5">
           <p className="text-xs text-muted-foreground mb-1">最大单笔</p>
           <p className="font-bold text-foreground text-sm">{formatCurrency(stats.largestSingleTransaction)}</p>
+        </div>
+        <div className="bg-muted/40 rounded-lg p-2.5">
+          <p className="text-xs text-muted-foreground mb-1">交易天数</p>
+          <p className="font-bold text-foreground text-sm">{stats.transactionDays || 0} 天</p>
         </div>
       </motion.div>
     </motion.section>
