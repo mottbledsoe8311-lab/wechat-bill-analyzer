@@ -4,7 +4,7 @@
  * 使用网格布局，自动适配不同屏幕尺寸
  */
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef } from 'react';
 import { motion } from 'framer-motion';
 
 interface NavItem {
@@ -28,25 +28,6 @@ interface Props {
 
 export default function ReportNavigation({ onNavigate }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY > lastScrollY && currentScrollY > 50) {
-        setIsVisible(false);
-      } else {
-        setIsVisible(true);
-      }
-      
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
 
   const handleNavigate = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -59,9 +40,9 @@ export default function ReportNavigation({ onNavigate }: Props) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
-      animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: -100 }}
-      transition={{ duration: 0.3 }}
-      className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border/50 py-3 mb-8"
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="bg-background/95 backdrop-blur-sm border-b border-border/50 py-3 mb-8"
     >
       <div className="container px-4">
         <div className="flex items-center gap-2 mb-2">
