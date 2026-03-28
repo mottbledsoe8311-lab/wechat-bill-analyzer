@@ -24,11 +24,12 @@ import RegularTransfers from '@/components/report/RegularTransfers';
 import RepaymentTracking from '@/components/report/RepaymentTracking';
 import LargeInflows from '@/components/report/LargeInflows';
 import CounterpartSummary from '@/components/report/CounterpartSummary';
-import CounterpartNetworkVisualization from '@/components/report/CounterpartNetworkVisualization';
+import ReportNavigation from '@/components/report/ReportNavigation';
+
 
 import { parsePDF, type ParseResult } from '@/lib/pdfParser';
 import { analyzeTransactions, type AnalysisResult } from '@/lib/analyzer';
-import { analyzeCounterpartNetwork } from '@/lib/counterpartNetworkAnalyzer';
+
 
 type AppState = 'upload' | 'analyzing' | 'report';
 
@@ -48,7 +49,7 @@ export default function Home() {
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const reportRef = useRef<HTMLDivElement>(null);
   const reportContentRef = useRef<HTMLDivElement>(null);
-  const [counterpartNetwork, setCounterpartNetwork] = useState<any>(null);
+
 
   const handleFilesSelected = useCallback((selectedFiles: File[]) => {
     setFiles(selectedFiles);
@@ -145,10 +146,7 @@ export default function Home() {
       setAnalysisResult(analysis);
       setAllTransactions(allTransactions);
       
-      // 生成对方关系网络
-      const network = analyzeCounterpartNetwork(allTransactions);
-      setCounterpartNetwork(network);
-      
+
       setProgressStage('done');
       setProgress(100);
       
@@ -444,14 +442,15 @@ export default function Home() {
                 </div>
               </nav>
               {/* 报表内容 */}
-              <div className="container" ref={reportContentRef}>
-                {analysisResult && <OverviewSection stats={analysisResult.overview} />}
-                <MonthlyChart data={analysisResult?.monthlyBreakdown || []} />
-                <RegularTransfers groups={analysisResult?.regularTransfers || []} allTransactions={allTransactions} />
-                <RepaymentTracking records={analysisResult?.repaymentTracking || []} />
-                <LargeInflows inflows={analysisResult?.largeInflows || []} />
-                <CounterpartSummary data={analysisResult?.counterpartSummary || []} allTransactions={allTransactions} />
-                {counterpartNetwork && counterpartNetwork.nodes.length > 0 && <CounterpartNetworkVisualization network={counterpartNetwork} />}
+                 <div className="space-y-0">
+                <ReportNavigation />
+                {analysisResult && <div id="overview"><OverviewSection stats={analysisResult.overview} /></div>}
+                <div id="monthly"><MonthlyChart data={analysisResult?.monthlyBreakdown || []} /></div>
+                <div id="regular"><RegularTransfers groups={analysisResult?.regularTransfers || []} allTransactions={allTransactions} /></div>
+                <div id="repayment"><RepaymentTracking records={analysisResult?.repaymentTracking || []} /></div>
+                <div id="inflows"><LargeInflows inflows={analysisResult?.largeInflows || []} /></div>
+                <div id="counterpart"><CounterpartSummary data={analysisResult?.counterpartSummary || []} allTransactions={allTransactions} /></div>
+
               </div>
             </div>
           </motion.div>

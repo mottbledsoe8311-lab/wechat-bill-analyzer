@@ -30,9 +30,9 @@ export default function OverviewSection({ stats }: Props) {
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-1">
           <div className="text-lg">📄</div>
-          <h3 className="text-lg font-bold text-foreground">
+          <h3 className="text-lg font-bold text-foreground break-words">
             {stats.accountName && (
-              <span className="text-indigo">{stats.accountName}</span>
+              <span className="text-indigo break-words">{stats.accountName}</span>
             )}
             {stats.accountName && <span className="mx-2 text-foreground">账户概况</span>}
             {!stats.accountName && <span>账户概况</span>}
