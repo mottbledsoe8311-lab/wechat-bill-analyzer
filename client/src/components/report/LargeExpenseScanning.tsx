@@ -7,7 +7,6 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { formatCurrency, formatDate, type LargeExpense } from '@/lib/analyzer';
 import { TrendingDown } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
 interface Props {
   expenses: LargeExpense[];
@@ -88,7 +87,7 @@ export default function LargeExpenseScanning({ expenses }: Props) {
           <button
             key={option.value}
             onClick={() => setSelectedRange(option.value)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               selectedRange === option.value
                 ? 'bg-indigo text-white'
                 : 'bg-muted text-foreground hover:bg-muted/80'
@@ -101,21 +100,18 @@ export default function LargeExpenseScanning({ expenses }: Props) {
 
       {/* 表格 */}
       <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full text-sm">
+        <table className="w-full text-xs sm:text-sm">
           <thead>
             <tr className="bg-muted/50 border-b border-border">
-              <th className="text-left py-3 px-4 font-semibold text-muted-foreground">日期</th>
-              <th className="text-left py-3 px-4 font-semibold text-muted-foreground">交易对象</th>
-              <th className="text-left py-3 px-4 font-semibold text-muted-foreground">交易类型</th>
-              <th className="text-right py-3 px-4 font-semibold text-muted-foreground">金额</th>
-              <th className="text-left py-3 px-4 font-semibold text-muted-foreground">风险等级</th>
+              <th className="text-left py-2 px-2 sm:py-3 sm:px-4 font-semibold text-muted-foreground">日期</th>
+              <th className="text-left py-2 px-2 sm:py-3 sm:px-4 font-semibold text-muted-foreground">交易对象</th>
+              <th className="text-left py-2 px-2 sm:py-3 sm:px-4 font-semibold text-muted-foreground">交易银行卡</th>
+              <th className="text-right py-2 px-2 sm:py-3 sm:px-4 font-semibold text-muted-foreground">金额</th>
             </tr>
           </thead>
           <tbody>
             {sorted.slice(0, 20).map((expense, index) => {
               const tx = expense.transaction;
-              const isHighRisk = expense.percentile >= 90;
-              const isMediumRisk = expense.percentile >= 75;
               
               return (
                 <motion.tr
@@ -125,20 +121,11 @@ export default function LargeExpenseScanning({ expenses }: Props) {
                   transition={{ delay: 0.02 * index }}
                   className="border-b border-border/50 hover:bg-muted/30 transition-colors"
                 >
-                  <td className="py-3 px-4 tabular-nums text-muted-foreground">{formatDate(tx.date)}</td>
-                  <td className="py-3 px-4 font-medium">{tx.counterpart}</td>
-                  <td className="py-3 px-4 text-muted-foreground">{tx.type}</td>
-                  <td className="py-3 px-4 text-right font-bold text-destructive">
+                  <td className="py-2 px-2 sm:py-3 sm:px-4 tabular-nums text-muted-foreground">{formatDate(tx.date)}</td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-4 font-medium truncate">{tx.counterpart}</td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-4 text-muted-foreground truncate">{tx.type || '-'}</td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-4 text-right font-bold text-destructive">
                     -{formatCurrency(tx.amount)}
-                  </td>
-                  <td className="py-3 px-4">
-                    {isHighRisk ? (
-                      <Badge className="bg-red-600 text-white hover:bg-red-700">高风险</Badge>
-                    ) : isMediumRisk ? (
-                      <Badge className="bg-amber-600 text-white hover:bg-amber-700">中风险</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-amber-warn border-amber-warn/20">低风险</Badge>
-                    )}
                   </td>
                 </motion.tr>
               );
