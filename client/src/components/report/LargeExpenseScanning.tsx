@@ -123,7 +123,7 @@ export default function LargeExpenseScanning({ expenses }: Props) {
                 >
                   <td className="py-2 px-2 sm:py-3 sm:px-4 tabular-nums text-muted-foreground">{formatDate(tx.date)}</td>
                   <td className="py-2 px-2 sm:py-3 sm:px-4 font-medium truncate">{tx.counterpart}</td>
-                  <td className="py-2 px-2 sm:py-3 sm:px-4 text-muted-foreground truncate">{tx.type || '-'}</td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-4 text-muted-foreground truncate">{tx.method || '-'}</td>
                   <td className="py-2 px-2 sm:py-3 sm:px-4 text-right font-bold text-destructive">
                     -{formatCurrency(tx.amount)}
                   </td>
