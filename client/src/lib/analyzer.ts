@@ -76,6 +76,7 @@ export interface RegularTransferGroup {
   transactions: Transaction[];
   confidence: number;        // 置信度 0-1
   riskLevel: 'low' | 'medium' | 'high';
+  isSuspectedRepayment?: boolean;  // 是否是疑似还款帐号
 }
 
 export interface RepaymentRecord {
@@ -133,7 +134,8 @@ type AnalysisProgressCallback = (progress: number, message: string) => void;
 
 export async function analyzeTransactions(
   transactions: Transaction[],
-  onProgress?: AnalysisProgressCallback
+  onProgress?: AnalysisProgressCallback,
+  riskAccounts?: { accountName: string; riskLevel: string }[]
 ): Promise<AnalysisResult> {
   onProgress?.(0, '开始分析交易数据...');
 
@@ -151,7 +153,47 @@ export async function analyzeTransactions(
 
   // 4. 规律转账识别
   onProgress?.(40, '识别规律转账模式...');
-  const regularTransfers = detectRegularTransfers(transactions);
+  let regularTransfers = detectRegularTransfers(transactions);
+  
+  // 添加疑似还款帐号的转账记录
+  if (riskAccounts && riskAccounts.length > 0) {
+    const suspectedAccounts = new Set(riskAccounts.map(a => a.accountName));
+    
+    for (const tx of transactions) {
+      const counterpart = tx.counterpart?.trim();
+      if (!counterpart || !suspectedAccounts.has(counterpart)) continue;
+      
+      const existingIndex = regularTransfers.findIndex(
+        g => g.counterpart === counterpart && (g.direction === '支出' || g.direction === '支')
+      );
+      
+      if (existingIndex >= 0) {
+        regularTransfers[existingIndex].isSuspectedRepayment = true;
+      } else {
+        const relatedTxs = transactions.filter(t => 
+          t.counterpart?.trim() === counterpart && (t.direction === '支出' || t.direction === '支')
+        );
+        
+        if (relatedTxs.length > 0) {
+          const totalAmount = relatedTxs.reduce((sum, t) => sum + t.amount, 0);
+          const avgAmount = totalAmount / relatedTxs.length;
+          
+          regularTransfers.push({
+            counterpart,
+            direction: '支出',
+            pattern: '疑似还款帐号',
+            intervalDays: 0,
+            avgAmount,
+            totalAmount,
+            transactions: relatedTxs,
+            confidence: 0,
+            riskLevel: 'high',
+            isSuspectedRepayment: true,
+          });
+        }
+      }
+    }
+  }
 
   // 5. 还款追踪
   onProgress?.(60, '追踪还款记录...');

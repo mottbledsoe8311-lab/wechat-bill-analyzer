@@ -38,17 +38,22 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
     }
   }, [riskAccountsQuery.data]);
 
-  // 只取转出方向的规律转账，且风险等级为中/高，且时间间隔1-40天
+  // 只取转出方向的规律转账，且（风险等级为中/高，且时间间隔1-40天）或者是疑似还款帐号
   const outGroups = groups.filter(g => {
     const isOut = g.direction === '支出' || g.direction === '支';
     const isMediumHigh = g.riskLevel === 'medium' || g.riskLevel === 'high';
-    const isWithin40Days = g.intervalDays && g.intervalDays <= 40; // 过滤条件：只显示40天以下的
-    return isOut && isMediumHigh && isWithin40Days;
+    const isWithin40Days = g.intervalDays && g.intervalDays <= 40;
+    const isSuspectedRepayment = g.isSuspectedRepayment === true;
+    return isOut && (isSuspectedRepayment || (isMediumHigh && isWithin40Days));
   });
 
-  // 按风险等级+置信度排序
+  // 按风险等级+置信度排序，疑似还款帐号优先级最高
   const riskOrder = { high: 0, medium: 1, low: 2 };
   const sorted = [...outGroups].sort((a, b) => {
+    // 疑似还款帐号优先级最高
+    if (a.isSuspectedRepayment !== b.isSuspectedRepayment) {
+      return a.isSuspectedRepayment ? -1 : 1;
+    }
     if (riskOrder[a.riskLevel] !== riskOrder[b.riskLevel]) return riskOrder[a.riskLevel] - riskOrder[b.riskLevel];
     return b.confidence - a.confidence;
   });
@@ -103,8 +108,8 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
           // 重点核实条件：规律度100% 且 高风险
           const isHighRisk = g.confidence >= 1.0 && g.riskLevel === 'high';
           
-          // 检查是否是疑似还款账号
-          const isSuspectedRepaymentAccount = riskAccountsMap[g.counterpart]?.riskLevel === 'high';
+          // 检查是否是疑似还款账号（从数据库或从 isSuspectedRepayment 字段）
+          const isSuspectedRepaymentAccount = riskAccountsMap[g.counterpart]?.riskLevel === 'high' || g.isSuspectedRepayment === true;
 
           // 获取该对方的所有进出流水（不限方向）
           const counterpartName = g.counterpart;
@@ -161,8 +166,13 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                           🚨 重点核实
                         </Badge>
                       )}
-                      {isSuspectedRepaymentAccount && (
+                      {g.isSuspectedRepayment === true && (
                         <Badge className="text-[10px] px-1.5 py-0 h-4 bg-orange-600 text-white hover:bg-orange-700">
+                          疑似还款帐号
+                        </Badge>
+                      )}
+                      {isSuspectedRepaymentAccount && !g.isSuspectedRepayment && (
+                        <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-600 text-white hover:bg-amber-700">
                           疑似还款帐号
                         </Badge>
                       )}
@@ -176,7 +186,7 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                     <div className="text-xs text-muted-foreground mt-1">
                       规律度：<span className="font-semibold text-foreground">{(g.confidence * 100).toFixed(0)}%</span>
                     </div>
-                    {isHighRisk && !isSuspectedRepaymentAccount && (
+                    {isHighRisk && !isSuspectedRepaymentAccount && !g.isSuspectedRepayment && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
