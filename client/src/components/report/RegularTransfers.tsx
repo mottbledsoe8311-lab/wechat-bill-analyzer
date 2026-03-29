@@ -42,9 +42,10 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
   const outGroups = groups.filter(g => {
     const isOut = g.direction === '支出' || g.direction === '支';
     const isMediumHigh = g.riskLevel === 'medium' || g.riskLevel === 'high';
-    const isWithin40Days = g.intervalDays && g.intervalDays <= 40;
+    const isWithin40Days = !g.intervalDays || g.intervalDays <= 40;
     const isSuspectedRepayment = g.isSuspectedRepayment === true;
-    return isOut && (isSuspectedRepayment || (isMediumHigh && isWithin40Days));
+    const isInRiskAccountsMap = riskAccountsMap[g.counterpart]?.riskLevel === 'high';
+    return isOut && (isSuspectedRepayment || isInRiskAccountsMap || (isMediumHigh && isWithin40Days));
   });
 
   // 按风险等级+置信度排序，疑似还款帐号优先级最高
