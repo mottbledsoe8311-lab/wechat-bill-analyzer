@@ -190,12 +190,12 @@ export default function ShareButton({ reportData, customerName }: ShareButtonPro
             <div>
               <p className="text-sm font-semibold mb-2">微信分享内容（可选）：</p>
               <div className="bg-muted p-3 rounded-lg text-sm whitespace-pre-wrap break-words">
-{`📄 ${reportData?.overview?.accountName ? reportData.overview.accountName : customerName ? customerName : '账户'}账单分析报表
+{`📄 （${reportData?.overview?.accountName ? reportData.overview.accountName : customerName ? customerName : '账户'}）账单分析报表
 
-📈 规律转账识别：${reportData?.regularTransfers?.length || 0} 个规律模式
-💰 还款追踪：${reportData?.repaymentTracking?.length || 0} 笔规律还款
-🔔 大额入账：${reportData?.largeInflows?.length || 0} 笔异常入账
-👥 交易对方：${reportData?.counterpartSummary?.length || 0} 个主要对方
+📈 规律转账：${reportData?.regularTransfers?.length || 0}个重点核实对象
+💰 转账追踪：${reportData?.repaymentTracking?.length || 0}笔规律还款追踪
+🗒 大额入账：${reportData?.largeInflows?.length || 0}笔异常入账
+👥 交易对方：${reportData?.counterpartSummary?.length || 0}个主要对方
 
 点击链接查看完整报表：
 ${shareUrl}
@@ -204,12 +204,12 @@ ${shareUrl}
               </div>
               <Button
                 onClick={async () => {
-                  const content = `📄 ${reportData?.overview?.accountName ? reportData.overview.accountName : customerName ? customerName : '账户'}账单分析报表
+                  const content = `📄 （${reportData?.overview?.accountName ? reportData.overview.accountName : customerName ? customerName : '账户'}）账单分析报表
 
-📈 规律转账识别：${reportData?.regularTransfers?.length || 0} 个规律模式
-💰 还款追踪：${reportData?.repaymentTracking?.length || 0} 笔规律还款
-🔔 大额入账：${reportData?.largeInflows?.length || 0} 笔异常入账
-👥 交易对方：${reportData?.counterpartSummary?.length || 0} 个主要对方
+📈 规律转账：${reportData?.regularTransfers?.length || 0}个重点核实对象
+💰 转账追踪：${reportData?.repaymentTracking?.length || 0}笔规律还款追踪
+🗒 大额入账：${reportData?.largeInflows?.length || 0}笔异常入账
+👥 交易对方：${reportData?.counterpartSummary?.length || 0}个主要对方
 
 点击链接查看完整报表：
 ${shareUrl}
