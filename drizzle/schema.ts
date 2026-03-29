@@ -38,5 +38,19 @@ export const reports = mysqlTable("reports", {
 export type Report = typeof reports.$inferSelect;
 export type InsertReport = typeof reports.$inferInsert;
 
+// 高风险账户标记表
+export const riskAccounts = mysqlTable("riskAccounts", {
+  id: int("id").autoincrement().primaryKey(), // 主键
+  accountName: varchar("accountName", { length: 255 }).notNull().unique(), // 账户名称（唯一）
+  riskLevel: mysqlEnum("riskLevel", ["high", "medium", "low"]).default("high").notNull(), // 风险等级
+  regularity: int("regularity").default(100).notNull(), // 规律度（0-100）
+  description: text("description"), // 风险描述
+  createdAt: timestamp("createdAt").defaultNow().notNull(), // 创建时间
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(), // 更新时间
+});
+
+export type RiskAccount = typeof riskAccounts.$inferSelect;
+export type InsertRiskAccount = typeof riskAccounts.$inferInsert;
+
 // 为了支持大型报表数据，我们需要使用 MEDIUMTEXT
 // 但 Drizzle 的 text() 默认生成 TEXT，需要在迁移后手动调整或使用原始 SQL

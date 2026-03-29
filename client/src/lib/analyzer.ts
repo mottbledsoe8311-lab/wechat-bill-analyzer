@@ -24,6 +24,13 @@ export interface AnalysisResult {
   monthlyBreakdown: MonthlyData[];
   counterpartSummary: CounterpartSummary[];
   customerScore: CustomerScore;
+  largeExpenses?: LargeExpense[];
+}
+
+export interface LargeExpense {
+  transaction: Transaction;
+  percentile: number;        // 在所有支出中的百分位
+  isUnusual: boolean;        // 是否异常
 }
 
 export interface CustomerScore {
@@ -200,7 +207,11 @@ export async function analyzeTransactions(
   onProgress?.(85, '排查借款模式...');
   const loanDetection = detectLoanPatterns(transactions);
 
-  // 8. 客户评分
+  // 8. 大额支出扫描
+  onProgress?.(90, '扫描大额支出...');
+  const largeExpenses = detectLargeExpenses(transactions);
+
+  // 9. 客户评分
   onProgress?.(95, '计算客户评分...');
   const customerScore = calculateCustomerScore(transactions, overview, regularTransfers, repaymentTracking, loanDetection, monthlyBreakdown);
 
@@ -215,6 +226,7 @@ export async function analyzeTransactions(
     monthlyBreakdown,
     counterpartSummary,
     customerScore,
+    largeExpenses,
   };
 }
 
@@ -773,6 +785,51 @@ function trackRepayments(transactions: Transaction[]): RepaymentRecord[] {
 }
 
 // ============ 大额入账监控 ============
+
+// ============ 大额支出扫描 ============
+
+function detectLargeExpenses(transactions: Transaction[]): LargeExpense[] {
+  const expenses = transactions.filter(t => 
+    t.direction === '支出' || t.direction === '支'
+  );
+
+  if (expenses.length === 0) return [];
+
+  // 计算支出的统计值
+  const amounts = expenses.map(t => t.amount).sort((a, b) => a - b);
+  const median = amounts[Math.floor(amounts.length / 2)];
+  const mean = amounts.reduce((s, v) => s + v, 0) / amounts.length;
+  const stdDev = Math.sqrt(
+    amounts.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / amounts.length
+  );
+
+  // 大额阈值：取中位数的2.5倍或均值+2倍标准差中的较小值，但至少2000元
+  const threshold = Math.max(
+    Math.min(median * 2.5, mean + 2 * stdDev),
+    2000
+  );
+
+  const results: LargeExpense[] = [];
+
+  for (const tx of expenses) {
+    if (tx.amount >= threshold) {
+      // 计算百分位
+      const rank = amounts.filter(a => a <= tx.amount).length;
+      const percentile = (rank / amounts.length) * 100;
+
+      // 判断是否异常
+      const isUnusual = tx.amount > mean + 3 * stdDev;
+
+      results.push({
+        transaction: tx,
+        percentile,
+        isUnusual,
+      });
+    }
+  }
+
+  return results.sort((a, b) => b.transaction.amount - a.transaction.amount);
+}
 
 function detectLargeInflows(transactions: Transaction[]): LargeInflow[] {
   const incomes = transactions.filter(t => 

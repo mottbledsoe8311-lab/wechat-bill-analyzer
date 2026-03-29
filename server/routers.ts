@@ -2,7 +2,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createReport, getReportById } from "./db";
+import { createReport, getReportById, saveRiskAccount, getRiskAccountByName, getAllRiskAccounts } from "./db";
 import { randomUUID } from "crypto";
 import { COOKIE_NAME } from "../shared/const";
 
@@ -124,6 +124,74 @@ export const appRouter = router({
         } catch (error) {
           console.error('Failed to get report:', error);
           throw new Error('Failed to get report');
+        }
+      }),
+  }),
+
+  // 高风险账户相关路由
+  riskAccounts: router({
+    save: publicProcedure
+      .input(z.object({
+        accountName: z.string(),
+        riskLevel: z.enum(["high", "medium", "low"]),
+        regularity: z.number().min(0).max(100),
+        description: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          console.log('[tRPC] Saving risk account:', input.accountName);
+          
+          const result = await saveRiskAccount({
+            accountName: input.accountName,
+            riskLevel: input.riskLevel,
+            regularity: input.regularity,
+            description: input.description,
+          });
+          
+          return {
+            success: true,
+            data: result,
+          };
+        } catch (error: any) {
+          console.error('[tRPC] Failed to save risk account:', error?.message || error);
+          throw new Error(error?.message || 'Failed to save risk account');
+        }
+      }),
+    
+    getByName: publicProcedure
+      .input(z.object({
+        accountName: z.string(),
+      }))
+      .query(async ({ input }) => {
+        try {
+          console.log('[tRPC] Getting risk account:', input.accountName);
+          
+          const result = await getRiskAccountByName(input.accountName);
+          
+          return {
+            success: true,
+            data: result,
+          };
+        } catch (error: any) {
+          console.error('[tRPC] Failed to get risk account:', error?.message || error);
+          throw new Error(error?.message || 'Failed to get risk account');
+        }
+      }),
+    
+    getAll: publicProcedure
+      .query(async () => {
+        try {
+          console.log('[tRPC] Getting all risk accounts');
+          
+          const result = await getAllRiskAccounts();
+          
+          return {
+            success: true,
+            data: result,
+          };
+        } catch (error: any) {
+          console.error('[tRPC] Failed to get all risk accounts:', error?.message || error);
+          throw new Error(error?.message || 'Failed to get all risk accounts');
         }
       }),
   }),

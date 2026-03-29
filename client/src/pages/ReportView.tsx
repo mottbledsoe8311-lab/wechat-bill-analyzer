@@ -16,6 +16,7 @@ import MonthlyChart from '@/components/report/MonthlyChart';
 import RegularTransfers from '@/components/report/RegularTransfers';
 import RepaymentTracking from '@/components/report/RepaymentTracking';
 import LargeInflows from '@/components/report/LargeInflows';
+import LargeExpenseScanning from '@/components/report/LargeExpenseScanning';
 import CounterpartSummary from '@/components/report/CounterpartSummary';
 import ShareButton from '@/components/ShareButton';
 import { useAuth } from '@/_core/hooks/useAuth';
@@ -26,6 +27,7 @@ interface ReportData {
   regularTransfers?: any[];
   repaymentTracking?: any[];
   largeInflows?: any[];
+  largeExpenses?: any[];
   counterpartSummary?: any[];
   allTransactions?: any[];
 }
@@ -255,6 +257,11 @@ export default function ReportView() {
           {/* 大额入账监控 */}
           {reportData.largeInflows && reportData.largeInflows.length > 0 && (
             <LargeInflows inflows={reportData.largeInflows} />
+          )}
+          
+          {/* 銀行卡大额支出扫描 */}
+          {reportData.largeExpenses && reportData.largeExpenses.length > 0 && (
+            <LargeExpenseScanning expenses={reportData.largeExpenses} />
           )}
           
           {/* 交易对方分析 - 总是显示，即使数据为空 */}

@@ -3,11 +3,12 @@
  * 设计：精致卡片式 - 风险等级色彩编码，只展示转出，展开时显示相关所有进出流水
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatDate, type RegularTransferGroup } from '@/lib/analyzer';
 import { ChevronDown, Clock, AlertTriangle, Repeat, TrendingDown, TrendingUp, ShieldAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { trpc } from '@/lib/trpc';
 
 interface Props {
   groups: RegularTransferGroup[];
@@ -22,6 +23,20 @@ const riskConfig = {
 
 export default function RegularTransfers({ groups, allTransactions = [] }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [riskAccountsMap, setRiskAccountsMap] = useState<Record<string, any>>({});
+  const riskAccountsQuery = trpc.riskAccounts.getAll.useQuery();
+  const saveRiskMutation = trpc.riskAccounts.save.useMutation();
+
+  // 加载所有高风险账户
+  useEffect(() => {
+    if (riskAccountsQuery.data?.data) {
+      const map = riskAccountsQuery.data.data.reduce((acc: Record<string, any>, account: any) => {
+        acc[account.accountName] = account;
+        return acc;
+      }, {});
+      setRiskAccountsMap(map);
+    }
+  }, [riskAccountsQuery.data]);
 
   // 只取转出方向的规律转账，且风险等级为中/高，且时间间隔1-40天
   const outGroups = groups.filter(g => {
@@ -87,6 +102,9 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
           const isExpanded = expandedIndex === index;
           // 重点核实条件：规律度100% 且 高风险
           const isHighRisk = g.confidence >= 1.0 && g.riskLevel === 'high';
+          
+          // 检查是否是疑似还款账号
+          const isSuspectedRepaymentAccount = riskAccountsMap[g.counterpart]?.riskLevel === 'high';
 
           // 获取该对方的所有进出流水（不限方向）
           const counterpartName = g.counterpart;
@@ -143,6 +161,11 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                           🚨 重点核实
                         </Badge>
                       )}
+                      {isSuspectedRepaymentAccount && (
+                        <Badge className="text-[10px] px-1.5 py-0 h-4 bg-orange-600 text-white hover:bg-orange-700">
+                          疑似还款帐号
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-1">
@@ -153,6 +176,23 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                     <div className="text-xs text-muted-foreground mt-1">
                       规律度：<span className="font-semibold text-foreground">{(g.confidence * 100).toFixed(0)}%</span>
                     </div>
+                    {isHighRisk && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // 保存到高风险账户数据库
+                          saveRiskMutation.mutate({
+                            accountName: g.counterpart,
+                            riskLevel: 'high',
+                            regularity: Math.round(g.confidence * 100),
+                            description: `规律转账识别 - ${g.pattern}，${g.transactions.length}笔支出`,
+                          });
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-700 mt-1 underline"
+                      >
+                        {isSuspectedRepaymentAccount ? '已标记为高风险' : '标记为高风险账户'}
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0 ml-2">

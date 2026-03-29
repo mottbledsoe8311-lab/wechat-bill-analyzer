@@ -1,6 +1,6 @@
 import { eq, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, reports, type InsertReport, type Report } from "../drizzle/schema";
+import { InsertUser, users, reports, riskAccounts, type InsertReport, type Report, type RiskAccount, type InsertRiskAccount } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -181,5 +181,68 @@ export async function deleteExpiredReports(): Promise<void> {
     await db.delete(reports).where(gt(now, reports.expiresAt));
   } catch (error) {
     console.error("[Database] Failed to delete expired reports:", error);
+  }
+}
+
+// 高风险账户相关查询
+export async function saveRiskAccount(data: InsertRiskAccount): Promise<RiskAccount | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.error("[Database] Cannot save risk account: database not available");
+    throw new Error("Database connection not available");
+  }
+
+  try {
+    console.log("[Database] Saving risk account:", data.accountName);
+    
+    // 使用 onDuplicateKeyUpdate 处理重复的账户名
+    await db.insert(riskAccounts).values(data).onDuplicateKeyUpdate({
+      set: {
+        riskLevel: data.riskLevel,
+        regularity: data.regularity,
+        description: data.description,
+        updatedAt: new Date(),
+      },
+    });
+    
+    // 获取保存的记录
+    const saved = await db.select().from(riskAccounts).where(eq(riskAccounts.accountName, data.accountName)).limit(1);
+    console.log("[Database] Risk account saved successfully:", data.accountName);
+    return saved.length > 0 ? saved[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to save risk account:", error);
+    throw error;
+  }
+}
+
+export async function getRiskAccountByName(accountName: string): Promise<RiskAccount | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get risk account: database not available");
+    return undefined;
+  }
+
+  try {
+    const result = await db.select().from(riskAccounts).where(eq(riskAccounts.accountName, accountName)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to get risk account:", error);
+    throw error;
+  }
+}
+
+export async function getAllRiskAccounts(): Promise<RiskAccount[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get risk accounts: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db.select().from(riskAccounts);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get risk accounts:", error);
+    return [];
   }
 }
