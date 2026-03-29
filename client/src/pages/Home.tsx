@@ -8,11 +8,12 @@
  * - 深靛蓝(#312e81)主色调，琥珀色警告，深翠绿正常
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { RotateCcw, Shield, Zap, Eye, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { trpc } from '@/lib/trpc';
 
 import FileUpload from '@/components/FileUpload';
 import AnalysisProgress from '@/components/AnalysisProgress';
@@ -48,8 +49,22 @@ export default function Home() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  const [riskAccounts, setRiskAccounts] = useState<any[]>([]);
   const reportRef = useRef<HTMLDivElement>(null);
   const reportContentRef = useRef<HTMLDivElement>(null);
+
+  // 获取高风险账户列表
+  useEffect(() => {
+    const fetchRiskAccounts = async () => {
+      try {
+        const accounts = await trpc.riskAccounts.getAll.query();
+        setRiskAccounts(accounts);
+      } catch (error) {
+        console.error('Failed to fetch risk accounts:', error);
+      }
+    };
+    fetchRiskAccounts();
+  }, []);
 
 
   const handleFilesSelected = useCallback((selectedFiles: File[]) => {
@@ -142,7 +157,7 @@ export default function Home() {
       const analysis = await analyzeTransactions(allTransactions, (p, msg) => {
         setProgress(50 + p * 0.5);
         setProgressMessage(msg);
-      });
+      }, riskAccounts);
 
       setAnalysisResult(analysis);
       setAllTransactions(allTransactions);
