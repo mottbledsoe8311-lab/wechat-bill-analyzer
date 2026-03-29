@@ -87,10 +87,10 @@ export default function LargeExpenseScanning({ expenses }: Props) {
           <button
             key={option.value}
             onClick={() => setSelectedRange(option.value)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               selectedRange === option.value
-                ? 'bg-indigo text-white'
-                : 'bg-muted text-foreground hover:bg-muted/80'
+                ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
+                : 'bg-blue-500 text-white hover:bg-blue-600 shadow-sm'
             }`}
           >
             {option.label}
