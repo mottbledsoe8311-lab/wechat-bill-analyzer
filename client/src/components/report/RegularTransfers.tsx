@@ -176,11 +176,11 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                     <div className="text-xs text-muted-foreground mt-1">
                       规律度：<span className="font-semibold text-foreground">{(g.confidence * 100).toFixed(0)}%</span>
                     </div>
-                    {isHighRisk && (
+                    {isHighRisk && !isSuspectedRepaymentAccount && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          // 保存到高风险账户数据库
+                          // 自动保存到高风险账户数据库
                           saveRiskMutation.mutate({
                             accountName: g.counterpart,
                             riskLevel: 'high',
@@ -190,7 +190,7 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                         }}
                         className="text-xs text-blue-600 hover:text-blue-700 mt-1 underline"
                       >
-                        {isSuspectedRepaymentAccount ? '已标记为高风险' : '标记为高风险账户'}
+                        自动标记为疑似还款帐号
                       </button>
                     )}
                   </div>

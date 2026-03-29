@@ -23,6 +23,7 @@ import MonthlyChart from '@/components/report/MonthlyChart';
 import RegularTransfers from '@/components/report/RegularTransfers';
 import RepaymentTracking from '@/components/report/RepaymentTracking';
 import LargeInflows from '@/components/report/LargeInflows';
+import LargeExpenseScanning from '@/components/report/LargeExpenseScanning';
 import CounterpartSummary from '@/components/report/CounterpartSummary';
 import ReportNavigation from '@/components/report/ReportNavigation';
 
@@ -432,6 +433,7 @@ export default function Home() {
                         regularTransfers: analysisResult?.regularTransfers || [],
                         repaymentTracking: analysisResult?.repaymentTracking || [],
                         largeInflows: analysisResult?.largeInflows || [],
+                        largeExpenses: analysisResult?.largeExpenses || [],
                         counterpartSummary: analysisResult?.counterpartSummary || [],
                         allTransactions: allTransactions,
                       } : undefined}
@@ -449,6 +451,7 @@ export default function Home() {
                 <div id="regular"><RegularTransfers groups={analysisResult?.regularTransfers || []} allTransactions={allTransactions} /></div>
                 <div id="repayment"><RepaymentTracking records={analysisResult?.repaymentTracking || []} /></div>
                 <div id="inflows"><LargeInflows inflows={analysisResult?.largeInflows || []} /></div>
+                <div id="expenses"><LargeExpenseScanning expenses={analysisResult?.largeExpenses || []} /></div>
                 <div id="counterpart"><CounterpartSummary data={analysisResult?.counterpartSummary || []} allTransactions={allTransactions} /></div>
 
               </div>

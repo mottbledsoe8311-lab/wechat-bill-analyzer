@@ -44,6 +44,7 @@ export const appRouter = router({
             regularTransfers: input.data.regularTransfers || [],
             repaymentTracking: input.data.repaymentTracking || [],
             largeInflows: input.data.largeInflows || [],
+            largeExpenses: input.data.largeExpenses || [],
             counterpartSummary: input.data.counterpartSummary || [],
             allTransactions: input.allTransactions || input.data.allTransactions || [],
           };
@@ -55,6 +56,7 @@ export const appRouter = router({
             hasRegularTransfers: reportData.regularTransfers?.length > 0,
             hasRepaymentTracking: reportData.repaymentTracking?.length > 0,
             hasLargeInflows: reportData.largeInflows?.length > 0,
+            hasLargeExpenses: reportData.largeExpenses?.length > 0,
             hasCounterpartSummary: reportData.counterpartSummary?.length > 0,
             hasAllTransactions: reportData.allTransactions?.length > 0,
           });
