@@ -82,6 +82,16 @@ export default function Home() {
     setProgressStage('parsing');
 
     try {
+      // 获取最新的高风险账户列表
+      let currentRiskAccounts = riskAccounts;
+      if (!currentRiskAccounts || currentRiskAccounts.length === 0) {
+        try {
+          currentRiskAccounts = await trpc.riskAccounts.getAll.query();
+        } catch (error) {
+          console.error('Failed to fetch risk accounts:', error);
+          currentRiskAccounts = [];
+        }
+      }
       // 阶段1：解析PDF
       let allTransactions: ParseResult['transactions'] = [];
       let accountInfo: ParseResult['accountInfo'] | null = null;
@@ -157,7 +167,7 @@ export default function Home() {
       const analysis = await analyzeTransactions(allTransactions, (p, msg) => {
         setProgress(50 + p * 0.5);
         setProgressMessage(msg);
-      }, riskAccounts);
+      }, currentRiskAccounts);
 
       setAnalysisResult(analysis);
       setAllTransactions(allTransactions);

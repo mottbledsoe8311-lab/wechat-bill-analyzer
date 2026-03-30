@@ -32,14 +32,10 @@ export default function LargeExpenseScanning({ expenses }: Props) {
     }
   };
 
-  // 按时间范围筛选和支付方式筛选（仅显示银行卡支出和充值）
+  // 按时间范围筛选
   const filteredExpenses = useMemo(() => {
     const threshold = getDateThreshold(selectedRange);
-    let filtered = expenses.filter(exp => {
-      const isFromBankCard = exp.transaction.method === '银行卡';
-      const isTopUp = exp.transaction.counterpart === '充值';
-      return isFromBankCard || isTopUp;
-    });
+    let filtered = expenses;
     
     if (!threshold) return filtered;
     
