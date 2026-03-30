@@ -38,14 +38,15 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
     }
   }, [riskAccountsQuery.data]);
 
-  // 只取转出方向的规律转账，且（风险等级为中/高，且时间间隔1-40天）或者是疑似还款帐号
+  // 只取转出方向的规律转账，且规律度51%以上，且（风险等级为中/高，且时间间隔1-40天）或者是疑似还款帐号
   const outGroups = groups.filter(g => {
     const isOut = g.direction === '支出' || g.direction === '支';
+    const isAbove51Percent = g.confidence >= 0.51;
     const isMediumHigh = g.riskLevel === 'medium' || g.riskLevel === 'high';
     const isWithin40Days = !g.intervalDays || g.intervalDays <= 40;
     const isSuspectedRepayment = g.isSuspectedRepayment === true;
     const isInRiskAccountsMap = riskAccountsMap[g.counterpart]?.riskLevel === 'high';
-    return isOut && (isSuspectedRepayment || isInRiskAccountsMap || (isMediumHigh && isWithin40Days));
+    return isOut && isAbove51Percent && (isSuspectedRepayment || isInRiskAccountsMap || (isMediumHigh && isWithin40Days));
   });
 
   // 按风险等级+置信度排序，疑似还款帐号优先级最高
