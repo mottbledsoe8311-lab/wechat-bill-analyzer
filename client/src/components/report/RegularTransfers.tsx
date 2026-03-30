@@ -38,7 +38,9 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
     }
   }, [riskAccountsQuery.data]);
 
-  // 只取转出方向的规律转账，且规律度51%以上，且（风险等级为中/高，且时间间隔1-40天）或者是疑似还款帐号
+  // 只取转出方向的规律转账
+  // 1. 数据库中的疑似还款帐号（isInRiskAccountsMap）：直接显示，不需要满足51%规律度条件
+  // 2. 其他情况：需要满足51%规律度条件，且（风险等级为中/高，且时间间隔1-40天）或者是疑似还款帐号
   const outGroups = groups.filter(g => {
     const isOut = g.direction === '支出' || g.direction === '支';
     const isAbove51Percent = g.confidence >= 0.51;
@@ -46,7 +48,14 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
     const isWithin40Days = !g.intervalDays || g.intervalDays <= 40;
     const isSuspectedRepayment = g.isSuspectedRepayment === true;
     const isInRiskAccountsMap = riskAccountsMap[g.counterpart]?.riskLevel === 'high';
-    return isOut && isAbove51Percent && (isSuspectedRepayment || isInRiskAccountsMap || (isMediumHigh && isWithin40Days));
+    
+    // 数据库中的疑似还款帐号不需要满足51%规律度条件
+    if (isOut && isInRiskAccountsMap) {
+      return true;
+    }
+    
+    // 其他情况需要满足51%规律度条件
+    return isOut && isAbove51Percent && (isSuspectedRepayment || (isMediumHigh && isWithin40Days));
   });
 
   // 按风险等级+置信度排序，疑似还款帐号优先级最高
@@ -248,39 +257,30 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="border-b border-border/60">
-                              <th className="text-left py-2 pr-3 font-medium text-muted-foreground">日期</th>
-                              <th className="text-left py-2 pr-3 font-medium text-muted-foreground">类型</th>
-                              <th className="text-left py-2 pr-3 font-medium text-muted-foreground">方式</th>
-                              <th className="text-right py-2 pr-3 font-medium text-muted-foreground">金额</th>
-                              <th className="text-left py-2 font-medium text-muted-foreground">收/支</th>
+                              <th className="text-left py-2 pr-2">日期</th>
+                              <th className="text-left py-2 px-2">方向</th>
+                              <th className="text-left py-2 px-2">金额</th>
+                              <th className="text-left py-2 px-2">备注</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {relatedTxs.slice(0, 50).map((tx: any, i: number) => {
-                              const isIn = tx.direction === '收入' || tx.direction === '收';
-                              return (
-                                <tr key={i} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                                  <td className="py-1.5 pr-3 tabular-nums text-muted-foreground">{formatDate(tx.date)}</td>
-                                  <td className="py-1.5 pr-3">{tx.type}</td>
-                                  <td className="py-1.5 pr-3 text-muted-foreground">{tx.method}</td>
-                                  <td className={`py-1.5 pr-3 text-right tabular-nums font-semibold ${isIn ? 'text-emerald-ok' : 'text-destructive'}`}>
-                                    {isIn ? '+' : '-'}{formatCurrency(tx.amount)}
-                                  </td>
-                                  <td className="py-1.5">
-                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${isIn ? 'text-emerald-ok bg-emerald-ok/10' : 'text-destructive bg-destructive/10'}`}>
-                                      {isIn ? '收入' : '支出'}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })}
+                            {relatedTxs.slice(0, 10).map((tx: any, i: number) => (
+                              <tr key={i} className="border-b border-border/30 hover:bg-muted/30">
+                                <td className="py-1.5 pr-2 text-muted-foreground">{formatDate(tx.date)}</td>
+                                <td className="py-1.5 px-2">
+                                  <Badge variant="outline" className="text-[10px]">
+                                    {tx.direction === '收入' || tx.direction === '收' ? '收入' : '支出'}
+                                  </Badge>
+                                </td>
+                                <td className="py-1.5 px-2 font-semibold">{formatCurrency(tx.amount)}</td>
+                                <td className="py-1.5 px-2 text-muted-foreground truncate">{tx.remark || '-'}</td>
+                              </tr>
+                            ))}
                           </tbody>
                         </table>
                       </div>
-                      {relatedTxs.length > 50 && (
-                        <p className="text-xs text-muted-foreground mt-3 text-center">
-                          仅显示前 50 条，共 {relatedTxs.length} 条记录
-                        </p>
+                      {relatedTxs.length > 10 && (
+                        <p className="text-xs text-muted-foreground mt-2 text-center">显示前 10 条，共 {relatedTxs.length} 条</p>
                       )}
                     </div>
                   </motion.div>

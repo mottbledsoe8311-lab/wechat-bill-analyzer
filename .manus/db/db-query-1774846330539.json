@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO riskAccounts (accountName, riskLevel, regularity, description, createdAt, updatedAt) VALUES \n('普奕红', 'high', 100, '疑似还款帐号 - 初始数据库记录', NOW(), NOW()),\n('夏志华', 'high', 100, '疑似还款帐号 - 初始数据库记录', NOW(), NOW())\nON DUPLICATE KEY UPDATE updatedAt = NOW();",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3m1JnqczaMGDvBR.5718a2793ceb --database SXgJ57d4GB9RBvAf3PYHaj --execute INSERT INTO riskAccounts (accountName, riskLevel, regularity, description, createdAt, updatedAt) VALUES \n('普奕红', 'high', 100, '疑似还款帐号 - 初始数据库记录', NOW(), NOW()),\n('夏志华', 'high', 100, '疑似还款帐号 - 初始数据库记录', NOW(), NOW())\nON DUPLICATE KEY UPDATE updatedAt = NOW();",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1717
+}
