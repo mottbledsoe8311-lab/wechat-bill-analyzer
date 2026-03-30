@@ -32,10 +32,11 @@ export default function LargeExpenseScanning({ expenses }: Props) {
     }
   };
 
-  // 按时间范围筛选
+  // 按时间范围筛选，只显示银行卡支出和银行卡充值
   const filteredExpenses = useMemo(() => {
     const threshold = getDateThreshold(selectedRange);
-    let filtered = expenses;
+    // 只显示支付方式为银行卡的交易
+    let filtered = expenses.filter(exp => exp.transaction.method === '银行卡');
     
     if (!threshold) return filtered;
     
