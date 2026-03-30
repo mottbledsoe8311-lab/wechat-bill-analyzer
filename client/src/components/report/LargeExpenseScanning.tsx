@@ -32,12 +32,18 @@ export default function LargeExpenseScanning({ expenses }: Props) {
     }
   };
 
-  // 按时间范围筛选
+  // 按时间范围筛选和支付方式筛选（仅显示银行卡支出和充值）
   const filteredExpenses = useMemo(() => {
     const threshold = getDateThreshold(selectedRange);
-    if (!threshold) return expenses;
+    let filtered = expenses.filter(exp => {
+      const isFromBankCard = exp.transaction.method === '银行卡';
+      const isTopUp = exp.transaction.counterpart === '充值';
+      return isFromBankCard || isTopUp;
+    });
     
-    return expenses.filter(exp => exp.transaction.date >= threshold);
+    if (!threshold) return filtered;
+    
+    return filtered.filter(exp => exp.transaction.date >= threshold);
   }, [expenses, selectedRange]);
 
   // 按金额从大到小排序
@@ -122,7 +128,7 @@ export default function LargeExpenseScanning({ expenses }: Props) {
                   className="border-b border-border/50 hover:bg-muted/30 transition-colors"
                 >
                   <td className="py-2 px-2 sm:py-3 sm:px-4 tabular-nums text-muted-foreground">{formatDate(tx.date)}</td>
-                  <td className="py-2 px-2 sm:py-3 sm:px-4 font-medium truncate">{tx.counterpart}</td>
+                  <td className="py-2 px-2 sm:py-3 sm:px-4 font-medium truncate">{tx.counterpart === '充值' ? '充值' : tx.counterpart}</td>
                   <td className="py-2 px-2 sm:py-3 sm:px-4 text-muted-foreground truncate">{tx.method || '-'}</td>
                   <td className="py-2 px-2 sm:py-3 sm:px-4 text-right font-bold text-destructive">
                     -{formatCurrency(tx.amount)}
