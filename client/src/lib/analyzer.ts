@@ -157,29 +157,49 @@ export async function analyzeTransactions(
   
   // 添加疑似还款帐号的转账记录
   if (riskAccounts && riskAccounts.length > 0) {
-    const suspectedAccounts = new Set(riskAccounts.map(a => a.accountName));
+    // 创建一个规范化的账户名称映射（小写，去空格）
+    const suspectedAccountsMap = new Map<string, string>();
+    for (const account of riskAccounts) {
+      const normalized = account.accountName.toLowerCase().trim();
+      suspectedAccountsMap.set(normalized, account.accountName);
+    }
+    
+    // 收集所有已处理的账户名称，避免重复
+    const processedAccounts = new Set<string>();
     
     for (const tx of transactions) {
       const counterpart = tx.counterpart?.trim();
-      if (!counterpart || !suspectedAccounts.has(counterpart)) continue;
+      if (!counterpart) continue;
       
+      const normalizedCounterpart = counterpart.toLowerCase().trim();
+      const originalAccountName = suspectedAccountsMap.get(normalizedCounterpart);
+      
+      // 如果没有匹配到数据库中的账户，跳过
+      if (!originalAccountName) continue;
+      
+      // 如果已经处理过这个账户，跳过
+      if (processedAccounts.has(originalAccountName)) continue;
+      processedAccounts.add(originalAccountName);
+      
+      // 查找是否已经在规律转账中存在
       const existingIndex = regularTransfers.findIndex(
-        g => g.counterpart === counterpart && (g.direction === '支出' || g.direction === '支')
+        g => g.counterpart.toLowerCase().trim() === normalizedCounterpart && (g.direction === '支出' || g.direction === '支')
       );
       
       if (existingIndex >= 0) {
+        // 标记为疑似还款帐号
         regularTransfers[existingIndex].isSuspectedRepayment = true;
       } else {
+        // 创建新的疑似还款帐号记录
         const relatedTxs = transactions.filter(t => 
-          t.counterpart?.trim() === counterpart && (t.direction === '支出' || t.direction === '支')
+          t.counterpart?.toLowerCase().trim() === normalizedCounterpart && (t.direction === '支出' || t.direction === '支')
         );
         
         if (relatedTxs.length > 0) {
           const totalAmount = relatedTxs.reduce((sum, t) => sum + t.amount, 0);
           const avgAmount = totalAmount / relatedTxs.length;
-          
           regularTransfers.push({
-            counterpart,
+            counterpart: originalAccountName,
             direction: '支出',
             pattern: '疑似还款帐号',
             intervalDays: 0,
