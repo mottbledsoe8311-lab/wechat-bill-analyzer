@@ -23,6 +23,7 @@ const riskConfig = {
 
 export default function RegularTransfers({ groups, allTransactions = [] }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [expandedAllIndex, setExpandedAllIndex] = useState<number | null>(null);
   const [riskAccountsMap, setRiskAccountsMap] = useState<Record<string, any>>({});
   const riskAccountsQuery = trpc.riskAccounts.getAll.useQuery();
   const saveRiskMutation = trpc.riskAccounts.save.useMutation();
@@ -273,7 +274,7 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                             </tr>
                           </thead>
                           <tbody>
-                            {relatedTxs.slice(0, 10).map((tx: any, i: number) => (
+                            {(expandedAllIndex === outGroups.indexOf(g) ? relatedTxs : relatedTxs.slice(0, 10)).map((tx: any, i: number) => (
                               <tr key={i} className="border-b border-border/30 hover:bg-muted/30">
                                 <td className="py-1.5 pr-2 text-muted-foreground">{formatDate(tx.date)}</td>
                                 <td className="py-1.5 px-2 text-muted-foreground truncate">{tx.method || tx.remark || '-'}</td>
@@ -297,7 +298,29 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                         </table>
                       </div>
                       {relatedTxs.length > 10 && (
-                        <p className="text-xs text-muted-foreground mt-2 text-center">显示前 10 条，共 {relatedTxs.length} 条</p>
+                        <div className="mt-3 flex items-center justify-center gap-2">
+                          {expandedAllIndex === outGroups.indexOf(g) ? (
+                            <>
+                              <p className="text-xs text-muted-foreground">显示全部 {relatedTxs.length} 条</p>
+                              <button
+                                onClick={() => setExpandedAllIndex(null)}
+                                className="text-xs text-blue-600 hover:text-blue-700 underline"
+                              >
+                                收起
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-xs text-muted-foreground">显示前 10 条，共 {relatedTxs.length} 条</p>
+                              <button
+                                onClick={() => setExpandedAllIndex(outGroups.indexOf(g))}
+                                className="text-xs text-blue-600 hover:text-blue-700 underline"
+                              >
+                                展开全部
+                              </button>
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                   </motion.div>
