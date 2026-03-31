@@ -277,7 +277,15 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                               <tr key={i} className="border-b border-border/30 hover:bg-muted/30">
                                 <td className="py-1.5 pr-2 text-muted-foreground">{formatDate(tx.date)}</td>
                                 <td className="py-1.5 px-2 text-muted-foreground truncate">{tx.method || tx.remark || '-'}</td>
-                                <td className="py-1.5 px-2 font-semibold">{formatCurrency(tx.amount)}</td>
+                                <td className={`py-1.5 px-2 font-semibold ${
+                                  tx.direction === '收入' || tx.direction === '收'
+                                    ? 'text-foreground'
+                                    : 'text-destructive'
+                                }`}>
+                                  {tx.direction === '收入' || tx.direction === '收'
+                                    ? '+' + formatCurrency(tx.amount)
+                                    : '-' + formatCurrency(tx.amount)}
+                                </td>
                                 <td className="py-1.5 px-2">
                                   <Badge variant="outline" className="text-[10px]">
                                     {tx.direction === '收入' || tx.direction === '收' ? '收入' : '支出'}
