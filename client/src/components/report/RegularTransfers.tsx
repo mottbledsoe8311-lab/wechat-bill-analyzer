@@ -258,22 +258,22 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                           <thead>
                             <tr className="border-b border-border/60">
                               <th className="text-left py-2 pr-2">日期</th>
-                              <th className="text-left py-2 px-2">方向</th>
+                              <th className="text-left py-2 px-2">来源</th>
                               <th className="text-left py-2 px-2">金额</th>
-                              <th className="text-left py-2 px-2">备注</th>
+                              <th className="text-left py-2 px-2">收/支</th>
                             </tr>
                           </thead>
                           <tbody>
                             {relatedTxs.slice(0, 10).map((tx: any, i: number) => (
                               <tr key={i} className="border-b border-border/30 hover:bg-muted/30">
                                 <td className="py-1.5 pr-2 text-muted-foreground">{formatDate(tx.date)}</td>
+                                <td className="py-1.5 px-2 text-muted-foreground truncate">{tx.method || tx.remark || '-'}</td>
+                                <td className="py-1.5 px-2 font-semibold">{formatCurrency(tx.amount)}</td>
                                 <td className="py-1.5 px-2">
                                   <Badge variant="outline" className="text-[10px]">
                                     {tx.direction === '收入' || tx.direction === '收' ? '收入' : '支出'}
                                   </Badge>
                                 </td>
-                                <td className="py-1.5 px-2 font-semibold">{formatCurrency(tx.amount)}</td>
-                                <td className="py-1.5 px-2 text-muted-foreground truncate">{tx.remark || '-'}</td>
                               </tr>
                             ))}
                           </tbody>

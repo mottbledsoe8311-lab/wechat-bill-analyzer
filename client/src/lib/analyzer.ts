@@ -181,18 +181,18 @@ export async function analyzeTransactions(
       if (processedAccounts.has(originalAccountName)) continue;
       processedAccounts.add(originalAccountName);
       
-      // 查找是否已经在规律转账中存在
+      // 查找是否已经在规律转账中存在（包含所有方向）
       const existingIndex = regularTransfers.findIndex(
-        g => g.counterpart.toLowerCase().trim() === normalizedCounterpart && (g.direction === '支出' || g.direction === '支')
+        g => g.counterpart.toLowerCase().trim() === normalizedCounterpart
       );
       
       if (existingIndex >= 0) {
         // 标记为疑似还款帐号
         regularTransfers[existingIndex].isSuspectedRepayment = true;
       } else {
-        // 创建新的疑似还款帐号记录
+        // 创建新的疑似还款帐号记录（包含所有方向的交易）
         const relatedTxs = transactions.filter(t => 
-          t.counterpart?.toLowerCase().trim() === normalizedCounterpart && (t.direction === '支出' || t.direction === '支')
+          t.counterpart?.toLowerCase().trim() === normalizedCounterpart
         );
         
         if (relatedTxs.length > 0) {
