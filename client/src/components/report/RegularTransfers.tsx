@@ -202,16 +202,25 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                         onClick={(e) => {
                           e.stopPropagation();
                           // 自动保存到高风险账户数据库
-                          saveRiskMutation.mutate({
-                            accountName: g.counterpart,
-                            riskLevel: 'high',
-                            regularity: Math.round(g.confidence * 100),
-                            description: `规律转账识别 - ${g.pattern}，${g.transactions.length}笔支出`,
-                          });
+                          saveRiskMutation.mutate(
+                            {
+                              accountName: g.counterpart,
+                              riskLevel: 'high',
+                              regularity: Math.round(g.confidence * 100),
+                              description: `规律转账识别 - ${g.pattern}，${g.transactions.length}笔支出`,
+                            },
+                            {
+                              onSuccess: () => {
+                                // 保存成功后，刷新风险账户列表
+                                riskAccountsQuery.refetch();
+                              },
+                            }
+                          );
                         }}
-                        className="text-xs text-blue-600 hover:text-blue-700 mt-1 underline"
+                        disabled={saveRiskMutation.isPending}
+                        className="text-xs text-blue-600 hover:text-blue-700 mt-1 underline disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        自动标记为疑似还款帐号
+                        {saveRiskMutation.isPending ? '保存中...' : '自动标记为疑似还款帐号'}
                       </button>
                     )}
                   </div>
