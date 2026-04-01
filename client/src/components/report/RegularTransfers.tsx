@@ -39,9 +39,9 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
     }
   }, [riskAccountsQuery.data]);
 
-  // 只取转出方向的规律转账
-  // 1. 数据库中的疑似还款帐号（isInRiskAccountsMap）：直接显示，不需要满足51%规律度条件
-  // 2. 其他情况：需要满足51%规律度条件，且（风险等级为中/高，且时间间隔1-40天）或者是疑似还款帐号
+  // 规律转账显示逻辑：
+  // 1. 数据库中的疑似还款帐号（isInRiskAccountsMap）：直接显示，不需要满足51%规律度条件，不限制方向
+  // 2. 其他情况：需要满足51%规律度条件，且方向为支出，且（风险等级为中/高，且时间间隔1-40天）或者是疑似还款帐号
   const outGroups = groups.filter(g => {
     const isOut = g.direction === '支出' || g.direction === '支';
     const isAbove51Percent = g.confidence >= 0.51;
@@ -50,12 +50,12 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
     const isSuspectedRepayment = g.isSuspectedRepayment === true;
     const isInRiskAccountsMap = riskAccountsMap[g.counterpart]?.riskLevel === 'high';
     
-    // 数据库中的疑似还款帐号不需要满足51%规律度条件
-    if (isOut && isInRiskAccountsMap) {
+    // 数据库中的疑似还款帐号不需要满足51%规律度条件，不限制方向
+    if (isInRiskAccountsMap) {
       return true;
     }
     
-    // 其他情况需要满足51%规律度条件
+    // 其他情况需要满足51%规律度条件且方向为支出
     return isOut && isAbove51Percent && (isSuspectedRepayment || (isMediumHigh && isWithin40Days));
   });
 
