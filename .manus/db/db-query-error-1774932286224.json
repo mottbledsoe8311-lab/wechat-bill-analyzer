@@ -1,0 +1,8 @@
+{
+  "query": "SELECT * FROM risk_accounts;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3m1JnqczaMGDvBR.5718a2793ceb --database SXgJ57d4GB9RBvAf3PYHaj --execute SELECT * FROM risk_accounts;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 1: Table 'sxgj57d4gb9rbvaf3pyhaj.risk_accounts' doesn't exist"
+  ]
+}

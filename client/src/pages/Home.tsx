@@ -56,8 +56,8 @@ export default function Home() {
   useEffect(() => {
     const fetchRiskAccounts = async () => {
       try {
-        const accounts = await trpc.riskAccounts.getAll.query();
-        setRiskAccounts(accounts);
+        const response = await trpc.riskAccounts.getAll.query();
+        setRiskAccounts(response.data || []);
       } catch (error) {
         console.error('Failed to fetch risk accounts:', error);
       }
@@ -85,7 +85,8 @@ export default function Home() {
       let currentRiskAccounts = riskAccounts;
       if (!currentRiskAccounts || currentRiskAccounts.length === 0) {
         try {
-          currentRiskAccounts = await trpc.riskAccounts.getAll.query();
+          const response = await trpc.riskAccounts.getAll.query();
+          currentRiskAccounts = response.data || [];
         } catch (error) {
           console.error('Failed to fetch risk accounts:', error);
           currentRiskAccounts = [];

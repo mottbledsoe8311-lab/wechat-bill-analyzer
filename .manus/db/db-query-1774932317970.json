@@ -1,0 +1,46 @@
+{
+  "query": "SELECT * FROM riskAccounts;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3m1JnqczaMGDvBR.5718a2793ceb --database SXgJ57d4GB9RBvAf3PYHaj --execute SELECT * FROM riskAccounts;",
+  "rows": [
+    {
+      "id": "1",
+      "accountName": "普奕红",
+      "riskLevel": "high",
+      "regularity": "100",
+      "description": "规律转账识别 - 每14天，7笔支出",
+      "createdAt": "2026-03-29 05:15:03",
+      "updatedAt": "2026-03-30 04:52:10"
+    },
+    {
+      "id": "12",
+      "accountName": "刘正红",
+      "riskLevel": "high",
+      "regularity": "100",
+      "description": "规律转账识别 - 每14天，4笔支出",
+      "createdAt": "2026-03-29 05:15:15",
+      "updatedAt": "2026-03-29 05:17:24"
+    },
+    {
+      "id": "37",
+      "accountName": "夏志华",
+      "riskLevel": "high",
+      "regularity": "100",
+      "description": "规律转账识别 - 每14天，3笔支出",
+      "createdAt": "2026-03-29 05:55:36",
+      "updatedAt": "2026-03-30 04:52:10"
+    },
+    {
+      "id": "30001",
+      "accountName": "张峰",
+      "riskLevel": "high",
+      "regularity": "100",
+      "description": "规律转账识别 - 每月，9笔支出",
+      "createdAt": "2026-03-30 04:14:49",
+      "updatedAt": "2026-03-30 04:14:51"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\taccountName\triskLevel\tregularity\tdescription\tcreatedAt\tupdatedAt\n1\t普奕红\thigh\t100\t规律转账识别 - 每14天，7笔支出\t2026-03-29 05:15:03\t2026-03-30 04:52:10\n12\t刘正红\thigh\t100\t规律转账识别 - 每14天，4笔支出\t2026-03-29 05:15:15\t2026-03-29 05:17:24\n37\t夏志华\thigh\t100\t规律转账识别 - 每14天，3笔支出\t2026-03-29 05:55:36\t2026-03-30 04:52:10\n30001\t张峰\thigh\t100\t规律转账识别 - 每月，9笔支出\t2026-03-30 04:14:49\t2026-03-30 04:14:51\n",
+  "stderr": "",
+  "execution_time_ms": 1595
+}
