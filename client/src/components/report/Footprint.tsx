@@ -280,7 +280,7 @@ function FootprintCard({ fp, index }: { fp: FootprintRecord; index: number }) {
         {/* 名称信息 */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-semibold text-sm text-foreground break-all leading-tight">{fp.location}</span>
+            <span className="font-semibold text-sm text-foreground break-all leading-tight">{fp.originalMerchant}</span>
             <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 border shrink-0 ${typeConfig.color}`}>
               {typeConfig.label}
             </Badge>
@@ -290,12 +290,6 @@ function FootprintCard({ fp, index }: { fp: FootprintRecord; index: number }) {
               </span>
             )}
           </div>
-          {/* 原始完整商户名 */}
-          {fp.originalMerchant !== fp.location && (
-            <p className="text-xs text-muted-foreground mt-0.5 break-all leading-snug">
-              {fp.originalMerchant}
-            </p>
-          )}
           {/* 最后访问时间 */}
           <p className="text-[11px] text-muted-foreground mt-0.5">
             最后访问：{formatDate(fp.lastVisit)}
