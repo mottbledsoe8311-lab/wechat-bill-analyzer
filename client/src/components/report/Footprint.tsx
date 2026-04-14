@@ -397,7 +397,7 @@ export default function Footprint({ allTransactions }: Props) {
       <div className="mb-4">
         <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Footprint</p>
         <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold text-foreground">足迹</h3>
+          <h3 className="text-2xl font-bold text-foreground">足迹<span className="text-base font-normal text-muted-foreground ml-2">（近三个月出行轨迹）</span></h3>
           <div className="flex items-center gap-2">
             <TimeFilterBar value={timeFilter} onChange={setTimeFilter} />
             <button
