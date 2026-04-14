@@ -24,6 +24,7 @@ import MonthlyChart from '@/components/report/MonthlyChart';
 import RegularTransfers from '@/components/report/RegularTransfers';
 import RepaymentTracking from '@/components/report/RepaymentTracking';
 import LargeInflows from '@/components/report/LargeInflows';
+import Footprint from '@/components/report/Footprint';
 import CounterpartSummary from '@/components/report/CounterpartSummary';
 import ReportNavigation from '@/components/report/ReportNavigation';
 
@@ -476,6 +477,7 @@ export default function Home() {
                 <div id="regular"><RegularTransfers groups={analysisResult?.regularTransfers || []} allTransactions={allTransactions} /></div>
                 <div id="repayment"><RepaymentTracking records={analysisResult?.repaymentTracking || []} /></div>
                 <div id="inflows"><LargeInflows inflows={analysisResult?.largeInflows || []} /></div>
+                <div id="footprint"><Footprint allTransactions={allTransactions} /></div>
                 <div id="counterpart"><CounterpartSummary data={analysisResult?.counterpartSummary || []} allTransactions={allTransactions} /></div>
 
               </div>

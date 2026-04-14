@@ -28,11 +28,13 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
   const riskAccountsQuery = trpc.riskAccounts.getAll.useQuery();
   const saveRiskMutation = trpc.riskAccounts.save.useMutation();
 
-  // 加载所有高风险账户
+  // 加载所有高风险账户（同时建立小写key的映射，避免大小写不匹配）
   useEffect(() => {
     if (riskAccountsQuery.data?.data) {
       const map = riskAccountsQuery.data.data.reduce((acc: Record<string, any>, account: any) => {
+        // 同时建立原始 key 和小写 key 的映射，避免大小写不匹配
         acc[account.accountName] = account;
+        acc[account.accountName.toLowerCase().trim()] = account;
         return acc;
       }, {});
       setRiskAccountsMap(map);
@@ -48,15 +50,23 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
     const isMediumHigh = g.riskLevel === 'medium' || g.riskLevel === 'high';
     const isWithin40Days = !g.intervalDays || g.intervalDays <= 40;
     const isSuspectedRepayment = g.isSuspectedRepayment === true;
-    const isInRiskAccountsMap = riskAccountsMap[g.counterpart]?.riskLevel === 'high';
+    // 同时尝试原始名称和小写名称匹配
+    const isInRiskAccountsMap = 
+      riskAccountsMap[g.counterpart]?.riskLevel === 'high' ||
+      riskAccountsMap[g.counterpart?.toLowerCase().trim()]?.riskLevel === 'high';
     
-    // 数据库中的疑似还款帐号不需要满足51%规律度条件，不限制方向
+    // 数据库中的疑似还款帐号不需要满足规律度条件，也不受方向限制
     if (isInRiskAccountsMap) {
       return true;
     }
     
+    // isSuspectedRepayment 标记的账户（来自数据库，由analyzeTransactions标记）不需要满足confidence条件
+    if (isSuspectedRepayment) {
+      return isOut;
+    }
+    
     // 其他情况需要满足51%规律度条件且方向为支出
-    return isOut && isAbove51Percent && (isSuspectedRepayment || (isMediumHigh && isWithin40Days));
+    return isOut && isAbove51Percent && (isMediumHigh && isWithin40Days);
   });
 
   // 按风险等级+置信度排序，疑似还款帐号优先级最高

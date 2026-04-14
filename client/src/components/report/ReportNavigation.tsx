@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'regular', label: '规律转账', icon: '🔄' },
   { id: 'repayment', label: '转账追踪', icon: '💳' },
   { id: 'inflows', label: '大额入账', icon: '💰' },
+  { id: 'footprint', label: '足迹', icon: '📍' },
   { id: 'counterpart', label: '交易对方', icon: '👥' },
 ];
 
@@ -50,7 +51,7 @@ export default function ReportNavigation({ onNavigate }: Props) {
         </div>
         
         {/* 响应式网格布局 */}
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6" ref={scrollContainerRef}>
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-4 md:grid-cols-7" ref={scrollContainerRef}>
           {NAV_ITEMS.map((item, index) => (
             <motion.button
               key={item.id}
