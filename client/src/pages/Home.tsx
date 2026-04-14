@@ -448,7 +448,7 @@ export default function Home() {
                 </div>
               </nav>
               {/* 报表内容 */}
-                 <div className="space-y-0">
+                 <div className="space-y-0 px-4 md:px-6 lg:px-10 max-w-3xl mx-auto">
                 <ReportNavigation />
                 {analysisResult && <div id="overview"><OverviewSection stats={analysisResult.overview} /></div>}
                 <div id="monthly"><MonthlyChart data={analysisResult?.monthlyBreakdown || []} /></div>
