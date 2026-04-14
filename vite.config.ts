@@ -99,7 +99,7 @@ function vitePluginManusDebugCollector(): Plugin {
 
     configureServer(server: ViteDevServer) {
       // POST /__manus__/logs: Browser sends logs (written directly to files)
-      server.middlewares.use("/__manus__/logs", (req: any, res: { writeHead: (code: number, headers: any) => void; end: (data: string) => void }, next: () => void) => {
+      server.middlewares.use("/__manus__/logs", (req: any, res: any, next: any) => {
         if (req.method !== "POST") {
           return next();
         }
@@ -132,7 +132,7 @@ function vitePluginManusDebugCollector(): Plugin {
         }
 
         let body = "";
-        req.on("data", (chunk: Buffer | string) => {
+        req.on("data", (chunk: any) => {
           body += chunk.toString();
         });
 
