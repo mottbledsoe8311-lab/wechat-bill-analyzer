@@ -396,17 +396,8 @@ export default function Footprint({ allTransactions }: Props) {
       {/* 标题区 */}
       <div className="mb-4">
         <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Footprint</p>
-        <div className="flex items-start justify-between flex-wrap gap-3">
-          <div>
-            <h3 className="text-2xl font-bold text-foreground">足迹</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              近{timeFilter === '1month' ? '一' : '三'}个月
-              {footprints.length > 0
-                ? <>去过 <span className="font-semibold text-foreground">{footprints.length}</span> 个地点</>
-                : '未检测到相关地点信息'
-              }
-            </p>
-          </div>
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-bold text-foreground">足迹</h3>
           <div className="flex items-center gap-2">
             <TimeFilterBar value={timeFilter} onChange={setTimeFilter} />
             <button
@@ -424,6 +415,13 @@ export default function Footprint({ allTransactions }: Props) {
             </button>
           </div>
         </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          近{timeFilter === '1month' ? '一' : '三'}个月
+          {footprints.length > 0
+            ? <>去过 <span className="font-semibold text-foreground">{footprints.length}</span> 个地点</>
+            : '未检测到相关地点信息'
+          }
+        </p>
 
         {/* 内联管理面板 */}
         <AnimatePresence>

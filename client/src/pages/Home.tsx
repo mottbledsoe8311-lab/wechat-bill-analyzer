@@ -350,7 +350,7 @@ export default function Home() {
 
             {/* 底部 4 个模块 */}
             <section className="container py-16 border-t border-border">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* 模块 1: 如何使用 */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
