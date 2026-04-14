@@ -1,14 +1,18 @@
 /**
  * 规律转账识别展示
  * 设计：精致卡片式 - 风险等级色彩编码，只展示转出，展开时显示相关所有进出流水
+ * 新增：内联管理按钮，支持自定义疑似还款账户关键词
  */
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatDate, type RegularTransferGroup } from '@/lib/analyzer';
-import { ChevronDown, Clock, AlertTriangle, Repeat, TrendingDown, TrendingUp, ShieldAlert } from 'lucide-react';
+import { ChevronDown, Clock, AlertTriangle, Repeat, TrendingDown, TrendingUp, ShieldAlert, Settings, Plus, Trash2, X, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
 
 interface Props {
   groups: RegularTransferGroup[];
@@ -21,10 +25,109 @@ const riskConfig = {
   high:   { bg: 'bg-destructive/5',   border: 'border-destructive/20',   text: 'text-destructive',   icon: 'bg-destructive/10',   label: '高风险' },
 };
 
+// 内联关键词管理面板
+function RepaymentKeywordManager({ onClose }: { onClose: () => void }) {
+  const [newKeyword, setNewKeyword] = useState('');
+  const utils = trpc.useUtils();
+
+  const { data, isLoading } = trpc.repaymentKeywords.getAll.useQuery();
+  const keywords = data?.data || [];
+
+  const saveMutation = trpc.repaymentKeywords.save.useMutation({
+    onSuccess: () => {
+      utils.repaymentKeywords.getAll.invalidate();
+      setNewKeyword('');
+      toast.success('关键词已保存，生成时将自动识别包含该关键词的账户');
+    },
+    onError: (err) => toast.error('保存失败：' + err.message),
+  });
+
+  const deleteMutation = trpc.repaymentKeywords.delete.useMutation({
+    onSuccess: () => {
+      utils.repaymentKeywords.getAll.invalidate();
+      toast.success('已删除');
+    },
+    onError: (err) => toast.error('删除失败：' + err.message),
+  });
+
+  const handleAdd = () => {
+    const kw = newKeyword.trim();
+    if (!kw) return toast.error('请输入关键词');
+    saveMutation.mutate({ keyword: kw });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className="mt-3 rounded-xl border border-border bg-muted/30 p-4"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold text-foreground">疑似还款账户关键词管理</p>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        上传关键词至数据库，生成时将自动识别包含这些关键词的账户，展示在本模块（不区分收支方向）
+      </p>
+
+      {/* 添加新关键词 */}
+      <div className="flex gap-2 mb-4">
+        <Input
+          value={newKeyword}
+          onChange={e => setNewKeyword(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          placeholder="输入账户名关键词，如：张三、普奕红"
+          className="h-8 text-xs flex-1"
+        />
+        <Button
+          size="sm"
+          className="h-8 text-xs px-3 shrink-0"
+          onClick={handleAdd}
+          disabled={saveMutation.isPending}
+        >
+          <Plus className="w-3.5 h-3.5 mr-1" />
+          添加
+        </Button>
+      </div>
+
+      {/* 已有关键词列表 */}
+      {isLoading ? (
+        <p className="text-xs text-muted-foreground text-center py-2">加载中...</p>
+      ) : keywords.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-2">暂无自定义关键词</p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+          {keywords.map((kw: any) => (
+            <div
+              key={kw.id}
+              className="flex items-center gap-1 bg-background border border-border rounded-full px-2.5 py-1 text-xs"
+            >
+              <span className="text-foreground">{kw.keyword}</span>
+              {kw.description && (
+                <span className="text-muted-foreground text-[10px]">({kw.description})</span>
+              )}
+              <button
+                onClick={() => deleteMutation.mutate({ id: kw.id })}
+                className="ml-0.5 text-muted-foreground hover:text-destructive transition-colors"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 export default function RegularTransfers({ groups, allTransactions = [] }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [expandedAllIndex, setExpandedAllIndex] = useState<number | null>(null);
   const [riskAccountsMap, setRiskAccountsMap] = useState<Record<string, any>>({});
+  const [showManager, setShowManager] = useState(false);
   const riskAccountsQuery = trpc.riskAccounts.getAll.useQuery();
   const saveRiskMutation = trpc.riskAccounts.save.useMutation();
 
@@ -32,7 +135,6 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
   useEffect(() => {
     if (riskAccountsQuery.data?.data) {
       const map = riskAccountsQuery.data.data.reduce((acc: Record<string, any>, account: any) => {
-        // 同时建立原始 key 和小写 key 的映射，避免大小写不匹配
         acc[account.accountName] = account;
         acc[account.accountName.toLowerCase().trim()] = account;
         return acc;
@@ -41,38 +143,23 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
     }
   }, [riskAccountsQuery.data]);
 
-  // 规律转账显示逻辑：
-  // 1. 数据库中的疑似还款帐号（isInRiskAccountsMap）：直接显示，不需要满足51%规律度条件，不限制方向
-  // 2. 其他情况：需要满足51%规律度条件，且方向为支出，且（风险等级为中/高，且时间间隔1-40天）或者是疑似还款帐号
   const outGroups = groups.filter(g => {
     const isOut = g.direction === '支出' || g.direction === '支';
     const isAbove51Percent = g.confidence >= 0.51;
     const isMediumHigh = g.riskLevel === 'medium' || g.riskLevel === 'high';
     const isWithin40Days = !g.intervalDays || g.intervalDays <= 40;
     const isSuspectedRepayment = g.isSuspectedRepayment === true;
-    // 同时尝试原始名称和小写名称匹配
     const isInRiskAccountsMap = 
       riskAccountsMap[g.counterpart]?.riskLevel === 'high' ||
       riskAccountsMap[g.counterpart?.toLowerCase().trim()]?.riskLevel === 'high';
     
-    // 数据库中的疑似还款帐号不需要满足规律度条件，也不受方向限制
-    if (isInRiskAccountsMap) {
-      return true;
-    }
-    
-    // isSuspectedRepayment 标记的账户（来自数据库，由analyzeTransactions标记）不需要满足confidence条件
-    if (isSuspectedRepayment) {
-      return isOut;
-    }
-    
-    // 其他情况需要满足51%规律度条件且方向为支出
+    if (isInRiskAccountsMap) return true;
+    if (isSuspectedRepayment) return isOut;
     return isOut && isAbove51Percent && (isMediumHigh && isWithin40Days);
   });
 
-  // 按风险等级+置信度排序，疑似还款帐号优先级最高
   const riskOrder = { high: 0, medium: 1, low: 2 };
   const sorted = [...outGroups].sort((a, b) => {
-    // 疑似还款帐号优先级最高
     if (a.isSuspectedRepayment !== b.isSuspectedRepayment) {
       return a.isSuspectedRepayment ? -1 : 1;
     }
@@ -80,13 +167,55 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
     return b.confidence - a.confidence;
   });
 
+  const highConfidenceCount = sorted.filter(g => g.confidence >= 1.0).length;
+
+  // 标题区（空状态也显示管理按钮）
+  const TitleSection = () => (
+    <div className="mb-8">
+      <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Regular Transfers</p>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h3 className="text-2xl font-bold text-foreground">规律转账识别</h3>
+          {sorted.length > 0 && (
+            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+              <p className="text-sm text-muted-foreground">
+                检测到 <span className="font-semibold text-foreground">{sorted.length}</span> 个中/高风险规律转出
+              </p>
+              {highConfidenceCount > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  {highConfidenceCount} 个重点核实对象
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowManager(v => !v)}
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+            showManager
+              ? 'bg-indigo/10 text-indigo border-indigo/30'
+              : 'bg-muted/60 text-muted-foreground border-border hover:text-foreground'
+          }`}
+        >
+          <Settings className="w-3.5 h-3.5" />
+          管理
+          {showManager ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        </button>
+      </div>
+
+      {/* 内联管理面板 */}
+      <AnimatePresence>
+        {showManager && <RepaymentKeywordManager onClose={() => setShowManager(false)} />}
+      </AnimatePresence>
+    </div>
+  );
+
   if (sorted.length === 0) {
     return (
       <section className="py-10 border-t border-border">
-        <div className="mb-8">
-          <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Regular Transfers</p>
-          <h3 className="text-2xl font-bold text-foreground">规律转账识别</h3>
-        </div>
+        <TitleSection />
         <div className="text-center py-16 text-muted-foreground">
           <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
             <Repeat className="w-7 h-7 opacity-30" />
@@ -98,8 +227,6 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
     );
   }
 
-  const highConfidenceCount = sorted.filter(g => g.confidence >= 1.0).length;
-
   return (
     <motion.section
       initial={{ opacity: 0 }}
@@ -107,33 +234,16 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
       transition={{ duration: 0.6, delay: 0.3 }}
       className="py-10 border-t border-border"
     >
-      <div className="mb-8">
-        <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Regular Transfers</p>
-        <h3 className="text-2xl font-bold text-foreground">规律转账识别</h3>
-        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-          <p className="text-sm text-muted-foreground">
-            检测到 <span className="font-semibold text-foreground">{sorted.length}</span> 个中/高风险规律转出
-          </p>
-          {highConfidenceCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
-              <ShieldAlert className="w-3.5 h-3.5" />
-              {highConfidenceCount} 个重点核实对象
-            </span>
-          )}
-        </div>
-      </div>
+      <TitleSection />
 
       <div className="space-y-3">
         {sorted.map((g, index) => {
           const risk = riskConfig[g.riskLevel];
           const isExpanded = expandedIndex === index;
-          // 重点核实条件：规律度100% 且 高风险
           const isHighRisk = g.confidence >= 1.0 && g.riskLevel === 'high';
           
-          // 检查是否是疑似还款账号（从数据库或从 isSuspectedRepayment 字段）
           const isSuspectedRepaymentAccount = riskAccountsMap[g.counterpart]?.riskLevel === 'high' || g.isSuspectedRepayment === true;
 
-          // 获取该对方的所有进出流水（不限方向）
           const counterpartName = g.counterpart;
           const relatedTxs = allTransactions?.length > 0
             ? allTransactions
@@ -141,7 +251,6 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                 .sort((a: any, b: any) => b.date.getTime() - a.date.getTime())
             : g.transactions.map(t => ({ ...t, direction: g.direction }));
 
-          // 统计收入和支出
           const totalIn = relatedTxs
             .filter((tx: any) => tx.direction === '收入' || tx.direction === '收')
             .reduce((sum: number, tx: any) => sum + tx.amount, 0);
@@ -212,7 +321,6 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          // 自动保存到高风险账户数据库
                           saveRiskMutation.mutate(
                             {
                               accountName: g.counterpart,
@@ -222,7 +330,6 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
                             },
                             {
                               onSuccess: () => {
-                                // 保存成功后，刷新风险账户列表
                                 riskAccountsQuery.refetch();
                               },
                             }
