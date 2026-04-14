@@ -1,0 +1,1 @@
+ALTER TABLE `footprintKeywords` MODIFY COLUMN `category` enum('parking','property','transit') NOT NULL;

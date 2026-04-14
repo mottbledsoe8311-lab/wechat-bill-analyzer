@@ -27,7 +27,7 @@ interface Transaction {
 interface FootprintRecord {
   location: string;
   originalMerchant: string;
-  visitType: 'parking' | 'property' | 'canteen' | 'other';
+  visitType: 'parking' | 'property' | 'transit' | 'other';
   lastVisit: Date;
   visitCount: number;
   transactions: Transaction[];
@@ -52,16 +52,13 @@ const PROPERTY_KEYWORDS = [
   '大楼', '楼宇', '楼管', '楼宇管理',
 ];
 
-// 内置餐厅/食堂关键词
-const CANTEEN_KEYWORDS = [
-  '食堂', '饭堂', '员工餐', '企业餐', '团餐',
-];
-
-// 内置排除关键词
-const EXCLUDE_KEYWORDS = [
-  '超市', '商场', '购物', '便利店', '药店', '医院', '学校', '银行',
-  '加油站', '高速', '路桥', '收费站', '地铁', '公交', '出租',
-  '滴滴', '美团', '饿了么', '外卖', '快递', '顺丰', '菜鸟',
+// 内置网约车/地铁关键词
+const TRANSIT_KEYWORDS = [
+  '滴滴', '滴滴出行', '滴滴打车', '快车', '专车', '顺风车', '高德地图',
+  '地铁', '公交', '轨道交通', '公共交通', '地铁公司',
+  '武汉地铁', '北京地铁', '上海地铁', '广州地铁', '深圳地铁',
+  '成都地铁', '重庆地铁', '西安地铁', '南京地铁', '杭州地铁',
+  '公交公司', '公交卡', '公交充値',
 ];
 
 function extractLocationName(merchantName: string): string {
@@ -84,17 +81,13 @@ function extractLocationName(merchantName: string): string {
 
 function classifyTransaction(
   tx: Transaction,
-  customKeywords: { parking: string[]; property: string[]; canteen: string[]; exclude: string[] }
-): 'parking' | 'property' | 'canteen' | 'other' | null {
+  customKeywords: { parking: string[]; property: string[]; transit: string[] }
+): 'parking' | 'property' | 'transit' | 'other' | null {
   const text = `${tx.counterpart} ${tx.type}`.toLowerCase();
-  const allExclude = [...EXCLUDE_KEYWORDS, ...customKeywords.exclude];
   const allParking = [...PARKING_KEYWORDS, ...customKeywords.parking];
   const allProperty = [...PROPERTY_KEYWORDS, ...customKeywords.property];
-  const allCanteen = [...CANTEEN_KEYWORDS, ...customKeywords.canteen];
+  const allTransit = [...TRANSIT_KEYWORDS, ...customKeywords.transit];
 
-  for (const kw of allExclude) {
-    if (kw && text.includes(kw.toLowerCase())) return null;
-  }
   if (tx.direction !== '支出' && tx.direction !== '支') return null;
   for (const kw of allParking) {
     if (kw && text.includes(kw.toLowerCase())) return 'parking';
@@ -102,8 +95,8 @@ function classifyTransaction(
   for (const kw of allProperty) {
     if (kw && text.includes(kw.toLowerCase())) return 'property';
   }
-  for (const kw of allCanteen) {
-    if (kw && text.includes(kw.toLowerCase())) return 'canteen';
+  for (const kw of allTransit) {
+    if (kw && text.includes(kw.toLowerCase())) return 'transit';
   }
   return null;
 }
@@ -111,15 +104,14 @@ function classifyTransaction(
 const VISIT_TYPE_CONFIG = {
   parking: { label: '停车', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Car },
   property: { label: '物业', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Building2 },
-  canteen: { label: '食堂', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: Building2 },
+  transit: { label: '出行', color: 'bg-green-100 text-green-700 border-green-200', icon: MapPin },
   other: { label: '其他', color: 'bg-gray-100 text-gray-600 border-gray-200', icon: MapPin },
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
   parking: '停车场',
   property: '物业',
-  canteen: '食堂',
-  exclude: '排除',
+  transit: '网约车或地铁',
 };
 
 function TimeFilterBar({ value, onChange }: { value: TimeFilter; onChange: (v: TimeFilter) => void }) {
@@ -208,8 +200,7 @@ function KeywordManager({ onClose }: { onClose: () => void }) {
           <SelectContent>
             <SelectItem value="parking">停车场</SelectItem>
             <SelectItem value="property">物业</SelectItem>
-            <SelectItem value="canteen">食堂</SelectItem>
-            <SelectItem value="exclude">排除</SelectItem>
+            <SelectItem value="transit">网约车或地铁</SelectItem>
           </SelectContent>
         </Select>
         <Button
@@ -259,7 +250,7 @@ export default function Footprint({ allTransactions }: Props) {
   const fpKeywordsQuery = trpc.footprintKeywords.getAll.useQuery();
 
   const customKeywords = useMemo(() => {
-    const result = { parking: [] as string[], property: [] as string[], canteen: [] as string[], exclude: [] as string[] };
+    const result = { parking: [] as string[], property: [] as string[], transit: [] as string[] };
     const keywords = fpKeywordsQuery.data?.data || [];
     for (const kw of keywords) {
       const cat = kw.category as keyof typeof result;

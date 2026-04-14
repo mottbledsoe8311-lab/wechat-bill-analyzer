@@ -56,7 +56,7 @@ export type InsertRiskAccount = typeof riskAccounts.$inferInsert;
 export const footprintKeywords = mysqlTable("footprintKeywords", {
   id: int("id").autoincrement().primaryKey(),
   keyword: varchar("keyword", { length: 100 }).notNull().unique(), // 关键词
-  category: mysqlEnum("category", ["parking", "property", "canteen", "exclude"]).notNull(), // 分类
+  category: mysqlEnum("category", ["parking", "property", "transit"]).notNull(), // 分类
   description: text("description"), // 备注
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
