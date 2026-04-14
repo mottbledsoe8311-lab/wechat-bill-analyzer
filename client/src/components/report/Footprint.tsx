@@ -242,6 +242,101 @@ function KeywordManager({ onClose }: { onClose: () => void }) {
   );
 }
 
+// 足迹卡片（支持展开）
+function FootprintCard({ fp, index }: { fp: FootprintRecord; index: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const typeConfig = VISIT_TYPE_CONFIG[fp.visitType];
+  const TypeIcon = typeConfig.icon;
+
+  const formatDate = (d: Date) => {
+    const m = d.getMonth() + 1;
+    const day = String(d.getDate()).padStart(2, '0');
+    const h = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day} ${h}:${min}`;
+  };
+
+  const sortedTxs = [...fp.transactions].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  return (
+    <motion.div
+      key={`${fp.location}-${index}`}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.04 * index }}
+      className="rounded-lg border border-border bg-card overflow-hidden"
+    >
+      {/* 主行：点击展开 */}
+      <button
+        type="button"
+        onClick={() => setExpanded(v => !v)}
+        className="w-full px-3 py-2.5 flex items-center gap-3 text-left hover:bg-muted/30 transition-colors"
+      >
+        {/* 图标 */}
+        <div className="w-8 h-8 rounded-full bg-indigo/10 flex items-center justify-center shrink-0">
+          <TypeIcon className="w-3.5 h-3.5 text-indigo" />
+        </div>
+
+        {/* 名称信息 */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-semibold text-sm text-foreground break-all leading-tight">{fp.location}</span>
+            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 border shrink-0 ${typeConfig.color}`}>
+              {typeConfig.label}
+            </Badge>
+            {fp.visitCount > 1 && (
+              <span className="text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full shrink-0">
+                共{fp.visitCount}次
+              </span>
+            )}
+          </div>
+          {/* 原始完整商户名 */}
+          {fp.originalMerchant !== fp.location && (
+            <p className="text-xs text-muted-foreground mt-0.5 break-all leading-snug">
+              {fp.originalMerchant}
+            </p>
+          )}
+          {/* 最后访问时间 */}
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            最后访问：{formatDate(fp.lastVisit)}
+          </p>
+        </div>
+
+        {/* 展开箭头 */}
+        <div className="shrink-0 text-muted-foreground">
+          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </div>
+      </button>
+
+      {/* 展开内容：交易明细 */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-3 border-t border-border/50">
+              <p className="text-[10px] text-muted-foreground font-medium mt-2 mb-1.5 uppercase tracking-wide">交易明细</p>
+              <div className="space-y-1.5">
+                {sortedTxs.map((tx, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground shrink-0">{formatDate(tx.date)}</span>
+                    <span className="text-foreground flex-1 min-w-0 truncate text-right">{tx.counterpart}</span>
+                    <span className="text-destructive shrink-0 font-medium">-¥{tx.amount.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 export default function Footprint({ allTransactions }: Props) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('3months');
   const [showManager, setShowManager] = useState(false);
@@ -356,47 +451,9 @@ export default function Footprint({ allTransactions }: Props) {
       {/* 足迹列表 */}
       {footprints.length > 0 && (
         <div className="space-y-2">
-          {footprints.map((fp, index) => {
-            const typeConfig = VISIT_TYPE_CONFIG[fp.visitType];
-            const TypeIcon = typeConfig.icon;
-
-            return (
-              <motion.div
-                key={`${fp.location}-${index}`}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.04 * index }}
-                className="rounded-lg border border-border bg-card px-3 py-2.5 flex items-center gap-3"
-              >
-                {/* 图标 */}
-                <div className="w-8 h-8 rounded-full bg-indigo/10 flex items-center justify-center shrink-0">
-                  <TypeIcon className="w-3.5 h-3.5 text-indigo" />
-                </div>
-
-                {/* 名称信息 */}
-                <div className="flex-1 min-w-0">
-                  {/* 识别名称 + 类型标签 + 次数 */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-semibold text-sm text-foreground break-all leading-tight">{fp.location}</span>
-                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 border shrink-0 ${typeConfig.color}`}>
-                      {typeConfig.label}
-                    </Badge>
-                    {fp.visitCount > 1 && (
-                      <span className="text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full shrink-0">
-                        共{fp.visitCount}次
-                      </span>
-                    )}
-                  </div>
-                  {/* 原始完整商户名（不截断） */}
-                  {fp.originalMerchant !== fp.location && (
-                    <p className="text-xs text-muted-foreground mt-0.5 break-all leading-snug">
-                      {fp.originalMerchant}
-                    </p>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
+          {footprints.map((fp, index) => (
+            <FootprintCard key={`${fp.location}-${index}`} fp={fp} index={index} />
+          ))}
         </div>
       )}
 
