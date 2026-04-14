@@ -396,24 +396,22 @@ export default function Footprint({ allTransactions }: Props) {
       {/* 标题区 */}
       <div className="mb-4">
         <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Footprint</p>
-        <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold text-foreground">足迹<span className="text-base font-normal text-muted-foreground ml-2">（近三个月出行轨迹）</span></h3>
-          <div className="flex items-center gap-2">
-            <TimeFilterBar value={timeFilter} onChange={setTimeFilter} />
-            <button
-              type="button"
-              onClick={() => setShowManager(v => !v)}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                showManager
-                  ? 'bg-indigo/10 text-indigo border-indigo/30'
-                  : 'bg-muted/60 text-muted-foreground border-border hover:text-foreground'
-              }`}
-            >
-              <Settings className="w-3.5 h-3.5" />
-              管理
-              {showManager ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
-          </div>
+        <h3 className="text-2xl font-bold text-foreground">足迹<span className="text-base font-normal text-muted-foreground ml-2">（近三个月出行轨迹）</span></h3>
+        <div className="flex items-center justify-between mt-2">
+          <TimeFilterBar value={timeFilter} onChange={setTimeFilter} />
+          <button
+            type="button"
+            onClick={() => setShowManager(v => !v)}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              showManager
+                ? 'bg-indigo/10 text-indigo border-indigo/30'
+                : 'bg-muted/60 text-muted-foreground border-border hover:text-foreground'
+            }`}
+          >
+            <Settings className="w-3.5 h-3.5" />
+            管理
+            {showManager ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           近{timeFilter === '1month' ? '一' : '三'}个月
