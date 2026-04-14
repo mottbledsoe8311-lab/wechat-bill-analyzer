@@ -370,7 +370,7 @@ export default function Home() {
                   </p>
                 </motion.div>
 
-                {/* 模块 2: 其它版本 */}
+                {/* 模块 2: 功能更新与建议 */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -379,40 +379,6 @@ export default function Home() {
                 >
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-ok/10 text-emerald-ok">
                     <span className="text-lg font-bold">2</span>
-                  </div>
-                  <h3 className="font-semibold text-lg">其它版本</h3>
-                  <p className="text-sm text-muted-foreground mb-3">测试版小程序已上线</p>
-                  <div className="flex justify-center">
-                    <img src={WECHAT_MINI_QR} alt="微信小程序" className="w-32 h-32 object-contain rounded" />
-                  </div>
-                </motion.div>
-
-                {/* 模块 3: 打赏开发者 */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="space-y-3"
-                >
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-destructive/10 text-destructive">
-                    <span className="text-lg font-bold">3</span>
-                  </div>
-                  <h3 className="font-semibold text-lg">打赏开发者</h3>
-                  <p className="text-sm text-muted-foreground mb-3">感谢赞助</p>
-                  <div className="flex justify-center">
-                    <img src={SPONSOR_QR} alt="赞助二维码" className="w-32 h-32 object-contain rounded" />
-                  </div>
-                </motion.div>
-
-                {/* 模块 4: 功能更新与建议 */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="space-y-3"
-                >
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-warn/10 text-amber-warn">
-                    <span className="text-lg font-bold">4</span>
                   </div>
                   <h3 className="font-semibold text-lg">功能更新与建议</h3>
                   <FeedbackForm />
