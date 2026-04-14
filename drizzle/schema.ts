@@ -52,5 +52,28 @@ export const riskAccounts = mysqlTable("riskAccounts", {
 export type RiskAccount = typeof riskAccounts.$inferSelect;
 export type InsertRiskAccount = typeof riskAccounts.$inferInsert;
 
+// 足迹关键词表（停车场/物业关键词）
+export const footprintKeywords = mysqlTable("footprintKeywords", {
+  id: int("id").autoincrement().primaryKey(),
+  keyword: varchar("keyword", { length: 100 }).notNull().unique(), // 关键词
+  category: mysqlEnum("category", ["parking", "property", "canteen", "exclude"]).notNull(), // 分类
+  description: text("description"), // 备注
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FootprintKeyword = typeof footprintKeywords.$inferSelect;
+export type InsertFootprintKeyword = typeof footprintKeywords.$inferInsert;
+
+// 规律转账疑似还款账户关键词表
+export const repaymentKeywords = mysqlTable("repaymentKeywords", {
+  id: int("id").autoincrement().primaryKey(),
+  keyword: varchar("keyword", { length: 255 }).notNull().unique(), // 账户名/关键词
+  description: text("description"), // 备注说明
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type RepaymentKeyword = typeof repaymentKeywords.$inferSelect;
+export type InsertRepaymentKeyword = typeof repaymentKeywords.$inferInsert;
+
 // 为了支持大型报表数据，我们需要使用 MEDIUMTEXT
 // 但 Drizzle 的 text() 默认生成 TEXT，需要在迁移后手动调整或使用原始 SQL

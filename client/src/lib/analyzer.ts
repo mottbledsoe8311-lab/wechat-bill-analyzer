@@ -135,7 +135,8 @@ type AnalysisProgressCallback = (progress: number, message: string) => void;
 export async function analyzeTransactions(
   transactions: Transaction[],
   onProgress?: AnalysisProgressCallback,
-  riskAccounts?: { accountName: string; riskLevel: string }[]
+  riskAccounts?: { accountName: string; riskLevel: string }[],
+  repaymentKeywords?: string[]
 ): Promise<AnalysisResult> {
   onProgress?.(0, '开始分析交易数据...');
 
@@ -155,6 +156,51 @@ export async function analyzeTransactions(
   onProgress?.(40, '识别规律转账模式...');
   let regularTransfers = detectRegularTransfers(transactions);
   
+  // 通过关键词识别疑似还款帐号（从数据库加载的关键词）
+  if (repaymentKeywords && repaymentKeywords.length > 0) {
+    const processedByKeyword = new Set<string>();
+    for (const tx of transactions) {
+      const counterpart = tx.counterpart?.trim();
+      if (!counterpart) continue;
+      const normalizedCounterpart = counterpart.toLowerCase().trim();
+      if (processedByKeyword.has(normalizedCounterpart)) continue;
+
+      // 检查账户名是否匹配任意关键词
+      const matched = repaymentKeywords.some(kw => kw && normalizedCounterpart.includes(kw.toLowerCase().trim()));
+      if (!matched) continue;
+
+      processedByKeyword.add(normalizedCounterpart);
+
+      const existingIndex = regularTransfers.findIndex(
+        g => g.counterpart.toLowerCase().trim() === normalizedCounterpart
+      );
+
+      if (existingIndex >= 0) {
+        regularTransfers[existingIndex].isSuspectedRepayment = true;
+      } else {
+        const relatedTxs = transactions.filter(t =>
+          t.counterpart?.toLowerCase().trim() === normalizedCounterpart
+        );
+        if (relatedTxs.length > 0) {
+          const totalAmount = relatedTxs.reduce((sum, t) => sum + t.amount, 0);
+          const avgAmount = totalAmount / relatedTxs.length;
+          regularTransfers.push({
+            counterpart,
+            direction: '支出',
+            pattern: '关键词匹配',
+            intervalDays: 0,
+            avgAmount,
+            totalAmount,
+            transactions: relatedTxs,
+            confidence: 0,
+            riskLevel: 'high',
+            isSuspectedRepayment: true,
+          });
+        }
+      }
+    }
+  }
+
   // 添加疑似还款帐号的转账记录
   if (riskAccounts && riskAccounts.length > 0) {
     // 创建一个规范化的账户名称映射（小写，去空格）

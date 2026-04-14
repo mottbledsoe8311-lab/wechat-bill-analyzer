@@ -246,3 +246,81 @@ export async function getAllRiskAccounts(): Promise<RiskAccount[]> {
     return [];
   }
 }
+
+// 足迹关键词相关查询
+import { footprintKeywords, repaymentKeywords, type FootprintKeyword, type InsertFootprintKeyword, type RepaymentKeyword, type InsertRepaymentKeyword } from "../drizzle/schema";
+
+export async function getAllFootprintKeywords(): Promise<FootprintKeyword[]> {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    return await db.select().from(footprintKeywords);
+  } catch (error) {
+    console.error("[Database] Failed to get footprint keywords:", error);
+    return [];
+  }
+}
+
+export async function saveFootprintKeyword(data: InsertFootprintKeyword): Promise<FootprintKeyword | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database connection not available");
+  try {
+    await db.insert(footprintKeywords).values(data).onDuplicateKeyUpdate({
+      set: { category: data.category, description: data.description },
+    });
+    const saved = await db.select().from(footprintKeywords).where(eq(footprintKeywords.keyword, data.keyword)).limit(1);
+    return saved.length > 0 ? saved[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to save footprint keyword:", error);
+    throw error;
+  }
+}
+
+export async function deleteFootprintKeyword(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database connection not available");
+  try {
+    await db.delete(footprintKeywords).where(eq(footprintKeywords.id, id));
+  } catch (error) {
+    console.error("[Database] Failed to delete footprint keyword:", error);
+    throw error;
+  }
+}
+
+// 规律转账疑似还款账户关键词相关查询
+export async function getAllRepaymentKeywords(): Promise<RepaymentKeyword[]> {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    return await db.select().from(repaymentKeywords);
+  } catch (error) {
+    console.error("[Database] Failed to get repayment keywords:", error);
+    return [];
+  }
+}
+
+export async function saveRepaymentKeyword(data: InsertRepaymentKeyword): Promise<RepaymentKeyword | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database connection not available");
+  try {
+    await db.insert(repaymentKeywords).values(data).onDuplicateKeyUpdate({
+      set: { description: data.description },
+    });
+    const saved = await db.select().from(repaymentKeywords).where(eq(repaymentKeywords.keyword, data.keyword)).limit(1);
+    return saved.length > 0 ? saved[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to save repayment keyword:", error);
+    throw error;
+  }
+}
+
+export async function deleteRepaymentKeyword(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database connection not available");
+  try {
+    await db.delete(repaymentKeywords).where(eq(repaymentKeywords.id, id));
+  } catch (error) {
+    console.error("[Database] Failed to delete repayment keyword:", error);
+    throw error;
+  }
+}

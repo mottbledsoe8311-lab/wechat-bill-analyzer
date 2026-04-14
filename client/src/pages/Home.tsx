@@ -11,7 +11,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { RotateCcw, Shield, Zap, Eye, ChevronDown } from 'lucide-react';
+import { RotateCcw, Shield, Zap, Eye, ChevronDown, Settings } from 'lucide-react';
+import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { trpc } from '@/lib/trpc';
 
@@ -49,21 +50,25 @@ export default function Home() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
-  const [riskAccounts, setRiskAccounts] = useState<any[]>([]);
+   const [riskAccounts, setRiskAccounts] = useState<any[]>([]);
+  const [repaymentKeywords, setRepaymentKeywords] = useState<string[]>([]);
   const reportRef = useRef<HTMLDivElement>(null);
   const reportContentRef = useRef<HTMLDivElement>(null);
-
-  // 获取高风险账户列表
+  // 获取高风险账户列表和规律转账关键词
   useEffect(() => {
-    const fetchRiskAccounts = async () => {
+    const fetchData = async () => {
       try {
-        const response = await trpc.riskAccounts.getAll.query();
-        setRiskAccounts(response.data || []);
+        const [riskRes, kwRes] = await Promise.all([
+          trpc.riskAccounts.getAll.query(),
+          trpc.repaymentKeywords.getAll.query(),
+        ]);
+        setRiskAccounts(riskRes.data || []);
+        setRepaymentKeywords((kwRes.data || []).map((k: any) => k.keyword));
       } catch (error) {
-        console.error('Failed to fetch risk accounts:', error);
+        console.error('Failed to fetch risk accounts or keywords:', error);
       }
     };
-    fetchRiskAccounts();
+    fetchData();
   }, []);
 
 
@@ -82,15 +87,21 @@ export default function Home() {
     setProgressStage('parsing');
 
     try {
-      // 获取最新的高风险账户列表
+      // 获取最新的高风险账户列表和规律转账关键词
       let currentRiskAccounts = riskAccounts;
-      if (!currentRiskAccounts || currentRiskAccounts.length === 0) {
+      let currentRepaymentKeywords = repaymentKeywords;
+      if (!currentRiskAccounts || currentRiskAccounts.length === 0 || currentRepaymentKeywords.length === 0) {
         try {
-          const response = await trpc.riskAccounts.getAll.query();
-          currentRiskAccounts = response.data || [];
+          const [riskRes, kwRes] = await Promise.all([
+            trpc.riskAccounts.getAll.query(),
+            trpc.repaymentKeywords.getAll.query(),
+          ]);
+          currentRiskAccounts = riskRes.data || [];
+          currentRepaymentKeywords = (kwRes.data || []).map((k: any) => k.keyword);
         } catch (error) {
-          console.error('Failed to fetch risk accounts:', error);
-          currentRiskAccounts = [];
+          console.error('Failed to fetch risk accounts or keywords:', error);
+          currentRiskAccounts = currentRiskAccounts || [];
+          currentRepaymentKeywords = currentRepaymentKeywords || [];
         }
       }
       // 阶段1：解析PDF
@@ -168,7 +179,7 @@ export default function Home() {
       const analysis = await analyzeTransactions(allTransactions, (p, msg) => {
         setProgress(50 + p * 0.5);
         setProgressMessage(msg);
-      }, currentRiskAccounts);
+      }, currentRiskAccounts, currentRepaymentKeywords);
 
       setAnalysisResult(analysis);
       setAllTransactions(allTransactions);
@@ -216,17 +227,25 @@ export default function Home() {
             />
             <span className="font-bold text-lg tracking-tight" style={{ color: '#ff8800' }}>大橙子账单分析系统</span>
           </div>
-          {state === 'report' && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              className="gap-1.5"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              重新分析
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            <Link href="/admin">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                <Settings className="w-3.5 h-3.5" />
+                关键词管理
+              </Button>
+            </Link>
+            {state === 'report' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                className="gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                重新分析
+              </Button>
+            )}
+          </div>
         </div>
       </nav>
 

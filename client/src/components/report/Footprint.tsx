@@ -1,6 +1,7 @@
 /**
  * 足迹 - 近三个月去过哪儿
  * 通过停车费、物业费等交易识别客户去过的写字楼/大厦
+ * 支持从数据库加载自定义关键词
  */
 
 import { useState, useMemo } from 'react';
@@ -8,6 +9,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Calendar, Building2, Car, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/analyzer';
+import { trpc } from '@/lib/trpc';
 
 interface Transaction {
   date: Date;
@@ -34,25 +36,25 @@ interface Props {
 
 type TimeFilter = '1month' | '3months';
 
-// 停车场关键词
+// 内置停车场关键词
 const PARKING_KEYWORDS = [
   '停车', '泊车', '车场', '停车场', '地下车库', '停车费', '车位费',
   'parking', 'park', '道闸', '停车收费',
 ];
 
-// 物业关键词
+// 内置物业关键词
 const PROPERTY_KEYWORDS = [
   '物业', '物管', '管理费', '物业费', '物业公司', '物业管理',
   '服务中心', '商业管理', '园区', '写字楼', '大厦', '广场', '中心',
   '大楼', '楼宇', '楼管', '楼宇管理',
 ];
 
-// 餐厅/食堂关键词
+// 内置餐厅/食堂关键词
 const CANTEEN_KEYWORDS = [
   '食堂', '饭堂', '员工餐', '企业餐', '团餐',
 ];
 
-// 排除关键词（明显不是写字楼的地点）
+// 内置排除关键词（明显不是写字楼的地点）
 const EXCLUDE_KEYWORDS = [
   '超市', '商场', '购物', '便利店', '药店', '医院', '学校', '银行',
   '加油站', '高速', '路桥', '收费站', '地铁', '公交', '出租',
@@ -85,28 +87,37 @@ function extractLocationName(merchantName: string): string {
   return name;
 }
 
-// 判断交易类型
-function classifyTransaction(tx: Transaction): 'parking' | 'property' | 'canteen' | 'other' | null {
+// 判断交易类型（支持自定义关键词）
+function classifyTransaction(
+  tx: Transaction,
+  customKeywords: { parking: string[]; property: string[]; canteen: string[]; exclude: string[] }
+): 'parking' | 'property' | 'canteen' | 'other' | null {
   const text = `${tx.counterpart} ${tx.type}`.toLowerCase();
   
+  // 合并内置和自定义关键词
+  const allExclude = [...EXCLUDE_KEYWORDS, ...customKeywords.exclude];
+  const allParking = [...PARKING_KEYWORDS, ...customKeywords.parking];
+  const allProperty = [...PROPERTY_KEYWORDS, ...customKeywords.property];
+  const allCanteen = [...CANTEEN_KEYWORDS, ...customKeywords.canteen];
+
   // 先检查排除关键词
-  for (const kw of EXCLUDE_KEYWORDS) {
-    if (text.includes(kw.toLowerCase())) return null;
+  for (const kw of allExclude) {
+    if (kw && text.includes(kw.toLowerCase())) return null;
   }
   
   // 只处理支出
   if (tx.direction !== '支出' && tx.direction !== '支') return null;
   
-  for (const kw of PARKING_KEYWORDS) {
-    if (text.includes(kw.toLowerCase())) return 'parking';
+  for (const kw of allParking) {
+    if (kw && text.includes(kw.toLowerCase())) return 'parking';
   }
   
-  for (const kw of PROPERTY_KEYWORDS) {
-    if (text.includes(kw.toLowerCase())) return 'property';
+  for (const kw of allProperty) {
+    if (kw && text.includes(kw.toLowerCase())) return 'property';
   }
   
-  for (const kw of CANTEEN_KEYWORDS) {
-    if (text.includes(kw.toLowerCase())) return 'canteen';
+  for (const kw of allCanteen) {
+    if (kw && text.includes(kw.toLowerCase())) return 'canteen';
   }
   
   return null;
@@ -145,6 +156,22 @@ function TimeFilterBar({ value, onChange }: { value: TimeFilter; onChange: (v: T
 export default function Footprint({ allTransactions }: Props) {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('3months');
 
+  // 从数据库加载自定义关键词
+  const fpKeywordsQuery = trpc.footprintKeywords.getAll.useQuery();
+  
+  // 构建自定义关键词映射
+  const customKeywords = useMemo(() => {
+    const result = { parking: [] as string[], property: [] as string[], canteen: [] as string[], exclude: [] as string[] };
+    const keywords = fpKeywordsQuery.data?.data || [];
+    for (const kw of keywords) {
+      const cat = kw.category as keyof typeof result;
+      if (cat in result) {
+        result[cat].push(kw.keyword);
+      }
+    }
+    return result;
+  }, [fpKeywordsQuery.data]);
+
   // 根据时间过滤交易
   const filteredTransactions = useMemo(() => {
     const now = new Date();
@@ -162,7 +189,7 @@ export default function Footprint({ allTransactions }: Props) {
     const locationMap = new Map<string, FootprintRecord>();
 
     for (const tx of filteredTransactions) {
-      const visitType = classifyTransaction(tx);
+      const visitType = classifyTransaction(tx, customKeywords);
       if (!visitType) continue;
 
       const locationName = extractLocationName(tx.counterpart);
@@ -189,7 +216,7 @@ export default function Footprint({ allTransactions }: Props) {
 
     return Array.from(locationMap.values())
       .sort((a, b) => b.lastVisit.getTime() - a.lastVisit.getTime());
-  }, [filteredTransactions]);
+  }, [filteredTransactions, customKeywords]);
 
   return (
     <motion.section
@@ -224,7 +251,7 @@ export default function Footprint({ allTransactions }: Props) {
             <MapPin className="w-7 h-7 opacity-30" />
           </div>
           <p className="font-medium">未检测到相关地点信息</p>
-          <p className="text-xs mt-1 opacity-60">通过停车费、物业费等交易识别去过的写字楼/大厦</p>
+          <p className="text-xs mt-1 opacity-60">通过停车费、物业费等交易记录识别去过的写字楼/大厦</p>
         </div>
       )}
 

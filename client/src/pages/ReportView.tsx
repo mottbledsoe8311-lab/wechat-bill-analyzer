@@ -16,6 +16,7 @@ import MonthlyChart from '@/components/report/MonthlyChart';
 import RegularTransfers from '@/components/report/RegularTransfers';
 import RepaymentTracking from '@/components/report/RepaymentTracking';
 import LargeInflows from '@/components/report/LargeInflows';
+import Footprint from '@/components/report/Footprint';
 import CounterpartSummary from '@/components/report/CounterpartSummary';
 import ShareButton from '@/components/ShareButton';
 import { useAuth } from '@/_core/hooks/useAuth';
@@ -257,6 +258,9 @@ export default function ReportView() {
           {reportData.largeInflows && reportData.largeInflows.length > 0 && (
             <LargeInflows inflows={reportData.largeInflows} />
           )}
+
+          {/* 足迹模块 */}
+          <Footprint allTransactions={reportData.allTransactions || []} />
           
           {/* 交易对方分析 - 总是显示，即使数据为空 */}
           <CounterpartSummary 

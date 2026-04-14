@@ -2,7 +2,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createReport, getReportById, saveRiskAccount, getRiskAccountByName, getAllRiskAccounts } from "./db";
+import { createReport, getReportById, saveRiskAccount, getRiskAccountByName, getAllRiskAccounts, getAllFootprintKeywords, saveFootprintKeyword, deleteFootprintKeyword, getAllRepaymentKeywords, saveRepaymentKeyword, deleteRepaymentKeyword } from "./db";
 import { randomUUID } from "crypto";
 import { COOKIE_NAME } from "../shared/const";
 
@@ -194,6 +194,79 @@ export const appRouter = router({
         } catch (error: any) {
           console.error('[tRPC] Failed to get all risk accounts:', error?.message || error);
           throw new Error(error?.message || 'Failed to get all risk accounts');
+        }
+      }),
+  }),
+
+  // 足迹关键词管理路由
+  footprintKeywords: router({
+    getAll: publicProcedure
+      .query(async () => {
+        try {
+          const result = await getAllFootprintKeywords();
+          return { success: true, data: result };
+        } catch (error: any) {
+          throw new Error(error?.message || 'Failed to get footprint keywords');
+        }
+      }),
+    save: protectedProcedure
+      .input(z.object({
+        keyword: z.string().min(1),
+        category: z.enum(["parking", "property", "canteen", "exclude"]),
+        description: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          const result = await saveFootprintKeyword(input);
+          return { success: true, data: result };
+        } catch (error: any) {
+          throw new Error(error?.message || 'Failed to save footprint keyword');
+        }
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        try {
+          await deleteFootprintKeyword(input.id);
+          return { success: true };
+        } catch (error: any) {
+          throw new Error(error?.message || 'Failed to delete footprint keyword');
+        }
+      }),
+  }),
+
+  // 规律转账疑似还款账户关键词管理路由
+  repaymentKeywords: router({
+    getAll: publicProcedure
+      .query(async () => {
+        try {
+          const result = await getAllRepaymentKeywords();
+          return { success: true, data: result };
+        } catch (error: any) {
+          throw new Error(error?.message || 'Failed to get repayment keywords');
+        }
+      }),
+    save: protectedProcedure
+      .input(z.object({
+        keyword: z.string().min(1),
+        description: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        try {
+          const result = await saveRepaymentKeyword(input);
+          return { success: true, data: result };
+        } catch (error: any) {
+          throw new Error(error?.message || 'Failed to save repayment keyword');
+        }
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        try {
+          await deleteRepaymentKeyword(input.id);
+          return { success: true };
+        } catch (error: any) {
+          throw new Error(error?.message || 'Failed to delete repayment keyword');
         }
       }),
   }),
