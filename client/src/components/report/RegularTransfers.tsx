@@ -79,7 +79,7 @@ function RepaymentKeywordManager({ onClose }: { onClose: () => void }) {
           value={newKeyword}
           onChange={e => setNewKeyword(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          placeholder="输入账户名关键词，如：张三、普奕红"
+          placeholder="输入账户名关键词，如：张三"
           className="h-8 text-xs flex-1"
         />
         <Button
@@ -173,36 +173,36 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
   const TitleSection = () => (
     <div className="mb-8">
       <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Regular Transfers</p>
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-2 flex-wrap">
           <h3 className="text-2xl font-bold text-foreground">规律转账识别</h3>
-          {sorted.length > 0 && (
-            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-              <p className="text-sm text-muted-foreground">
-                检测到 <span className="font-semibold text-foreground">{sorted.length}</span> 个中/高风险规律转出
-              </p>
-              {highConfidenceCount > 0 && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  {highConfidenceCount} 个重点核实对象
-                </span>
-              )}
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => setShowManager(v => !v)}
+            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border transition-all ${
+              showManager
+                ? 'bg-indigo/10 text-indigo border-indigo/30'
+                : 'bg-muted/60 text-muted-foreground border-border hover:text-foreground'
+            }`}
+          >
+            <Settings className="w-3 h-3" />
+            管理
+            {showManager ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowManager(v => !v)}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-            showManager
-              ? 'bg-indigo/10 text-indigo border-indigo/30'
-              : 'bg-muted/60 text-muted-foreground border-border hover:text-foreground'
-          }`}
-        >
-          <Settings className="w-3.5 h-3.5" />
-          管理
-          {showManager ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-        </button>
+        {sorted.length > 0 && (
+          <div className="flex items-center gap-3 flex-wrap">
+            <p className="text-sm text-muted-foreground">
+              检测到 <span className="font-semibold text-foreground">{sorted.length}</span> 个中/高风险规律转出
+            </p>
+            {highConfidenceCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+                <ShieldAlert className="w-3.5 h-3.5" />
+                {highConfidenceCount} 个重点核实对象
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 内联管理面板 */}

@@ -266,7 +266,7 @@ export async function saveFootprintKeyword(data: InsertFootprintKeyword): Promis
   if (!db) throw new Error("Database connection not available");
   try {
     await db.insert(footprintKeywords).values(data).onDuplicateKeyUpdate({
-      set: { category: data.category, description: data.description },
+      set: { keyword: data.keyword, category: data.category ?? null, description: data.description ?? null },
     });
     const saved = await db.select().from(footprintKeywords).where(eq(footprintKeywords.keyword, data.keyword)).limit(1);
     return saved.length > 0 ? saved[0] : undefined;
@@ -304,7 +304,7 @@ export async function saveRepaymentKeyword(data: InsertRepaymentKeyword): Promis
   if (!db) throw new Error("Database connection not available");
   try {
     await db.insert(repaymentKeywords).values(data).onDuplicateKeyUpdate({
-      set: { description: data.description },
+      set: { keyword: data.keyword, description: data.description ?? null },
     });
     const saved = await db.select().from(repaymentKeywords).where(eq(repaymentKeywords.keyword, data.keyword)).limit(1);
     return saved.length > 0 ? saved[0] : undefined;

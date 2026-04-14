@@ -11,8 +11,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { RotateCcw, Shield, Zap, Eye, ChevronDown, Settings } from 'lucide-react';
-import { Link } from 'wouter';
+import { RotateCcw, Shield, Zap, Eye, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { trpc } from '@/lib/trpc';
 
@@ -228,12 +227,6 @@ export default function Home() {
             <span className="font-bold text-lg tracking-tight" style={{ color: '#ff8800' }}>大橙子账单分析系统</span>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/admin">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-                <Settings className="w-3.5 h-3.5" />
-                关键词管理
-              </Button>
-            </Link>
             {state === 'report' && (
               <Button
                 variant="outline"
