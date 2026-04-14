@@ -174,12 +174,12 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
     <div className="mb-8">
       <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Regular Transfers</p>
       <div className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center justify-between">
           <h3 className="text-2xl font-bold text-foreground">规律转账识别</h3>
           <button
             type="button"
             onClick={() => setShowManager(v => !v)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border transition-all ${
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all ${
               showManager
                 ? 'bg-indigo/10 text-indigo border-indigo/30'
                 : 'bg-muted/60 text-muted-foreground border-border hover:text-foreground'

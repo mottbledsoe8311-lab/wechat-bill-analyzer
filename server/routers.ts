@@ -209,10 +209,10 @@ export const appRouter = router({
           throw new Error(error?.message || 'Failed to get footprint keywords');
         }
       }),
-    save: protectedProcedure
+    save: publicProcedure
       .input(z.object({
         keyword: z.string().min(1),
-        category: z.enum(["parking", "property", "canteen", "exclude"]),
+        category: z.enum(["parking", "property", "transit"]),
         description: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
@@ -223,7 +223,7 @@ export const appRouter = router({
           throw new Error(error?.message || 'Failed to save footprint keyword');
         }
       }),
-    delete: protectedProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         try {
@@ -246,7 +246,7 @@ export const appRouter = router({
           throw new Error(error?.message || 'Failed to get repayment keywords');
         }
       }),
-    save: protectedProcedure
+    save: publicProcedure
       .input(z.object({
         keyword: z.string().min(1),
         description: z.string().optional(),
@@ -259,7 +259,7 @@ export const appRouter = router({
           throw new Error(error?.message || 'Failed to save repayment keyword');
         }
       }),
-    delete: protectedProcedure
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         try {
