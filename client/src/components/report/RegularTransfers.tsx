@@ -50,7 +50,7 @@ function RepaymentKeywordManager({ onClose }: { onClose: () => void }) {
       className="mt-3 rounded-xl border border-border bg-muted/30 p-4"
     >
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold text-foreground">疑似还款账户关键词管理</p>
+        <p className="text-xs font-semibold text-foreground">关键词管理</p>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
           <X className="w-4 h-4" />
         </button>
