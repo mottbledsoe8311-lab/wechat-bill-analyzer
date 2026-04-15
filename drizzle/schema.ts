@@ -81,6 +81,7 @@ export const dailyStats = mysqlTable("dailyStats", {
   date: varchar("date", { length: 10 }).notNull().unique(), // 日期，格式：YYYY-MM-DD
   uploadCount: int("uploadCount").default(0).notNull(), // 当日上传账单次数
   shareCount: int("shareCount").default(0).notNull(),   // 当日分享链接次数
+  pvCount: int("pvCount").default(0).notNull(),         // 当日页面访问量（PV）
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 

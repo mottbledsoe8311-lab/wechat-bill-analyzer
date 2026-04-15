@@ -2,7 +2,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createReport, getReportById, saveRiskAccount, getRiskAccountByName, getAllRiskAccounts, getAllFootprintKeywords, saveFootprintKeyword, deleteFootprintKeyword, getAllRepaymentKeywords, saveRepaymentKeyword, deleteRepaymentKeyword, incrementUploadCount, incrementShareCount, getDailyStats } from "./db";
+import { createReport, getReportById, saveRiskAccount, getRiskAccountByName, getAllRiskAccounts, getAllFootprintKeywords, saveFootprintKeyword, deleteFootprintKeyword, getAllRepaymentKeywords, saveRepaymentKeyword, deleteRepaymentKeyword, incrementUploadCount, incrementShareCount, incrementPvCount, getDailyStats } from "./db";
 import { randomUUID } from "crypto";
 import { COOKIE_NAME } from "../shared/const";
 
@@ -283,6 +283,12 @@ export const appRouter = router({
     recordShare: publicProcedure
       .mutation(async () => {
         await incrementShareCount();
+        return { success: true };
+      }),
+    // 记录一次页面访问（PV）
+    recordPv: publicProcedure
+      .mutation(async () => {
+        await incrementPvCount();
         return { success: true };
       }),
     // 获取近 N 天统计（管理员用）

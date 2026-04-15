@@ -1,0 +1,1 @@
+ALTER TABLE `dailyStats` ADD `pvCount` int DEFAULT 0 NOT NULL;

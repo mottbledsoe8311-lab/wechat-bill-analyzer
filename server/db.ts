@@ -349,6 +349,20 @@ export async function incrementUploadCount(): Promise<void> {
   }
 }
 
+// 自增 PV 计数
+export async function incrementPvCount(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const today = getTodayStr();
+  try {
+    await db.insert(dailyStats)
+      .values({ date: today, uploadCount: 0, shareCount: 0, pvCount: 1 })
+      .onDuplicateKeyUpdate({ set: { pvCount: drizzleSql`pvCount + 1` } });
+  } catch (error) {
+    console.error("[Database] Failed to increment pv count:", error);
+  }
+}
+
 // 自增分享计数
 export async function incrementShareCount(): Promise<void> {
   const db = await getDb();

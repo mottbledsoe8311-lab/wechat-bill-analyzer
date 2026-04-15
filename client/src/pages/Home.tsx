@@ -68,6 +68,8 @@ export default function Home() {
       }
     };
     fetchData();
+    // 静默记录页面访问量（PV），不影响 UI
+    trpc.stats.recordPv.mutate().catch(() => {});
   }, []);
 
 

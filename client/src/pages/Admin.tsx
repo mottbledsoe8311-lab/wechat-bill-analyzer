@@ -76,42 +76,67 @@ function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
 }
 
 function StatsPanel() {
-  const statsQuery = trpc.stats.getDaily.useQuery({ days: 14 });
+  const [days, setDays] = useState<7 | 14 | 30>(14);
+  const statsQuery = trpc.stats.getDaily.useQuery({ days });
   const stats = statsQuery.data?.data || [];
 
-  // 生成近 14 天日期列表，空日期填 0
-  const last14Days = Array.from({ length: 14 }, (_, i) => {
+  // 生成近 N 天日期列表，空日期填 0
+  const dateList = Array.from({ length: days }, (_, i) => {
     const d = new Date();
-    d.setDate(d.getDate() - 13 + i);
+    d.setDate(d.getDate() - (days - 1) + i);
     return d.toISOString().slice(0, 10);
   });
 
   const statsMap = new Map(stats.map((s: any) => [s.date, s]));
 
-  const chartData = last14Days.map(date => ({
+  const chartData = dateList.map(date => ({
     date: date.slice(5), // MM-DD
     upload: statsMap.get(date)?.uploadCount || 0,
     share: statsMap.get(date)?.shareCount || 0,
+    pv: statsMap.get(date)?.pvCount || 0,
   }));
 
   const totalUpload = chartData.reduce((s, d) => s + d.upload, 0);
   const totalShare = chartData.reduce((s, d) => s + d.share, 0);
-  const maxVal = Math.max(...chartData.map(d => Math.max(d.upload, d.share)), 1);
+  const totalPv = chartData.reduce((s, d) => s + d.pv, 0);
+  const maxVal = Math.max(...chartData.map(d => Math.max(d.upload, d.share, d.pv)), 1);
 
   return (
     <div className="space-y-6">
+      {/* 时间范围切换 */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">时间范围：</span>
+        {([7, 14, 30] as const).map(n => (
+          <Button
+            key={n}
+            variant={days === n ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setDays(n)}
+            className="h-7 px-3 text-xs"
+          >
+            近 {n} 天
+          </Button>
+        ))}
+      </div>
+
       {/* 汇总卡片 */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">近 14 天上传总次数</p>
-            <p className="text-3xl font-bold mt-1">{totalUpload}</p>
+          <CardContent className="pt-5 pb-4">
+            <p className="text-xs text-muted-foreground">近 {days} 天页面访问（PV）</p>
+            <p className="text-2xl font-bold mt-1">{totalPv}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">近 14 天分享总次数</p>
-            <p className="text-3xl font-bold mt-1">{totalShare}</p>
+          <CardContent className="pt-5 pb-4">
+            <p className="text-xs text-muted-foreground">近 {days} 天上传总次数</p>
+            <p className="text-2xl font-bold mt-1">{totalUpload}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5 pb-4">
+            <p className="text-xs text-muted-foreground">近 {days} 天分享总次数</p>
+            <p className="text-2xl font-bold mt-1">{totalShare}</p>
           </CardContent>
         </Card>
       </div>
@@ -119,7 +144,7 @@ function StatsPanel() {
       {/* 每日柱状图 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">近 14 天每日统计</CardTitle>
+          <CardTitle className="text-base">近 {days} 天每日统计</CardTitle>
         </CardHeader>
         <CardContent>
           {statsQuery.isLoading ? (
@@ -130,14 +155,20 @@ function StatsPanel() {
             <div className="space-y-4">
               {/* 图例 */}
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-sky-400 inline-block" />页面访问</span>
                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-indigo-500 inline-block" />上传账单</span>
                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" />分享链接</span>
               </div>
               {/* 柱状图 */}
-              <div className="flex items-end gap-1 h-40">
+              <div className="flex items-end gap-0.5 h-40">
                 {chartData.map((d, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
                     <div className="w-full flex flex-col items-center gap-0.5">
+                      <div
+                        className="w-full bg-sky-400 rounded-t-sm min-h-[2px] transition-all"
+                        style={{ height: `${(d.pv / maxVal) * 120}px` }}
+                        title={`访问: ${d.pv}`}
+                      />
                       <div
                         className="w-full bg-indigo-500 rounded-t-sm min-h-[2px] transition-all"
                         style={{ height: `${(d.upload / maxVal) * 120}px` }}
@@ -153,7 +184,7 @@ function StatsPanel() {
                 ))}
               </div>
               {/* X 轴日期 */}
-              <div className="flex gap-1">
+              <div className="flex gap-0.5">
                 {chartData.map((d, i) => (
                   <div key={i} className="flex-1 text-center text-[9px] text-muted-foreground leading-tight">
                     {d.date}
@@ -176,6 +207,7 @@ function StatsPanel() {
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2 pr-4 font-medium text-muted-foreground">日期</th>
+                  <th className="text-right py-2 pr-4 font-medium text-muted-foreground">页面访问</th>
                   <th className="text-right py-2 pr-4 font-medium text-muted-foreground">上传次数</th>
                   <th className="text-right py-2 font-medium text-muted-foreground">分享次数</th>
                 </tr>
@@ -184,6 +216,7 @@ function StatsPanel() {
                 {chartData.map((d, i) => (
                   <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="py-2 pr-4 text-muted-foreground">{d.date}</td>
+                    <td className="py-2 pr-4 text-right font-medium">{d.pv || '-'}</td>
                     <td className="py-2 pr-4 text-right font-medium">{d.upload || '-'}</td>
                     <td className="py-2 text-right font-medium">{d.share || '-'}</td>
                   </tr>

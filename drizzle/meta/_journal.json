@@ -50,6 +50,13 @@
       "when": 1776223825099,
       "tag": "0006_cheerful_the_twelve",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1776224377286,
+      "tag": "0007_needy_argent",
+      "breakpoints": true
     }
   ]
 }
