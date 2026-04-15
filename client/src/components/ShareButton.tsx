@@ -34,6 +34,7 @@ export default function ShareButton({ reportData, customerName }: ShareButtonPro
   const [shareUrl, setShareUrl] = useState('');
   const [progress, setProgress] = useState(0);
   const createReportMutation = trpc.reports.create.useMutation();
+  const recordShareMutation = trpc.stats.recordShare.useMutation();
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -108,6 +109,8 @@ export default function ShareButton({ reportData, customerName }: ShareButtonPro
         clearInterval(progressInterval);
         setProgress(100);
         
+        // 记录分享次数
+        recordShareMutation.mutate();
         // 显示分享对话框
         setShowShareDialog(true);
         setShared(true);

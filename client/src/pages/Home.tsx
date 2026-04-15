@@ -182,7 +182,9 @@ export default function Home() {
 
       setAnalysisResult(analysis);
       setAllTransactions(allTransactions);
-      
+
+      // 记录上传次数（火起不需等待）
+      trpc.stats.recordUpload.mutate().catch(() => {});
 
       setProgressStage('done');
       setProgress(100);

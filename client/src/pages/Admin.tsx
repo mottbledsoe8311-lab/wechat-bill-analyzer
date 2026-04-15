@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Plus, Trash2, MapPin, Users, ArrowLeft, Shield, Lock } from 'lucide-react';
+import { Loader2, Plus, Trash2, MapPin, Users, ArrowLeft, Shield, Lock, BarChart2 } from 'lucide-react';
 import { Link } from 'wouter';
 
 // 密码哈希（SHA-256 of "308246"）
@@ -71,6 +71,128 @@ function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
           返回首页
         </Button>
       </Link>
+    </div>
+  );
+}
+
+function StatsPanel() {
+  const statsQuery = trpc.stats.getDaily.useQuery({ days: 14 });
+  const stats = statsQuery.data?.data || [];
+
+  // 生成近 14 天日期列表，空日期填 0
+  const last14Days = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - 13 + i);
+    return d.toISOString().slice(0, 10);
+  });
+
+  const statsMap = new Map(stats.map((s: any) => [s.date, s]));
+
+  const chartData = last14Days.map(date => ({
+    date: date.slice(5), // MM-DD
+    upload: statsMap.get(date)?.uploadCount || 0,
+    share: statsMap.get(date)?.shareCount || 0,
+  }));
+
+  const totalUpload = chartData.reduce((s, d) => s + d.upload, 0);
+  const totalShare = chartData.reduce((s, d) => s + d.share, 0);
+  const maxVal = Math.max(...chartData.map(d => Math.max(d.upload, d.share)), 1);
+
+  return (
+    <div className="space-y-6">
+      {/* 汇总卡片 */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">近 14 天上传总次数</p>
+            <p className="text-3xl font-bold mt-1">{totalUpload}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">近 14 天分享总次数</p>
+            <p className="text-3xl font-bold mt-1">{totalShare}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 每日柱状图 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">近 14 天每日统计</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {statsQuery.isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* 图例 */}
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-indigo-500 inline-block" />上传账单</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" />分享链接</span>
+              </div>
+              {/* 柱状图 */}
+              <div className="flex items-end gap-1 h-40">
+                {chartData.map((d, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                    <div className="w-full flex flex-col items-center gap-0.5">
+                      <div
+                        className="w-full bg-indigo-500 rounded-t-sm min-h-[2px] transition-all"
+                        style={{ height: `${(d.upload / maxVal) * 120}px` }}
+                        title={`上传: ${d.upload}`}
+                      />
+                      <div
+                        className="w-full bg-emerald-500 rounded-t-sm min-h-[2px] transition-all"
+                        style={{ height: `${(d.share / maxVal) * 120}px` }}
+                        title={`分享: ${d.share}`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* X 轴日期 */}
+              <div className="flex gap-1">
+                {chartData.map((d, i) => (
+                  <div key={i} className="flex-1 text-center text-[9px] text-muted-foreground leading-tight">
+                    {d.date}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 详细表格 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">详细数据</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 pr-4 font-medium text-muted-foreground">日期</th>
+                  <th className="text-right py-2 pr-4 font-medium text-muted-foreground">上传次数</th>
+                  <th className="text-right py-2 font-medium text-muted-foreground">分享次数</th>
+                </tr>
+              </thead>
+              <tbody>
+                {chartData.map((d, i) => (
+                  <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
+                    <td className="py-2 pr-4 text-muted-foreground">{d.date}</td>
+                    <td className="py-2 pr-4 text-right font-medium">{d.upload || '-'}</td>
+                    <td className="py-2 text-right font-medium">{d.share || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -150,8 +272,12 @@ function AdminPanel() {
       </nav>
 
       <div className="container py-8 max-w-4xl">
-        <Tabs defaultValue="footprint">
+        <Tabs defaultValue="stats">
           <TabsList className="mb-6">
+            <TabsTrigger value="stats" className="gap-2">
+              <BarChart2 className="w-4 h-4" />
+              数据统计
+            </TabsTrigger>
             <TabsTrigger value="footprint" className="gap-2">
               <MapPin className="w-4 h-4" />
               足迹关键词
@@ -169,6 +295,10 @@ function AdminPanel() {
           </TabsList>
 
           {/* 足迹关键词管理 */}
+          <TabsContent value="stats">
+            <StatsPanel />
+          </TabsContent>
+
           <TabsContent value="footprint">
             <div className="space-y-6">
               <Card>

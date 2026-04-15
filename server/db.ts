@@ -324,3 +324,57 @@ export async function deleteRepaymentKeyword(id: number): Promise<void> {
     throw error;
   }
 }
+
+// 每日统计相关查询
+import { dailyStats, type DailyStat } from "../drizzle/schema";
+import { sql as drizzleSql } from "drizzle-orm";
+
+// 获取当日日期字符串 YYYY-MM-DD
+function getTodayStr(): string {
+  const now = new Date();
+  return now.toISOString().slice(0, 10);
+}
+
+// 自增上传计数
+export async function incrementUploadCount(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const today = getTodayStr();
+  try {
+    await db.insert(dailyStats)
+      .values({ date: today, uploadCount: 1, shareCount: 0 })
+      .onDuplicateKeyUpdate({ set: { uploadCount: drizzleSql`uploadCount + 1` } });
+  } catch (error) {
+    console.error("[Database] Failed to increment upload count:", error);
+  }
+}
+
+// 自增分享计数
+export async function incrementShareCount(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const today = getTodayStr();
+  try {
+    await db.insert(dailyStats)
+      .values({ date: today, uploadCount: 0, shareCount: 1 })
+      .onDuplicateKeyUpdate({ set: { shareCount: drizzleSql`shareCount + 1` } });
+  } catch (error) {
+    console.error("[Database] Failed to increment share count:", error);
+  }
+}
+
+// 获取近 N 天的统计数据
+export async function getDailyStats(days: number = 14): Promise<DailyStat[]> {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    // 生成近 N 天的日期列表
+    const result = await db.select().from(dailyStats)
+      .orderBy(dailyStats.date);
+    // 返回最近 days 天的数据
+    return result.slice(-days);
+  } catch (error) {
+    console.error("[Database] Failed to get daily stats:", error);
+    return [];
+  }
+}

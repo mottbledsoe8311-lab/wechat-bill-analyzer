@@ -75,5 +75,17 @@ export const repaymentKeywords = mysqlTable("repaymentKeywords", {
 export type RepaymentKeyword = typeof repaymentKeywords.$inferSelect;
 export type InsertRepaymentKeyword = typeof repaymentKeywords.$inferInsert;
 
+// 每日统计表（上传账单数量 + 分享链接次数）
+export const dailyStats = mysqlTable("dailyStats", {
+  id: int("id").autoincrement().primaryKey(),
+  date: varchar("date", { length: 10 }).notNull().unique(), // 日期，格式：YYYY-MM-DD
+  uploadCount: int("uploadCount").default(0).notNull(), // 当日上传账单次数
+  shareCount: int("shareCount").default(0).notNull(),   // 当日分享链接次数
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DailyStat = typeof dailyStats.$inferSelect;
+export type InsertDailyStat = typeof dailyStats.$inferInsert;
+
 // 为了支持大型报表数据，我们需要使用 MEDIUMTEXT
 // 但 Drizzle 的 text() 默认生成 TEXT，需要在迁移后手动调整或使用原始 SQL

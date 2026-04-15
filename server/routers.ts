@@ -2,7 +2,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createReport, getReportById, saveRiskAccount, getRiskAccountByName, getAllRiskAccounts, getAllFootprintKeywords, saveFootprintKeyword, deleteFootprintKeyword, getAllRepaymentKeywords, saveRepaymentKeyword, deleteRepaymentKeyword } from "./db";
+import { createReport, getReportById, saveRiskAccount, getRiskAccountByName, getAllRiskAccounts, getAllFootprintKeywords, saveFootprintKeyword, deleteFootprintKeyword, getAllRepaymentKeywords, saveRepaymentKeyword, deleteRepaymentKeyword, incrementUploadCount, incrementShareCount, getDailyStats } from "./db";
 import { randomUUID } from "crypto";
 import { COOKIE_NAME } from "../shared/const";
 
@@ -268,6 +268,29 @@ export const appRouter = router({
         } catch (error: any) {
           throw new Error(error?.message || 'Failed to delete repayment keyword');
         }
+      }),
+  }),
+
+  // 每日统计路由
+  stats: router({
+    // 记录一次上传
+    recordUpload: publicProcedure
+      .mutation(async () => {
+        await incrementUploadCount();
+        return { success: true };
+      }),
+    // 记录一次分享
+    recordShare: publicProcedure
+      .mutation(async () => {
+        await incrementShareCount();
+        return { success: true };
+      }),
+    // 获取近 N 天统计（管理员用）
+    getDaily: publicProcedure
+      .input(z.object({ days: z.number().min(1).max(90).default(14) }))
+      .query(async ({ input }) => {
+        const data = await getDailyStats(input.days);
+        return { success: true, data };
       }),
   }),
 
