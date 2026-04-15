@@ -134,14 +134,7 @@ export default function LargeInflows({ inflows }: Props) {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                       <span className="tabular-nums">{formatDate(item.transaction.date)}</span>
-                      <span>·</span>
-                      <span>{item.transaction.type}</span>
-                      <span>·</span>
-                      <span>{item.transaction.method}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground/70 mt-1">
-                      位于所有收入的 Top {(100 - item.percentile).toFixed(0)}%
-                    </p>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
