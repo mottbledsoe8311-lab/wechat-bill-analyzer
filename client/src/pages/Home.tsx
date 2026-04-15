@@ -49,27 +49,21 @@ export default function Home() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
-   const [riskAccounts, setRiskAccounts] = useState<any[]>([]);
-  const [repaymentKeywords, setRepaymentKeywords] = useState<string[]>([]);
-  const reportRef = useRef<HTMLDivElement>(null);
+   const reportRef = useRef<HTMLDivElement>(null);
   const reportContentRef = useRef<HTMLDivElement>(null);
-  // 获取高风险账户列表和规律转账关键词
+
+  // 使用 React Query hooks 获取高风险账户列表和规律转账关键词
+  const riskAccountsQuery = trpc.riskAccounts.getAll.useQuery();
+  const repaymentKeywordsQuery = trpc.repaymentKeywords.getAll.useQuery();
+  const recordPvMutation = trpc.stats.recordPv.useMutation();
+
+  const riskAccounts = riskAccountsQuery.data?.data || [];
+  const repaymentKeywords = (repaymentKeywordsQuery.data?.data || []).map((k: any) => k.keyword);
+
+  // 静默记录页面访问量（PV），不影响 UI
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [riskRes, kwRes] = await Promise.all([
-          trpc.riskAccounts.getAll.query(),
-          trpc.repaymentKeywords.getAll.query(),
-        ]);
-        setRiskAccounts(riskRes.data || []);
-        setRepaymentKeywords((kwRes.data || []).map((k: any) => k.keyword));
-      } catch (error) {
-        console.error('Failed to fetch risk accounts or keywords:', error);
-      }
-    };
-    fetchData();
-    // 静默记录页面访问量（PV），不影响 UI
-    trpc.stats.recordPv.mutate().catch(() => {});
+    recordPvMutation.mutate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -88,23 +82,9 @@ export default function Home() {
     setProgressStage('parsing');
 
     try {
-      // 获取最新的高风险账户列表和规律转账关键词
-      let currentRiskAccounts = riskAccounts;
-      let currentRepaymentKeywords = repaymentKeywords;
-      if (!currentRiskAccounts || currentRiskAccounts.length === 0 || currentRepaymentKeywords.length === 0) {
-        try {
-          const [riskRes, kwRes] = await Promise.all([
-            trpc.riskAccounts.getAll.query(),
-            trpc.repaymentKeywords.getAll.query(),
-          ]);
-          currentRiskAccounts = riskRes.data || [];
-          currentRepaymentKeywords = (kwRes.data || []).map((k: any) => k.keyword);
-        } catch (error) {
-          console.error('Failed to fetch risk accounts or keywords:', error);
-          currentRiskAccounts = currentRiskAccounts || [];
-          currentRepaymentKeywords = currentRepaymentKeywords || [];
-        }
-      }
+      // 直接使用 hooks 获取的数据（已通过 React Query 自动加载）
+      const currentRiskAccounts = riskAccounts;
+      const currentRepaymentKeywords = repaymentKeywords;
       // 阶段1：解析PDF
       let allTransactions: ParseResult['transactions'] = [];
       let accountInfo: ParseResult['accountInfo'] | null = null;
