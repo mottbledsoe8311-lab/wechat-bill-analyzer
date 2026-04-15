@@ -222,9 +222,9 @@ export default function Home() {
         <div className="container flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
             <img 
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663269350406/SXgJ57d4GB9RBvAf3PYHaj/57da3f797bc6e8316f697d6b38c89a14_c3c1d23e.webp" 
-              alt="WeChat" 
-              className="w-8 h-8 rounded-lg"
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663269350406/SXgJ57d4GB9RBvAf3PYHaj/logo-orange_1e1f66fb.png" 
+              alt="大橙子" 
+              className="w-10 h-10 rounded-lg"
             />
             <span className="font-bold text-lg tracking-tight" style={{ color: '#ff8800' }}>大橙子账单分析系统</span>
           </div>
