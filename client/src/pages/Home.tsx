@@ -56,6 +56,7 @@ export default function Home() {
   const riskAccountsQuery = trpc.riskAccounts.getAll.useQuery();
   const repaymentKeywordsQuery = trpc.repaymentKeywords.getAll.useQuery();
   const recordPvMutation = trpc.stats.recordPv.useMutation();
+  const recordUploadMutation = trpc.stats.recordUpload.useMutation();
 
   const riskAccounts = riskAccountsQuery.data?.data || [];
   const repaymentKeywords = (repaymentKeywordsQuery.data?.data || []).map((k: any) => k.keyword);
@@ -166,7 +167,7 @@ export default function Home() {
       setAllTransactions(allTransactions);
 
       // 记录上传次数（火起不需等待）
-      trpc.stats.recordUpload.mutate().catch(() => {});
+      recordUploadMutation.mutate();
 
       setProgressStage('done');
       setProgress(100);
