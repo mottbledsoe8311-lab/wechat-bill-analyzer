@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatDate, type RegularTransferGroup } from '@/lib/analyzer';
-import { ChevronDown, Clock, AlertTriangle, Repeat, TrendingDown, TrendingUp, ShieldAlert, Settings, Plus, Trash2, X, ChevronUp } from 'lucide-react';
+import { ChevronDown, Clock, AlertTriangle, Repeat, TrendingDown, TrendingUp, ShieldAlert, Settings, Plus, X, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,26 +28,12 @@ const riskConfig = {
 // 内联关键词管理面板
 function RepaymentKeywordManager({ onClose }: { onClose: () => void }) {
   const [newKeyword, setNewKeyword] = useState('');
-  const utils = trpc.useUtils();
-
-  const { data, isLoading } = trpc.repaymentKeywords.getAll.useQuery();
-  const keywords = data?.data || [];
-
   const saveMutation = trpc.repaymentKeywords.save.useMutation({
     onSuccess: () => {
-      utils.repaymentKeywords.getAll.invalidate();
       setNewKeyword('');
-      toast.success('关键词已保存，生成时将自动识别包含该关键词的账户');
+      toast.success('关键词已成功添加！');
     },
-    onError: (err) => toast.error('保存失败：' + err.message),
-  });
-
-  const deleteMutation = trpc.repaymentKeywords.delete.useMutation({
-    onSuccess: () => {
-      utils.repaymentKeywords.getAll.invalidate();
-      toast.success('已删除');
-    },
-    onError: (err) => toast.error('删除失败：' + err.message),
+    onError: (err) => toast.error('添加失败：' + err.message),
   });
 
   const handleAdd = () => {
@@ -70,11 +56,11 @@ function RepaymentKeywordManager({ onClose }: { onClose: () => void }) {
         </button>
       </div>
       <p className="text-xs text-muted-foreground mb-3">
-        上传关键词至数据库，生成时将自动识别包含这些关键词的账户，展示在本模块（不区分收支方向）
+        添加关键词后，生成时将自动识别包含该关键词的账户，展示在本模块（不区分收支方向）
       </p>
 
       {/* 添加新关键词 */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2">
         <Input
           value={newKeyword}
           onChange={e => setNewKeyword(e.target.value)}
@@ -92,33 +78,6 @@ function RepaymentKeywordManager({ onClose }: { onClose: () => void }) {
           添加
         </Button>
       </div>
-
-      {/* 已有关键词列表 */}
-      {isLoading ? (
-        <p className="text-xs text-muted-foreground text-center py-2">加载中...</p>
-      ) : keywords.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-2">暂无自定义关键词</p>
-      ) : (
-        <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-          {keywords.map((kw: any) => (
-            <div
-              key={kw.id}
-              className="flex items-center gap-1 bg-background border border-border rounded-full px-2.5 py-1 text-xs"
-            >
-              <span className="text-foreground">{kw.keyword}</span>
-              {kw.description && (
-                <span className="text-muted-foreground text-[10px]">({kw.description})</span>
-              )}
-              <button
-                onClick={() => deleteMutation.mutate({ id: kw.id })}
-                className="ml-0.5 text-muted-foreground hover:text-destructive transition-colors"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
     </motion.div>
   );
 }

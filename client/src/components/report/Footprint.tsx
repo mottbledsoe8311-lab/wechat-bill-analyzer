@@ -6,7 +6,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Building2, Car, Settings, Plus, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, Building2, Car, Settings, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -139,26 +139,12 @@ function TimeFilterBar({ value, onChange }: { value: TimeFilter; onChange: (v: T
 function KeywordManager({ onClose }: { onClose: () => void }) {
   const [newKeyword, setNewKeyword] = useState('');
   const [newCategory, setNewCategory] = useState('parking');
-  const utils = trpc.useUtils();
-
-  const { data, isLoading } = trpc.footprintKeywords.getAll.useQuery();
-  const keywords = data?.data || [];
-
   const saveMutation = trpc.footprintKeywords.save.useMutation({
     onSuccess: () => {
-      utils.footprintKeywords.getAll.invalidate();
       setNewKeyword('');
-      toast.success('关键词已保存，生成时将自动识别');
+      toast.success('关键词已成功添加！');
     },
-    onError: (err) => toast.error('保存失败：' + err.message),
-  });
-
-  const deleteMutation = trpc.footprintKeywords.delete.useMutation({
-    onSuccess: () => {
-      utils.footprintKeywords.getAll.invalidate();
-      toast.success('已删除');
-    },
-    onError: (err) => toast.error('删除失败：' + err.message),
+    onError: (err) => toast.error('添加失败：' + err.message),
   });
 
   const handleAdd = () => {
@@ -181,11 +167,11 @@ function KeywordManager({ onClose }: { onClose: () => void }) {
         </button>
       </div>
       <p className="text-xs text-muted-foreground mb-3">
-        上传关键词至数据库，生成时将自动识别包含这些关键词的交易
+        添加关键词后，生成时将自动识别包含该关键词的交易
       </p>
 
       {/* 添加新关键词 */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2">
         <Input
           value={newKeyword}
           onChange={e => setNewKeyword(e.target.value)}
@@ -213,31 +199,6 @@ function KeywordManager({ onClose }: { onClose: () => void }) {
           添加
         </Button>
       </div>
-
-      {/* 已有关键词列表 */}
-      {isLoading ? (
-        <p className="text-xs text-muted-foreground text-center py-2">加载中...</p>
-      ) : keywords.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-2">暂无自定义关键词</p>
-      ) : (
-        <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-          {keywords.map((kw: any) => (
-            <div
-              key={kw.id}
-              className="flex items-center gap-1 bg-background border border-border rounded-full px-2.5 py-1 text-xs"
-            >
-              <span className="text-muted-foreground">[{CATEGORY_LABELS[kw.category] || kw.category}]</span>
-              <span className="text-foreground">{kw.keyword}</span>
-              <button
-                onClick={() => deleteMutation.mutate({ id: kw.id })}
-                className="ml-0.5 text-muted-foreground hover:text-destructive transition-colors"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
     </motion.div>
   );
 }
