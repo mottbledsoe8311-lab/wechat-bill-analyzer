@@ -84,18 +84,27 @@ function classifyTransaction(
   customKeywords: { parking: string[]; property: string[]; transit: string[] }
 ): 'parking' | 'property' | 'transit' | 'other' | null {
   const text = `${tx.counterpart} ${tx.type}`.toLowerCase();
-  const allParking = [...PARKING_KEYWORDS, ...customKeywords.parking];
-  const allProperty = [...PROPERTY_KEYWORDS, ...customKeywords.property];
-  const allTransit = [...TRANSIT_KEYWORDS, ...customKeywords.transit];
 
-  if (tx.direction !== '支出' && tx.direction !== '支') return null;
-  for (const kw of allParking) {
+  // 数据库自定义关键词：不限制收支方向，优先匹配
+  for (const kw of customKeywords.parking) {
     if (kw && text.includes(kw.toLowerCase())) return 'parking';
   }
-  for (const kw of allProperty) {
+  for (const kw of customKeywords.property) {
     if (kw && text.includes(kw.toLowerCase())) return 'property';
   }
-  for (const kw of allTransit) {
+  for (const kw of customKeywords.transit) {
+    if (kw && text.includes(kw.toLowerCase())) return 'transit';
+  }
+
+  // 内置关键词：仅匹配支出方向
+  if (tx.direction !== '支出' && tx.direction !== '支') return null;
+  for (const kw of PARKING_KEYWORDS) {
+    if (kw && text.includes(kw.toLowerCase())) return 'parking';
+  }
+  for (const kw of PROPERTY_KEYWORDS) {
+    if (kw && text.includes(kw.toLowerCase())) return 'property';
+  }
+  for (const kw of TRANSIT_KEYWORDS) {
     if (kw && text.includes(kw.toLowerCase())) return 'transit';
   }
   return null;
