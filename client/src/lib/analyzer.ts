@@ -611,9 +611,16 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
   const dailyRegularTransfers = detectDailyRegularTransfers(transactions);
   results.push(...dailyRegularTransfers);
 
+  // 过滤规律转账：需要满足 规律度>=51% 或 平均金额>=7000
+  const filtered = results.filter(group => {
+    const meetsConfidenceThreshold = group.confidence >= 0.51;
+    const meetsAmountThreshold = group.avgAmount >= 7000;
+    return meetsConfidenceThreshold || meetsAmountThreshold;
+  });
+
   // 按风险等级排序（高风险优先），再按置信度排序
   const riskOrder = { high: 0, medium: 1, low: 2 };
-  return results.sort((a, b) => {
+  return filtered.sort((a, b) => {
     if (riskOrder[a.riskLevel] !== riskOrder[b.riskLevel]) {
       return riskOrder[a.riskLevel] - riskOrder[b.riskLevel];
     }
