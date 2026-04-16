@@ -28,9 +28,11 @@ const riskConfig = {
 // 内联关键词管理面板
 function RepaymentKeywordManager({ onClose }: { onClose: () => void }) {
   const [newKeyword, setNewKeyword] = useState('');
+  const [addedCount, setAddedCount] = useState(0);
   const saveMutation = trpc.repaymentKeywords.save.useMutation({
     onSuccess: () => {
       setNewKeyword('');
+      setAddedCount(prev => prev + 1);
       toast.success('关键词已成功添加！');
     },
     onError: (err) => toast.error('添加失败：' + err.message),
@@ -39,6 +41,14 @@ function RepaymentKeywordManager({ onClose }: { onClose: () => void }) {
   const handleAdd = () => {
     const kw = newKeyword.trim();
     if (!kw) return toast.error('请输入关键词');
+    
+    // 检测是否与内置关键词重复
+    const builtinKeywords = ['个人', '转账', '汇款'];
+    const isDuplicate = builtinKeywords.some(k => k.toLowerCase() === kw.toLowerCase());
+    if (isDuplicate) {
+      return toast.error('该关键词已内置，无需重复添加');
+    }
+    
     saveMutation.mutate({ keyword: kw });
   };
 
@@ -58,6 +68,11 @@ function RepaymentKeywordManager({ onClose }: { onClose: () => void }) {
       <p className="text-xs text-muted-foreground mb-3">
         添加关键词后，生成时将自动识别包含该关键词的账户，展示在本模块（不区分收支方向）
       </p>
+      {addedCount > 0 && (
+        <p className="text-xs text-emerald-ok font-medium mb-3">
+          已添加 {addedCount} 个关键词
+        </p>
+      )}
 
       {/* 添加新关键词 */}
       <div className="flex gap-2">

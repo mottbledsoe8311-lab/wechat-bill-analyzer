@@ -148,9 +148,11 @@ function TimeFilterBar({ value, onChange }: { value: TimeFilter; onChange: (v: T
 function KeywordManager({ onClose }: { onClose: () => void }) {
   const [newKeyword, setNewKeyword] = useState('');
   const [newCategory, setNewCategory] = useState('parking');
+  const [addedCount, setAddedCount] = useState(0);
   const saveMutation = trpc.footprintKeywords.save.useMutation({
     onSuccess: () => {
       setNewKeyword('');
+      setAddedCount(prev => prev + 1);
       toast.success('关键词已成功添加！');
     },
     onError: (err) => toast.error('添加失败：' + err.message),
@@ -159,6 +161,14 @@ function KeywordManager({ onClose }: { onClose: () => void }) {
   const handleAdd = () => {
     const kw = newKeyword.trim();
     if (!kw) return toast.error('请输入关键词');
+    
+    // 检测是否与内置关键词重复
+    const allBuiltinKeywords = [...PARKING_KEYWORDS, ...PROPERTY_KEYWORDS, ...TRANSIT_KEYWORDS];
+    const isDuplicate = allBuiltinKeywords.some(k => k.toLowerCase() === kw.toLowerCase());
+    if (isDuplicate) {
+      return toast.error('该关键词已内置，无需重复添加');
+    }
+    
     saveMutation.mutate({ keyword: kw, category: newCategory });
   };
 
@@ -178,6 +188,11 @@ function KeywordManager({ onClose }: { onClose: () => void }) {
       <p className="text-xs text-muted-foreground mb-3">
         添加关键词后，生成时将自动识别包含该关键词的交易
       </p>
+      {addedCount > 0 && (
+        <p className="text-xs text-emerald-ok font-medium mb-3">
+          已添加 {addedCount} 个关键词
+        </p>
+      )}
 
       {/* 添加新关键词 */}
       <div className="flex gap-2">
