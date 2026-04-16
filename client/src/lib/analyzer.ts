@@ -184,18 +184,26 @@ export async function analyzeTransactions(
         if (relatedTxs.length > 0) {
           const totalAmount = relatedTxs.reduce((sum, t) => sum + t.amount, 0);
           const avgAmount = totalAmount / relatedTxs.length;
-          regularTransfers.push({
-            counterpart,
-            direction: '支出',
-            pattern: '关键词匹配',
-            intervalDays: 0,
-            avgAmount,
-            totalAmount,
-            transactions: relatedTxs,
-            confidence: 0,
-            riskLevel: 'high',
-            isSuspectedRepayment: true,
-          });
+          
+          // 关键词匹配需要满足：规律度>=51% 或 平均金额>=7000
+          const meetsConfidenceThreshold = 0.51 >= 0.51; // 关键词匹配默认置信度为0，不满足
+          const meetsAmountThreshold = avgAmount >= 7000;
+          
+          // 只有满足条件才添加到规律转账列表
+          if (meetsAmountThreshold) {
+            regularTransfers.push({
+              counterpart,
+              direction: '支出',
+              pattern: '关键词匹配',
+              intervalDays: 0,
+              avgAmount,
+              totalAmount,
+              transactions: relatedTxs,
+              confidence: 0,
+              riskLevel: 'high',
+              isSuspectedRepayment: true,
+            });
+          }
         }
       }
     }
@@ -611,16 +619,9 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
   const dailyRegularTransfers = detectDailyRegularTransfers(transactions);
   results.push(...dailyRegularTransfers);
 
-  // 过滤规律转账：需要满足 规律度>=51% 或 平均金额>=7000
-  const filtered = results.filter(group => {
-    const meetsConfidenceThreshold = group.confidence >= 0.51;
-    const meetsAmountThreshold = group.avgAmount >= 7000;
-    return meetsConfidenceThreshold || meetsAmountThreshold;
-  });
-
   // 按风险等级排序（高风险优先），再按置信度排序
   const riskOrder = { high: 0, medium: 1, low: 2 };
-  return filtered.sort((a, b) => {
+  return results.sort((a, b) => {
     if (riskOrder[a.riskLevel] !== riskOrder[b.riskLevel]) {
       return riskOrder[a.riskLevel] - riskOrder[b.riskLevel];
     }
