@@ -201,7 +201,7 @@ function parseTransactionFromText(line: string): Transaction | null {
   
   // 模式1: 完整格式，以长数字订单号开头
   // 改进：使用更宽松的字符集，使用 .+? 匹配仪一些非数字字符以外的任何字符
-  const fullPattern = /^(\d{15,32})\s+(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?)\s+(.+?)\s+(收入|支出|其他|收|支|不计收支)\s+(.+?)\s+([\d¥￥,.]+)\s+(.+?)(?:\s+(.*))?$/
+  const fullPattern = /^(\d{15,32})\s+(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?)\s+([\s\S]+?)\s+(收入|支出|其他|收|支|不计收支)\s+([\s\S]+?)\s+([\d¥￥,.]+)\s+([\s\S]+?)(?:\s+(.*))?$/
   
   let match = cleaned.match(fullPattern);
   if (match) {
@@ -223,7 +223,7 @@ function parseTransactionFromText(line: string): Transaction | null {
 
   // 模式2: 没有订单号开头，但有日期
   // 改进：使用更宽松的字符集
-  const dateFirstPattern = /^(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?)\s+(.+?)\s+(收入|支出|其他|收|支|不计收支)\s+(.+?)\s+([\d¥￥,.]+)\s+(.+?)(?:\s+(.*))?$/
+  const dateFirstPattern = /^(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?)\s+([\s\S]+?)\s+(收入|支出|其他|收|支|不计收支)\s+([\s\S]+?)\s+([\d¥￥,.]+)\s+([\s\S]+?)(?:\s+(.*))?$/
   
   match = cleaned.match(dateFirstPattern);
   if (match) {

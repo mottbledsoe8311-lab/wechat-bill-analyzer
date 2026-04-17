@@ -188,15 +188,14 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                   <colgroup>
                     <col style={{ width: '34%' }} />
                     <col style={{ width: '26%' }} />
-                    <col style={{ width: '26%' }} />
-                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '30%' }} />
+                    <col style={{ width: '20%' }} />
                   </colgroup>
                   <thead>
                     <tr className="border-b border-border">
                       <th className="text-left py-2 pr-1 font-medium text-muted-foreground">日期时间</th>
                       <th className="text-left py-2 pr-1 font-medium text-muted-foreground">类型</th>
                       <th className="text-right py-2 pr-1 font-medium text-muted-foreground">金额</th>
-                      <th className="text-center py-2 font-medium text-muted-foreground">收/支</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -205,9 +204,6 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                         <td className="py-1.5 pr-1 text-muted-foreground tabular-nums whitespace-nowrap overflow-hidden text-ellipsis">{format(tx.date, 'yy-MM-dd HH:mm')}</td>
                         <td className="py-1.5 pr-1 overflow-hidden text-ellipsis whitespace-nowrap">{tx.type}</td>
                         <td className="py-1.5 pr-1 text-right font-medium tabular-nums overflow-hidden text-ellipsis">{formatCurrency(tx.amount)}</td>
-                        <td className={`py-1.5 text-center font-medium ${tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'}`}>
-                          {tx.direction === '收入' || tx.direction === '收' ? '收' : '支'}
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -347,7 +343,6 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                                   <th className="text-left py-1 pr-1 font-medium">日期</th>
                                   <th className="text-left py-1 pr-1 font-medium">类型</th>
                                   <th className="text-right py-1 pr-1 font-medium">金额</th>
-                                  <th className="text-center py-1 font-medium">收/支</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -359,11 +354,6 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                                       tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'
                                     }`}>
                                       {tx.direction === '收入' || tx.direction === '收' ? '+' : '-'}{formatCurrency(tx.amount)}
-                                    </td>
-                                    <td className={`py-0.5 text-center font-medium ${
-                                      tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'
-                                    }`}>
-                                      {tx.direction === '收入' || tx.direction === '收' ? '收' : '支'}
                                     </td>
                                   </tr>
                                 ))}

@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, index } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -90,3 +90,18 @@ export type InsertDailyStat = typeof dailyStats.$inferInsert;
 
 // 为了支持大型报表数据，我们需要使用 MEDIUMTEXT
 // 但 Drizzle 的 text() 默认生成 TEXT，需要在迁移后手动调整或使用原始 SQL
+// 访客追踪表 - 记录每个访客的上传和访问行为
+export const visitorStats = mysqlTable("visitorStats", {
+  id: int("id").autoincrement().primaryKey(),
+  visitorId: varchar("visitorId", { length: 64 }).notNull().unique(), // 访客唯一标识（浏览器指纹或localStorage ID）
+  date: varchar("date", { length: 10 }).notNull(), // 日期，格式：YYYY-MM-DD
+  visitCount: int("visitCount").default(1).notNull(), // 当天访问次数
+  uploadCount: int("uploadCount").default(0).notNull(), // 当天上传文件次数
+  lastVisitAt: timestamp("lastVisitAt").defaultNow().notNull(), // 最后访问时间
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  dateVisitorIdx: index("dateVisitorIdx").on(table.date, table.visitorId),
+}));
+
+export type VisitorStat = typeof visitorStats.$inferSelect;
+export type InsertVisitorStat = typeof visitorStats.$inferInsert;

@@ -57,6 +57,13 @@
       "when": 1776224377286,
       "tag": "0007_needy_argent",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1776442111398,
+      "tag": "0008_black_the_stranger",
+      "breakpoints": true
     }
   ]
 }

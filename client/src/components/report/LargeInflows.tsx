@@ -24,6 +24,7 @@ const TIME_RANGE_OPTIONS: { key: TimeRange; label: string }[] = [
 
 export default function LargeInflows({ inflows }: Props) {
   const [timeRange, setTimeRange] = useState<TimeRange>('3months');
+  const [sortBy, setSortBy] = useState<'time' | 'amount'>('time');
 
   const filteredInflows = useMemo(() => {
     const end = new Date();
@@ -33,13 +34,20 @@ export default function LargeInflows({ inflows }: Props) {
     else if (timeRange === '6months') start.setMonth(start.getMonth() - 6);
     else start.setFullYear(1970);
 
-    return inflows
+    let sorted = inflows
       .filter(item => {
         const d = item.transaction.date;
         return d >= start && d <= end;
-      })
-      .sort((a, b) => b.transaction.date.getTime() - a.transaction.date.getTime());
-  }, [inflows, timeRange]);
+      });
+    
+    if (sortBy === 'time') {
+      sorted.sort((a, b) => b.transaction.date.getTime() - a.transaction.date.getTime());
+    } else {
+      sorted.sort((a, b) => b.transaction.amount - a.transaction.amount);
+    }
+    
+    return sorted;
+  }, [inflows, timeRange, sortBy]);
 
   if (inflows.length === 0) {
     return (
@@ -74,111 +82,86 @@ export default function LargeInflows({ inflows }: Props) {
       </div>
 
       {/* 时间范围选择器 */}
-      <div className="flex items-center gap-2 mb-6">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mr-1">
-          <Calendar className="w-3.5 h-3.5" />
-          <span>时间范围</span>
-        </div>
-        <div className="flex gap-1 bg-muted/60 rounded-lg p-1">
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>时间范围</span>
+          </div>
           {TIME_RANGE_OPTIONS.map(opt => (
             <button
               key={opt.key}
               onClick={() => setTimeRange(opt.key)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              className={`px-3 py-1 text-xs rounded-md transition-colors ${
                 timeRange === opt.key
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-indigo text-white'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}
             >
               {opt.label}
             </button>
           ))}
         </div>
+        
+        {/* 排序按钮 */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">排序：</span>
+          <button
+            onClick={() => setSortBy('time')}
+            className={`px-3 py-1.5 text-xs rounded-md transition-colors font-medium ${
+              sortBy === 'time'
+                ? 'bg-indigo text-white'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            按时间
+          </button>
+          <button
+            onClick={() => setSortBy('amount')}
+            className={`px-3 py-1.5 text-xs rounded-md transition-colors font-medium ${
+              sortBy === 'amount'
+                ? 'bg-indigo text-white'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            按金额
+          </button>
+        </div>
       </div>
 
-      {filteredInflows.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <TrendingUp className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">该时间范围内未检测到大额入账</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredInflows.map((item, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.04 * index }}
-              className={`rounded-xl border p-4 ${
-                item.isUnusual
-                  ? 'border-amber-warn/30 bg-amber-warn/5'
-                  : 'border-border bg-muted/20'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                    item.isUnusual ? 'bg-amber-warn/15' : 'bg-emerald-ok/10'
-                  }`}>
-                    <ArrowDownLeft className={`w-4.5 h-4.5 ${item.isUnusual ? 'text-amber-warn' : 'text-emerald-ok'}`} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-semibold text-sm">{item.transaction.counterpart || '未知来源'}</span>
-                      {item.isUnusual && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-amber-warn border-amber-warn/30">
-                          <AlertCircle className="w-2.5 h-2.5 mr-0.5" />
-                          异常金额
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                      <span className="tabular-nums">{formatDate(item.transaction.date)}</span>
-                    </div>
-                  </div>
+      {/* 大额入账卡片列表 */}
+      <div className="space-y-3">
+        {filteredInflows.map((item, idx) => (
+          <motion.div
+            key={`${item.transaction.date.getTime()}-${idx}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.05 }}
+            className="bg-card border border-border rounded-lg p-4 hover:border-indigo/50 transition-colors"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-semibold text-foreground">{item.transaction.counterpart}</span>
+                  {item.isUnusual && (
+                    <Badge variant="destructive" className="text-xs">异常</Badge>
+                  )}
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-xl font-bold tabular-nums text-emerald-ok leading-none">
-                    +{formatCurrency(item.transaction.amount)}
-                  </p>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span>{formatDate(item.transaction.date)}</span>
+                  <span>•</span>
+                  <span>百分位：{Math.round(item.percentile)}%</span>
                 </div>
               </div>
-
-              {item.relatedOutflows.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-border/50">
-                  <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-                    入账后续 {item.relatedOutflows.length} 笔交易
-                  </p>
-                  <div className="space-y-1">
-                    {item.relatedOutflows.map((tx, i) => {
-                      const isIncome = tx.direction === '收入' || tx.direction === '收';
-                      return (
-                        <div key={i} className="flex justify-between items-center text-xs gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className={`shrink-0 text-[10px] px-1 py-0.5 rounded font-medium ${
-                              isIncome ? 'bg-emerald-ok/10 text-emerald-ok' : 'bg-destructive/10 text-destructive'
-                            }`}>
-                              {isIncome ? '收' : '支'}
-                            </span>
-                            <span className="text-muted-foreground break-words">
-                              {formatDate(tx.date)} · {tx.counterpart || '未知'}
-                            </span>
-                          </div>
-                          <span className={`tabular-nums font-semibold shrink-0 ${
-                            isIncome ? 'text-emerald-ok' : 'text-destructive'
-                          }`}>
-                            {isIncome ? '+' : '-'}{formatCurrency(tx.amount)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-green-600">
+                  +{formatCurrency(item.transaction.amount)}
                 </div>
-              )}
-            </motion.div>
-          ))}
-        </div>
-      )}
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
     </motion.section>
   );
 }
