@@ -1,6 +1,6 @@
 import { eq, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, reports, riskAccounts, type InsertReport, type Report, type RiskAccount, type InsertRiskAccount } from "../drizzle/schema";
+import { InsertUser, users, reports, riskAccounts, type InsertReport, type Report, type RiskAccount, type InsertRiskAccount, visitorStats, type VisitorStat, type InsertVisitorStat } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -178,7 +178,7 @@ export async function deleteExpiredReports(): Promise<void> {
 
   try {
     const now = new Date();
-    await db.delete(reports).where(gt(now, reports.expiresAt));
+    await db.delete(reports).where(gt(reports.expiresAt, now));
   } catch (error) {
     console.error("[Database] Failed to delete expired reports:", error);
   }
@@ -390,5 +390,139 @@ export async function getDailyStats(days: number = 14): Promise<DailyStat[]> {
   } catch (error) {
     console.error("[Database] Failed to get daily stats:", error);
     return [];
+  }
+}
+
+// 访客统计相关函数
+export async function recordVisitorUpload(visitorId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const today = getTodayStr();
+  try {
+    await db.insert(visitorStats)
+      .values({ 
+        visitorId, 
+        date: today, 
+        visitCount: 0, 
+        uploadCount: 1,
+        lastVisitAt: new Date(),
+      })
+      .onDuplicateKeyUpdate({ 
+        set: { 
+          uploadCount: drizzleSql`uploadCount + 1`,
+          lastVisitAt: new Date(),
+        } 
+      });
+  } catch (error) {
+    console.error("[Database] Failed to record visitor upload:", error);
+  }
+}
+
+export async function recordVisitorVisit(visitorId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const today = getTodayStr();
+  try {
+    await db.insert(visitorStats)
+      .values({ 
+        visitorId, 
+        date: today, 
+        visitCount: 1, 
+        uploadCount: 0,
+        lastVisitAt: new Date(),
+      })
+      .onDuplicateKeyUpdate({ 
+        set: { 
+          visitCount: drizzleSql`visitCount + 1`,
+          lastVisitAt: new Date(),
+        } 
+      });
+  } catch (error) {
+    console.error("[Database] Failed to record visitor visit:", error);
+  }
+}
+
+// 获取访客统计数据（按日期和访客ID分组）
+export async function getVisitorStats(days: number = 14): Promise<Array<{
+  date: string;
+  uniqueVisitors: number;
+  totalVisits: number;
+  totalUploads: number;
+}>> {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    const result = await db.select().from(visitorStats)
+      .orderBy(visitorStats.date);
+    
+    // 按日期分组统计
+    const grouped = new Map<string, {
+      uniqueVisitors: Set<string>;
+      totalVisits: number;
+      totalUploads: number;
+    }>();
+
+    result.forEach(row => {
+      if (!grouped.has(row.date)) {
+        grouped.set(row.date, {
+          uniqueVisitors: new Set(),
+          totalVisits: 0,
+          totalUploads: 0,
+        });
+      }
+      const stats = grouped.get(row.date)!;
+      stats.uniqueVisitors.add(row.visitorId);
+      stats.totalVisits += row.visitCount;
+      stats.totalUploads += row.uploadCount;
+    });
+
+    // 转换为数组格式，返回最近days天
+    const output = Array.from(grouped.entries())
+      .map(([date, stats]) => ({
+        date,
+        uniqueVisitors: stats.uniqueVisitors.size,
+        totalVisits: stats.totalVisits,
+        totalUploads: stats.totalUploads,
+      }))
+      .slice(-days);
+
+    return output;
+  } catch (error) {
+    console.error("[Database] Failed to get visitor stats:", error);
+    return [];
+  }
+}
+
+// 获取总体访客统计摘要
+export async function getVisitorSummary(days: number = 14): Promise<{
+  totalUniqueVisitors: number;
+  totalVisits: number;
+  totalUploads: number;
+}> {
+  const db = await getDb();
+  if (!db) return { totalUniqueVisitors: 0, totalVisits: 0, totalUploads: 0 };
+  try {
+    const result = await db.select().from(visitorStats)
+      .orderBy(visitorStats.date);
+
+    // 计算最近days天的统计
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffStr = cutoffDate.toISOString().slice(0, 10);
+
+    const recentData = result.filter(row => row.date >= cutoffStr);
+
+    const uniqueVisitors = new Set(recentData.map(row => row.visitorId));
+    const totalVisits = recentData.reduce((sum, row) => sum + row.visitCount, 0);
+    const totalUploads = recentData.reduce((sum, row) => sum + row.uploadCount, 0);
+
+    return {
+      totalUniqueVisitors: uniqueVisitors.size,
+      totalVisits,
+      totalUploads,
+    };
+  } catch (error) {
+    console.error("[Database] Failed to get visitor summary:", error);
+    return { totalUniqueVisitors: 0, totalVisits: 0, totalUploads: 0 };
   }
 }
