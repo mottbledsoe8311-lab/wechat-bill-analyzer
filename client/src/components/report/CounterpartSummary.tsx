@@ -333,10 +333,9 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                             })()}
                             <table className="w-full text-[11px]" style={{ tableLayout: 'fixed' }}>
                               <colgroup>
-                                <col style={{ width: '34%' }} />
                                 <col style={{ width: '30%' }} />
-                                <col style={{ width: '30%' }} />
-                                <col style={{  }} />
+                                <col style={{ width: '25%' }} />
+                                <col style={{ width: '45%' }} />
                               </colgroup>
                               <thead>
                                 <tr className="text-muted-foreground border-b border-indigo/10">
