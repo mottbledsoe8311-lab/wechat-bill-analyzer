@@ -439,7 +439,7 @@ export default function Home() {
                 <div id="monthly"><MonthlyChart data={analysisResult?.monthlyBreakdown || []} /></div>
                 <div id="regular"><RegularTransfers groups={analysisResult?.regularTransfers || []} allTransactions={allTransactions} /></div>
                 <div id="repayment"><RepaymentTracking records={analysisResult?.repaymentTracking || []} /></div>
-                <div id="inflows"><LargeInflows inflows={analysisResult?.largeInflows || []} /></div>
+                <div id="inflows"><LargeInflows inflows={analysisResult?.largeInflows || []} allTransactions={allTransactions} /></div>
                 <div id="footprint"><Footprint allTransactions={allTransactions} /></div>
                 <div id="counterpart"><CounterpartSummary data={analysisResult?.counterpartSummary || []} allTransactions={allTransactions} /></div>
 

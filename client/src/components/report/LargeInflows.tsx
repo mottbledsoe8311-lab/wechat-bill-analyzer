@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 
 interface Props {
   inflows: LargeInflow[];
+  allTransactions?: any[];
 }
 
 type TimeRange = '1month' | '3months' | '6months' | 'all';
@@ -37,7 +38,7 @@ export default function LargeInflows({ inflows }: Props) {
     let sorted = inflows
       .filter(item => {
         const d = item.transaction.date;
-        return d >= start && d <= end;
+        return d >= start && d <= end && item.transaction.amount >= 6500;
       });
     
     if (sortBy === 'time') {
@@ -92,10 +93,10 @@ export default function LargeInflows({ inflows }: Props) {
             <button
               key={opt.key}
               onClick={() => setTimeRange(opt.key)}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+              className={`px-3 py-1 text-xs rounded-md transition-all font-medium ${
                 timeRange === opt.key
-                  ? 'bg-indigo text-white'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  ? 'bg-blue-500 text-white shadow-md hover:shadow-lg'
+                  : 'bg-blue-500/10 text-blue-600 border border-blue-500/30 hover:bg-blue-500/20'
               }`}
             >
               {opt.label}
@@ -108,20 +109,20 @@ export default function LargeInflows({ inflows }: Props) {
           <span className="text-xs text-muted-foreground">排序：</span>
           <button
             onClick={() => setSortBy('time')}
-            className={`px-3 py-1.5 text-xs rounded-md transition-colors font-medium ${
+            className={`px-3 py-1.5 text-xs rounded-md transition-all font-medium ${
               sortBy === 'time'
-                ? 'bg-indigo text-white'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'bg-blue-500 text-white shadow-md hover:shadow-lg'
+                : 'bg-blue-500/10 text-blue-600 border border-blue-500/30 hover:bg-blue-500/20'
             }`}
           >
             按时间
           </button>
           <button
             onClick={() => setSortBy('amount')}
-            className={`px-3 py-1.5 text-xs rounded-md transition-colors font-medium ${
+            className={`px-3 py-1.5 text-xs rounded-md transition-all font-medium ${
               sortBy === 'amount'
-                ? 'bg-indigo text-white'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'bg-blue-500 text-white shadow-md hover:shadow-lg'
+                : 'bg-blue-500/10 text-blue-600 border border-blue-500/30 hover:bg-blue-500/20'
             }`}
           >
             按金额
@@ -139,7 +140,7 @@ export default function LargeInflows({ inflows }: Props) {
             transition={{ delay: idx * 0.05 }}
             className="bg-card border border-border rounded-lg p-4 hover:border-indigo/50 transition-colors"
           >
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm font-semibold text-foreground">{item.transaction.counterpart}</span>
@@ -159,6 +160,36 @@ export default function LargeInflows({ inflows }: Props) {
                 </div>
               </div>
             </div>
+            
+            {/* 后续支出 */}
+            {allTransactions && (
+              (() => {
+                const followingExpenses = allTransactions
+                  .filter(tx => tx.date > item.transaction.date && tx.direction === '支出')
+                  .sort((a, b) => a.date.getTime() - b.date.getTime())
+                  .slice(0, 3);
+                
+                if (followingExpenses.length === 0) return null;
+                
+                return (
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">后续支出（3笔）</p>
+                    <div className="space-y-1.5">
+                      {followingExpenses.map((tx, txIdx) => (
+                        <div key={txIdx} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <span>{formatDate(tx.date)}</span>
+                            <span>•</span>
+                            <span className="truncate max-w-[150px]">{tx.counterpart}</span>
+                          </div>
+                          <span className="font-medium text-red-600">-{formatCurrency(tx.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()
+            )}
           </motion.div>
         ))}
       </div>
