@@ -347,7 +347,7 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                               <tbody>
                                 {expandedTransactions.map((tx: any, j: number) => (
                                   <tr key={j} className="border-t border-indigo/8">
-                                    <td className="py-0.5 px-0.5 tabular-nums text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">{format(tx.date, 'MM-dd HH:mm')}</td>
+                                    <td className="py-0.5 px-0.5 tabular-nums text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">{format(tx.date, 'yy-MM-dd HH:mm')}</td>
                                     <td className="py-0.5 px-0.5 overflow-hidden text-ellipsis whitespace-nowrap">{tx.type}</td>
                                     <td className={`py-0.5 px-0.5 text-right tabular-nums font-semibold overflow-hidden text-ellipsis ${
                                       tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'
