@@ -23,7 +23,7 @@ const TIME_RANGE_OPTIONS: { key: TimeRange; label: string }[] = [
   { key: 'all',     label: '全部' },
 ];
 
-export default function LargeInflows({ inflows }: Props) {
+export default function LargeInflows({ inflows, allTransactions }: Props) {
   const [timeRange, setTimeRange] = useState<TimeRange>('3months');
   const [sortBy, setSortBy] = useState<'time' | 'amount'>('time');
 
