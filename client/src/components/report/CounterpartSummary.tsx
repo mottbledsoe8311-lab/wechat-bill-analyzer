@@ -331,35 +331,28 @@ export default function CounterpartSummary({ data, allTransactions = [] }: Props
                                 </div>
                               );
                             })()}
-                            <table className="w-full text-[10px]" style={{ tableLayout: 'fixed' }}>
+                            <table className="w-full text-[11px]" style={{ tableLayout: 'fixed' }}>
                               <colgroup>
                                 <col style={{ width: '30%' }} />
-                                <col style={{ width: '20%' }} />
-                                <col style={{ width: '30%' }} />
-                                <col style={{ width: '20%' }} />
+                                <col style={{ width: '25%' }} />
+                                <col style={{ width: '45%' }} />
                               </colgroup>
                               <thead>
                                 <tr className="text-muted-foreground border-b border-indigo/10">
-                                  <th className="text-left py-1 px-0.5 font-medium text-[10px]">日期</th>
-                                  <th className="text-left py-1 px-0.5 font-medium text-[10px]">类型</th>
-                                  <th className="text-right py-1 px-0.5 font-medium text-[10px]">金额</th>
-                                  <th className="text-center py-1 px-0.5 font-medium text-[10px]">收/支</th>
+                                  <th className="text-left py-1 pr-1 font-medium">日期</th>
+                                  <th className="text-left py-1 pr-1 font-medium">类型</th>
+                                  <th className="text-right py-1 pr-1 font-medium">金额</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {expandedTransactions.map((tx: any, j: number) => (
                                   <tr key={j} className="border-t border-indigo/8">
-                                    <td className="py-0.5 px-0.5 tabular-nums text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis text-[9px]">{format(tx.date, 'yy-MM-dd HH:mm')}</td>
-                                    <td className="py-0.5 px-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[9px]">{tx.type}</td>
-                                    <td className={`py-0.5 px-0.5 text-right tabular-nums font-semibold overflow-hidden text-ellipsis text-[9px] ${
+                                    <td className="py-0.5 pr-1 tabular-nums text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">{format(tx.date, 'yy-MM-dd HH:mm')}</td>
+                                    <td className="py-0.5 pr-1 overflow-hidden text-ellipsis whitespace-nowrap">{tx.type}</td>
+                                    <td className={`py-0.5 pr-1 text-right tabular-nums font-semibold overflow-hidden text-ellipsis ${
                                       tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'
                                     }`}>
-                                      {formatCurrency(tx.amount)}
-                                    </td>
-                                    <td className={`py-0.5 px-0.5 text-center font-semibold text-[9px] ${
-                                      tx.direction === '收入' || tx.direction === '收' ? 'text-emerald-ok' : 'text-destructive'
-                                    }`}>
-                                      {tx.direction === '收入' || tx.direction === '收' ? '收' : '支'}
+                                      {tx.direction === '收入' || tx.direction === '收' ? '+' : '-'}{formatCurrency(tx.amount)}
                                     </td>
                                   </tr>
                                 ))}

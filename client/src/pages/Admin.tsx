@@ -306,43 +306,7 @@ function AdminPanel() {
 
       <div className="container py-8 max-w-4xl">
         <Tabs defaultValue="stats">
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <button
-              onClick={() => document.querySelector('[value="stats"]')?.click()}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors font-medium text-sm"
-            >
-              <BarChart2 className="w-4 h-4" />
-              数据统计
-            </button>
-            <button
-              onClick={() => document.querySelector('[value="footprint"]')?.click()}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors font-medium text-sm"
-            >
-              <MapPin className="w-4 h-4" />
-              足迹关键词
-              {fpKeywords.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">{fpKeywords.length}</Badge>
-              )}
-            </button>
-            <button
-              onClick={() => document.querySelector('[value="repayment"]')?.click()}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors font-medium text-sm"
-            >
-              <Users className="w-4 h-4" />
-              还款账户关键词
-              {rpKeywords.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">{rpKeywords.length}</Badge>
-              )}
-            </button>
-            <button
-              onClick={() => document.querySelector('[value="visitors"]')?.click()}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors font-medium text-sm"
-            >
-              <Users className="w-4 h-4" />
-              访客统计
-            </button>
-          </div>
-          <TabsList className="hidden">
+          <TabsList className="mb-6">
             <TabsTrigger value="stats" className="gap-2">
               <BarChart2 className="w-4 h-4" />
               数据统计
