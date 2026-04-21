@@ -13,16 +13,17 @@ import { format } from 'date-fns';
 interface Props {
   data: CounterpartSummaryType[];
   allTransactions?: any[];
+  expandedName?: string | null;
 }
 
 type SortKey = 'totalIn' | 'totalOut' | 'netFlow';
 
-export default function CounterpartSummary({ data, allTransactions = [] }: Props) {
+export default function CounterpartSummary({ data, allTransactions = [], expandedName: initialExpandedName }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('totalOut');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [showDetails, setShowDetails] = useState(false);
-  const [expandedName, setExpandedName] = useState<string | null>(null);
+  const [expandedName, setExpandedName] = useState<string | null>(initialExpandedName || null);
 
   // 获取搜索对方的所有交易明细（搜索框）
   const searchedCounterpart = searchTerm.trim()

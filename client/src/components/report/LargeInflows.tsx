@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 interface Props {
   inflows: LargeInflow[];
   allTransactions?: any[];
+  onViewDetails?: (counterpart: string) => void;
 }
 
 type TimeRange = '1month' | '3months' | '6months' | 'all';
@@ -23,7 +24,7 @@ const TIME_RANGE_OPTIONS: { key: TimeRange; label: string }[] = [
   { key: 'all',     label: '全部' },
 ];
 
-export default function LargeInflows({ inflows, allTransactions }: Props) {
+export default function LargeInflows({ inflows, allTransactions, onViewDetails }: Props) {
   const [timeRange, setTimeRange] = useState<TimeRange>('3months');
   const [sortBy, setSortBy] = useState<'time' | 'amount'>('time');
 
@@ -186,6 +187,12 @@ export default function LargeInflows({ inflows, allTransactions }: Props) {
                         </div>
                       ))}
                     </div>
+                    <button
+                      onClick={() => onViewDetails?.(item.transaction.counterpart)}
+                      className="mt-3 w-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-2 rounded-md transition-colors"
+                    >
+                      查看详情
+                    </button>
                   </div>
                 );
               })()

@@ -49,8 +49,10 @@ export default function Home() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  const [expandedCounterpart, setExpandedCounterpart] = useState<string | null>(null);
    const reportRef = useRef<HTMLDivElement>(null);
   const reportContentRef = useRef<HTMLDivElement>(null);
+  const counterpartRef = useRef<HTMLDivElement>(null);
 
   // 使用 React Query hooks 获取高风险账户列表和规律转账关键词
   const riskAccountsQuery = trpc.riskAccounts.getAll.useQuery();
@@ -195,7 +197,15 @@ export default function Home() {
     setParseResult(null);
     setAllTransactions([]);
     setProgress(0);
+    setExpandedCounterpart(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleViewLargeInflowDetails = useCallback((counterpart: string) => {
+    setExpandedCounterpart(counterpart);
+    setTimeout(() => {
+      counterpartRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
   }, []);
 
   return (
@@ -439,9 +449,9 @@ export default function Home() {
                 <div id="monthly"><MonthlyChart data={analysisResult?.monthlyBreakdown || []} /></div>
                 <div id="regular"><RegularTransfers groups={analysisResult?.regularTransfers || []} allTransactions={allTransactions} /></div>
                 <div id="repayment"><RepaymentTracking records={analysisResult?.repaymentTracking || []} /></div>
-                <div id="inflows"><LargeInflows inflows={analysisResult?.largeInflows || []} allTransactions={allTransactions} /></div>
+                <div id="inflows"><LargeInflows inflows={analysisResult?.largeInflows || []} allTransactions={allTransactions} onViewDetails={handleViewLargeInflowDetails} /></div>
                 <div id="footprint"><Footprint allTransactions={allTransactions} /></div>
-                <div id="counterpart"><CounterpartSummary data={analysisResult?.counterpartSummary || []} allTransactions={allTransactions} /></div>
+                <div id="counterpart" ref={counterpartRef}><CounterpartSummary data={analysisResult?.counterpartSummary || []} allTransactions={allTransactions} expandedName={expandedCounterpart} /></div>
 
               </div>
             </div>
