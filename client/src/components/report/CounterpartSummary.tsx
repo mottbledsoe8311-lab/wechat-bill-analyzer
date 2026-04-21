@@ -4,7 +4,7 @@
  * 功能：点击对方名字直接展开全部交易明细，按支出/收入/净额排序
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, type CounterpartSummary as CounterpartSummaryType } from '@/lib/analyzer';
 import { Users, Search, ChevronDown, ChevronUp, ArrowDown, ArrowUp } from 'lucide-react';
@@ -20,16 +20,29 @@ type SortKey = 'totalIn' | 'totalOut' | 'netFlow';
 
 export default function CounterpartSummary({ data, allTransactions = [], expandedName: initialExpandedName }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<SortKey>('totalOut');
+  const [sortBy, setSortBy] = useState<SortKey>('totalIn');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [showDetails, setShowDetails] = useState(false);
   const [expandedName, setExpandedName] = useState<string | null>(initialExpandedName || null);
+  const [highlightedName, setHighlightedName] = useState<string | null>(null);
+  const expandedDetailsRef = useRef<HTMLDivElement>(null);
 
   // 当initialExpandedName改变时，更新expandedName
   useEffect(() => {
     if (initialExpandedName) {
       setExpandedName(initialExpandedName);
       setShowDetails(true);
+      setHighlightedName(initialExpandedName);
+      setTimeout(() => {
+        expandedDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(() => {
+          expandedDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      }, 100);
+      const timer = setTimeout(() => {
+        setHighlightedName(null);
+      }, 3000);
+      return () => clearTimeout(timer);
     }
   }, [initialExpandedName]);
 
@@ -124,8 +137,8 @@ export default function CounterpartSummary({ data, allTransactions = [], expande
         </div>
         <div className="flex gap-1 bg-muted rounded-md p-1">
           {([
-            { key: 'totalOut' as SortKey, label: '支出' },
             { key: 'totalIn'  as SortKey, label: '收入' },
+            { key: 'totalOut' as SortKey, label: '支出' },
             { key: 'netFlow'  as SortKey, label: '净额' },
           ]).map(item => (
             <button
@@ -308,8 +321,10 @@ export default function CounterpartSummary({ data, allTransactions = [], expande
 
                 {/* 展开的交易明细行 */}
                 {expandedName === item.name && expandedTransactions.length > 0 ? (
-                  <tr key={`${item.name}-details`}>
-                    <td colSpan={6} className="p-0">
+                  <tr key={`${item.name}-details`} ref={highlightedName === item.name ? expandedDetailsRef : null}>
+                    <td colSpan={6} className={`p-0 transition-colors duration-300 ${
+                      highlightedName === item.name ? 'bg-green-100/50' : ''
+                    }`}>
                       <AnimatePresence>
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
