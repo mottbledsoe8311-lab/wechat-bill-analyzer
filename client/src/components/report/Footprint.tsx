@@ -1,145 +1,109 @@
 /**
- * 足迹 - 近三个月去过哪儿
- * 通过停车费、物业费等交易识别客户去过的写字楼/大厦
- * 支持从数据库加载自定义关键词，内联管理按钮
+ * 足迹模块
+ * 显示用户在最近三个月内的活动位置
+ * 通过停车费、物业费、交通工具等交易推断
  */
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Building2, Car, Settings, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { formatCurrency, formatDate } from '@/lib/analyzer';
+import { MapPin, ChevronDown, ChevronUp, Plus, Trash2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { trpc } from '@/lib/trpc';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
-
-interface Transaction {
-  date: Date;
-  counterpart: string;
-  type: string;
-  method: string;
-  amount: number;
-  direction: string;
-  remark?: string;
-}
+import { trpc } from '@/lib/trpc';
 
 interface FootprintRecord {
   location: string;
-  originalMerchant: string;
-  visitType: 'parking' | 'property' | 'transit' | 'other';
-  lastVisit: Date;
-  visitCount: number;
-  transactions: Transaction[];
+  date: Date;
+  category: 'parking' | 'property' | 'transit';
+  amount: number;
+  counterpart: string;
+  count: number;
 }
 
-interface Props {
-  allTransactions: Transaction[];
-}
+type TimeRange = '1month' | '3months';
 
-type TimeFilter = '1month' | '3months';
+// 内置关键词库
+const PARKING_KEYWORDS = ['停车', '车位', '停车场', '停车费', '泊位', 'parking', '车库'];
+const PROPERTY_KEYWORDS = ['物业', '物业费', '物业管理', '小区', '社区', 'property', '管理费'];
+const TRANSIT_KEYWORDS = ['滴滴', '嘀嘀', '网约车', '地铁', '公交', '出租车', '打车', 'taxi', 'uber', '高铁', '火车', '飞机', '航班', '机票'];
 
-// 内置停车场关键词
-const PARKING_KEYWORDS = [
-  '停车', '泊车', '车场', '停车场', '地下车库', '停车费', '车位费',
-  'parking', 'park', '道闸', '停车收费',
-];
-
-// 内置物业关键词
-const PROPERTY_KEYWORDS = [
-  '物业', '物管', '管理费', '物业费', '物业公司', '物业管理',
-  '服务中心', '商业管理', '园区', '写字楼', '大厦', '广场', '中心',
-  '大楼', '楼宇', '楼管', '楼宇管理',
-];
-
-// 内置网约车/地铁关键词
-const TRANSIT_KEYWORDS = [
-  '滴滴', '滴滴出行', '滴滴打车', '快车', '专车', '顺风车', '高德地图',
-  '地铁', '公交', '轨道交通', '公共交通', '地铁公司',
-  '武汉地铁', '北京地铁', '上海地铁', '广州地铁', '深圳地铁',
-  '成都地铁', '重庆地铁', '西安地铁', '南京地铁', '杭州地铁',
-  '公交公司', '公交卡', '公交充値',
-];
-
-function extractLocationName(merchantName: string): string {
-  let name = merchantName.trim();
-  const suffixesToRemove = [
-    '停车场', '停车收费', '停车费',
-    '物业管理有限公司', '物业服务有限公司', '物业管理', '物业服务', '物业公司', '物管',
-    '管理有限公司', '有限公司', '股份有限公司',
-    '服务中心', '管理中心',
-  ];
-  for (const suffix of suffixesToRemove) {
-    if (name.endsWith(suffix)) {
-      name = name.slice(0, -suffix.length).trim();
-      break;
-    }
-  }
-  if (name.length < 2) name = merchantName;
-  return name;
-}
-
-function classifyTransaction(
-  tx: Transaction,
-  customKeywords: { parking: string[]; property: string[]; transit: string[] }
-): 'parking' | 'property' | 'transit' | 'other' | null {
-  const text = `${tx.counterpart} ${tx.type}`.toLowerCase();
-
-  // 数据库自定义关键词：不限制收支方向，优先匹配
-  for (const kw of customKeywords.parking) {
-    if (kw && text.includes(kw.toLowerCase())) return 'parking';
-  }
-  for (const kw of customKeywords.property) {
-    if (kw && text.includes(kw.toLowerCase())) return 'property';
-  }
-  for (const kw of customKeywords.transit) {
-    if (kw && text.includes(kw.toLowerCase())) return 'transit';
-  }
-
-  // 内置关键词：仅匹配支出方向
-  if (tx.direction !== '支出' && tx.direction !== '支') return null;
-  for (const kw of PARKING_KEYWORDS) {
-    if (kw && text.includes(kw.toLowerCase())) return 'parking';
-  }
-  for (const kw of PROPERTY_KEYWORDS) {
-    if (kw && text.includes(kw.toLowerCase())) return 'property';
-  }
-  for (const kw of TRANSIT_KEYWORDS) {
-    if (kw && text.includes(kw.toLowerCase())) return 'transit';
-  }
-  return null;
-}
-
-const VISIT_TYPE_CONFIG = {
-  parking: { label: '停车', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Car },
-  property: { label: '物业', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Building2 },
-  transit: { label: '出行', color: 'bg-green-100 text-green-700 border-green-200', icon: MapPin },
-  other: { label: '其他', color: 'bg-gray-100 text-gray-600 border-gray-200', icon: MapPin },
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  parking: '停车场',
+// 分类标签
+const CATEGORY_LABELS: Record<'parking' | 'property' | 'transit', string> = {
+  parking: '停车',
   property: '物业',
-  transit: '网约车或地铁',
+  transit: '交通',
 };
 
-function TimeFilterBar({ value, onChange }: { value: TimeFilter; onChange: (v: TimeFilter) => void }) {
+// 分类颜色
+const CATEGORY_COLORS: Record<'parking' | 'property' | 'transit', string> = {
+  parking: 'bg-blue-100 text-blue-700',
+  property: 'bg-green-100 text-green-700',
+  transit: 'bg-purple-100 text-purple-700',
+};
+
+// 关键词过滤器
+function KeywordFilter({ onClose }: { onClose: () => void }) {
+  const [timeRange, setTimeRange] = useState<TimeRange>('3months');
+  const [keywords, setKeywords] = useState<Record<string, boolean>>({});
+  
+  const { data: customKeywordsResp } = trpc.footprintKeywords.getAll.useQuery();
+  const customKeywords = customKeywordsResp?.data || [];
+  
   return (
-    <div className="flex items-center gap-1 bg-muted/60 rounded-lg p-1 shrink-0">
-      {(['1month', '3months'] as TimeFilter[]).map(key => (
-        <button
-          key={key}
-          type="button"
-          onClick={() => onChange(key)}
-          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all select-none ${
-            value === key
-              ? 'bg-background text-foreground shadow-sm ring-1 ring-border'
-              : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-          }`}
-        >
-          {key === '1month' ? '近一个月' : '近三个月'}
-        </button>
-      ))}
+    <div className="p-3 bg-muted/50 rounded-lg border border-border mb-3">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-semibold text-foreground">时间范围</p>
+        <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+      </div>
+      <div className="flex gap-2 mb-3">
+        {([
+          { key: '1month' as TimeRange, label: '近1月' },
+          { key: '3months' as TimeRange, label: '近3月' },
+        ]).map(opt => (
+          <button
+            key={opt.key}
+            onClick={() => setTimeRange(opt.key)}
+            className={`px-2.5 py-1 text-xs rounded transition-colors ${
+              timeRange === opt.key
+                ? 'bg-indigo text-white'
+                : 'bg-background text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      
+      {/* 自定义关键词 */}
+      {customKeywords && customKeywords.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-foreground mb-1">自定义关键词</p>
+          <div className="flex flex-wrap gap-1.5">
+            {customKeywords.map((kw: any, i: number) => (
+              <button
+                key={i}
+                onClick={() => setKeywords(prev => ({ ...prev, [kw.keyword]: !prev[kw.keyword] }))}
+                className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                  keywords[kw.keyword]
+                    ? 'bg-indigo text-white'
+                    : 'bg-background border border-border text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {kw.keyword}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -147,7 +111,7 @@ function TimeFilterBar({ value, onChange }: { value: TimeFilter; onChange: (v: T
 // 内联关键词管理面板
 function KeywordManager({ onClose }: { onClose: () => void }) {
   const [newKeyword, setNewKeyword] = useState('');
-  const [newCategory, setNewCategory] = useState('parking');
+  const [newCategory, setNewCategory] = useState<'parking' | 'property' | 'transit'>('parking');
   const [addedCount, setAddedCount] = useState(0);
   const saveMutation = trpc.footprintKeywords.save.useMutation({
     onSuccess: () => {
@@ -169,8 +133,15 @@ function KeywordManager({ onClose }: { onClose: () => void }) {
       return toast.error('该关键词已内置，无需重复添加');
     }
     
-    saveMutation.mutate({ keyword: kw, category: newCategory });
+    saveMutation.mutate({ keyword: kw, category: newCategory as 'parking' | 'property' | 'transit' });
   };
+
+  const { data: customKeywordsResp } = trpc.footprintKeywords.getAll.useQuery();
+  const customKeywords = customKeywordsResp?.data || [];
+  const deleteMutation = trpc.footprintKeywords.delete.useMutation({
+    onSuccess: () => toast.success('关键词已删除'),
+    onError: (err) => toast.error('删除失败：' + err.message),
+  });
 
   return (
     <motion.div
@@ -180,30 +151,42 @@ function KeywordManager({ onClose }: { onClose: () => void }) {
       className="mt-3 rounded-xl border border-border bg-muted/30 p-4"
     >
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold text-foreground">足迹关键词管理</p>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-          <X className="w-4 h-4" />
-        </button>
+        <p className="text-xs font-semibold text-foreground">自定义关键词</p>
+        <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">✕ 关闭</button>
       </div>
-      <p className="text-xs text-muted-foreground mb-3">
-        添加关键词后，生成时将自动识别包含该关键词的交易
-      </p>
-      {addedCount > 0 && (
-        <p className="text-xs text-emerald-ok font-medium mb-3">
-          已添加 {addedCount} 个关键词
-        </p>
+
+      {/* 已添加的关键词列表 */}
+      {customKeywords && customKeywords.length > 0 && (
+        <div className="mb-4 p-3 bg-background rounded-lg">
+          <p className="text-xs text-muted-foreground mb-2">已添加 {customKeywords.length} 个关键词</p>
+          <div className="flex flex-wrap gap-2">
+            {customKeywords.map((kw: any, i: number) => (
+              <div key={i} className="flex items-center gap-1 bg-muted px-2 py-1 rounded text-xs">
+                <span>{kw.keyword}</span>
+                <span className="text-[10px] text-muted-foreground">({CATEGORY_LABELS[kw.category as 'parking' | 'property' | 'transit']})</span>
+                <button
+                  onClick={() => deleteMutation.mutate({ keyword: kw.keyword as string })}
+                  className="ml-1 hover:text-destructive"
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* 添加新关键词 */}
       <div className="flex gap-2">
         <Input
           value={newKeyword}
-          onChange={e => setNewKeyword(e.target.value)}
+          onChange={(e) => setNewKeyword(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleAdd()}
           placeholder="输入关键词，如：万象城、汇金"
           className="h-8 text-xs flex-1"
         />
-        <Select value={newCategory} onValueChange={setNewCategory}>
+        <Select value={newCategory} onValueChange={(value) => setNewCategory(value as 'parking' | 'property' | 'transit')}>
           <SelectTrigger className="h-8 text-xs w-24 shrink-0">
             <SelectValue />
           </SelectTrigger>
@@ -230,85 +213,47 @@ function KeywordManager({ onClose }: { onClose: () => void }) {
 // 足迹卡片（支持展开）
 function FootprintCard({ fp, index }: { fp: FootprintRecord; index: number }) {
   const [expanded, setExpanded] = useState(false);
-  const typeConfig = VISIT_TYPE_CONFIG[fp.visitType];
-  const TypeIcon = typeConfig.icon;
-
-  const formatDate = (d: Date) => {
-    const m = d.getMonth() + 1;
-    const day = String(d.getDate()).padStart(2, '0');
-    const h = String(d.getHours()).padStart(2, '0');
-    const min = String(d.getMinutes()).padStart(2, '0');
-    return `${d.getFullYear()}-${m}-${day} ${h}:${min}`;
-  };
-
-  const sortedTxs = [...fp.transactions].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
     <motion.div
-      key={`${fp.location}-${index}`}
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.04 * index }}
-      className="rounded-lg border border-border bg-card overflow-hidden"
+      transition={{ delay: index * 0.05 }}
+      className="border border-border rounded-lg p-3 hover:border-indigo/50 transition-colors"
     >
-      {/* 主行：点击展开 */}
-      <button
-        type="button"
-        onClick={() => setExpanded(v => !v)}
-        className="w-full px-3 py-2.5 flex items-center gap-3 text-left hover:bg-muted/30 transition-colors"
-      >
-        {/* 图标 */}
-        <div className="w-8 h-8 rounded-full bg-indigo/10 flex items-center justify-center shrink-0">
-          <TypeIcon className="w-3.5 h-3.5 text-indigo" />
-        </div>
-
-        {/* 名称信息 */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-semibold text-sm text-foreground break-all leading-tight">{fp.originalMerchant}</span>
-            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 border shrink-0 ${typeConfig.color}`}>
-              {typeConfig.label}
-            </Badge>
-            {fp.visitCount > 1 && (
-              <span className="text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full shrink-0">
-                共{fp.visitCount}次
-              </span>
-            )}
+      <div className="flex items-start justify-between cursor-pointer" onClick={() => setExpanded(!expanded)}>
+        <div className="flex items-start gap-2 flex-1 min-w-0">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${CATEGORY_COLORS[fp.category]}`}>
+            <MapPin className="w-4 h-4" />
           </div>
-          {/* 最后访问时间 */}
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            最后访问：{formatDate(fp.lastVisit)}
-          </p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground truncate">{fp.location}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className={`text-xs px-1.5 py-0.5 rounded ${CATEGORY_COLORS[fp.category]}`}>
+                {CATEGORY_LABELS[fp.category]}
+              </span>
+              <span className="text-xs text-muted-foreground">{formatDate(fp.date)}</span>
+            </div>
+          </div>
         </div>
-
-        {/* 展开箭头 */}
-        <div className="shrink-0 text-muted-foreground">
-          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        <div className="text-right shrink-0 ml-2">
+          <p className="text-sm font-semibold text-foreground">{formatCurrency(fp.amount)}</p>
+          <p className="text-xs text-muted-foreground">{fp.count}笔</p>
+          {expanded ? <ChevronUp className="w-4 h-4 mt-1" /> : <ChevronDown className="w-4 h-4 mt-1" />}
         </div>
-      </button>
+      </div>
 
-      {/* 展开内容：交易明细 */}
+      {/* 展开详情 */}
       <AnimatePresence>
         {expanded && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-3 pt-3 border-t border-border/50 text-xs text-muted-foreground"
           >
-            <div className="px-3 pb-3 border-t border-border/50">
-              <p className="text-[10px] text-muted-foreground font-medium mt-2 mb-1.5 uppercase tracking-wide">交易明细</p>
-              <div className="space-y-1.5">
-                {sortedTxs.map((tx, i) => (
-                  <div key={i} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="text-muted-foreground shrink-0">{formatDate(tx.date)}</span>
-                    <span className="text-foreground flex-1 min-w-0 truncate text-right">{tx.counterpart}</span>
-                    <span className="text-destructive shrink-0 font-medium">-¥{tx.amount.toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <p>交易对方：{fp.counterpart}</p>
+            <p>分类：{CATEGORY_LABELS[fp.category]}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -316,126 +261,127 @@ function FootprintCard({ fp, index }: { fp: FootprintRecord; index: number }) {
   );
 }
 
-export default function Footprint({ allTransactions }: Props) {
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('3months');
+// 主组件
+export default function Footprint({ allTransactions }: { allTransactions?: any[] }) {
   const [showManager, setShowManager] = useState(false);
-
-  // 从数据库加载自定义关键词
-  const fpKeywordsQuery = trpc.footprintKeywords.getAll.useQuery();
-
-  const customKeywords = useMemo(() => {
-    const result = { parking: [] as string[], property: [] as string[], transit: [] as string[] };
-    const keywords = fpKeywordsQuery.data?.data || [];
-    for (const kw of keywords) {
-      const cat = kw.category as keyof typeof result;
-      if (cat in result) result[cat].push(kw.keyword);
-    }
-    return result;
-  }, [fpKeywordsQuery.data]);
-
-  const filteredTransactions = useMemo(() => {
-    const now = new Date();
-    const cutoff = new Date(now);
-    if (timeFilter === '1month') {
-      cutoff.setMonth(cutoff.getMonth() - 1);
-    } else {
-      cutoff.setMonth(cutoff.getMonth() - 3);
-    }
-    return allTransactions.filter(tx => tx.date >= cutoff && tx.date <= now);
-  }, [allTransactions, timeFilter]);
+  const [showFilter, setShowFilter] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRange>('3months');
+  const { data: customKeywordsResp } = trpc.footprintKeywords.getAll.useQuery();
+  const customKeywords = customKeywordsResp?.data || [];
 
   const footprints = useMemo(() => {
+    if (!allTransactions) return [];
+
+    const end = new Date();
+    const start = new Date();
+    if (timeRange === '1month') start.setMonth(start.getMonth() - 1);
+    else start.setMonth(start.getMonth() - 3);
+
+    const allKeywords = {
+      parking: [...PARKING_KEYWORDS, ...((customKeywords as any[])?.filter((k: any) => k.category === 'parking').map((k: any) => k.keyword) || [])],
+      property: [...PROPERTY_KEYWORDS, ...((customKeywords as any[])?.filter((k: any) => k.category === 'property').map((k: any) => k.keyword) || [])],
+      transit: [...TRANSIT_KEYWORDS, ...((customKeywords as any[])?.filter((k: any) => k.category === 'transit').map((k: any) => k.keyword) || [])],
+    };
+
     const locationMap = new Map<string, FootprintRecord>();
-    for (const tx of filteredTransactions) {
-      const visitType = classifyTransaction(tx, customKeywords);
-      if (!visitType) continue;
-      const locationName = extractLocationName(tx.counterpart);
-      const key = locationName.toLowerCase();
-      if (locationMap.has(key)) {
-        const record = locationMap.get(key)!;
-        record.visitCount += 1;
-        record.transactions.push(tx);
-        if (tx.date > record.lastVisit) record.lastVisit = tx.date;
-      } else {
-        locationMap.set(key, {
-          location: locationName,
-          originalMerchant: tx.counterpart,
-          visitType,
-          lastVisit: tx.date,
-          visitCount: 1,
-          transactions: [tx],
-        });
-      }
-    }
-    return Array.from(locationMap.values())
-      .sort((a, b) => b.lastVisit.getTime() - a.lastVisit.getTime());
-  }, [filteredTransactions, customKeywords]);
+
+    allTransactions
+      .filter(tx => tx.date >= start && tx.date <= end)
+      .forEach((tx: any) => {
+        const counterpart = tx.counterpart || '';
+        
+        for (const [category, keywords] of Object.entries(allKeywords)) {
+          const matched = (keywords as string[]).some((kw: string) => counterpart.toLowerCase().includes(kw.toLowerCase()));
+          if (matched) {
+            const key = `${category}-${counterpart}`;
+            const existing = locationMap.get(key);
+            if (existing) {
+              existing.amount += tx.amount;
+              existing.count += 1;
+              existing.date = new Date(Math.max(existing.date.getTime(), tx.date.getTime()));
+            } else {
+              locationMap.set(key, {
+                location: counterpart,
+                date: tx.date,
+                category: category as 'parking' | 'property' | 'transit',
+                amount: tx.amount,
+                counterpart,
+                count: 1,
+              });
+            }
+            break;
+          }
+        }
+      });
+
+    return Array.from(locationMap.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [allTransactions, timeRange, customKeywords]);
+
+  if (!allTransactions || allTransactions.length === 0) {
+    return null;
+  }
 
   return (
     <motion.section
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.6, delay: 0.3 }}
-      className="py-10 border-t border-border"
+      transition={{ duration: 0.6, delay: 0.6 }}
+      className="py-12 border-t border-border"
     >
-      {/* 标题区 */}
-      <div className="mb-4">
+      <div className="mb-6">
         <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Footprint</p>
-        <h3 className="text-2xl font-bold text-foreground">足迹<span className="text-base font-normal text-muted-foreground ml-2">（近三个月出行轨迹）</span></h3>
-        <div className="flex items-center justify-between mt-2">
-          <TimeFilterBar value={timeFilter} onChange={setTimeFilter} />
-          <button
-            type="button"
-            onClick={() => setShowManager(v => !v)}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-              showManager
-                ? 'bg-indigo/10 text-indigo border-indigo/30'
-                : 'bg-muted/60 text-muted-foreground border-border hover:text-foreground'
-            }`}
-          >
-            <Settings className="w-3.5 h-3.5" />
-            管理
-            {showManager ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
-        </div>
+        <h3 className="text-2xl font-bold text-foreground">足迹分析</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          近{timeFilter === '1month' ? '一' : '三'}个月
-          {footprints.length > 0
-            ? <>去过 <span className="font-semibold text-foreground">{footprints.length}</span> 个地点</>
-            : '未检测到相关地点信息'
-          }
+          检测到 <span className="font-semibold text-foreground">{footprints.length}</span> 个活动位置
         </p>
-
-        {/* 内联管理面板 */}
-        <AnimatePresence>
-          {showManager && <KeywordManager onClose={() => setShowManager(false)} />}
-        </AnimatePresence>
       </div>
 
-      {/* 空状态 */}
-      {footprints.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          <div className="w-14 h-14 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
-            <MapPin className="w-6 h-6 opacity-30" />
-          </div>
-          <p className="font-medium text-sm">未检测到相关地点信息</p>
-          <p className="text-xs mt-1 opacity-60">通过停车费、物业费等交易记录识别去过的写字楼/大厦</p>
-        </div>
-      )}
-
-      {/* 足迹列表 */}
-      {footprints.length > 0 && (
-        <div className="space-y-2">
-          {footprints.map((fp, index) => (
-            <FootprintCard key={`${fp.location}-${index}`} fp={fp} index={index} />
+      {/* 时间范围和操作按钮 */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="flex gap-1 bg-muted rounded-md p-1">
+          {([
+            { key: '1month' as TimeRange, label: '近1月' },
+            { key: '3months' as TimeRange, label: '近3月' },
+          ]).map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => setTimeRange(opt.key)}
+              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                timeRange === opt.key
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {opt.label}
+            </button>
           ))}
         </div>
-      )}
+        <button
+          onClick={() => setShowManager(!showManager)}
+          className="ml-auto px-3 py-1.5 text-xs font-medium bg-indigo text-white rounded hover:bg-indigo/90 transition-colors"
+        >
+          {showManager ? '关闭' : '自定义关键词'}
+        </button>
+      </div>
 
-      {/* 说明 */}
-      <p className="text-xs text-muted-foreground mt-3 opacity-60">
-        * 根据停车费、物业费等交易记录推断，仅供参考
-      </p>
+      {/* 关键词管理面板 */}
+      <AnimatePresence>
+        {showManager && <KeywordManager onClose={() => setShowManager(false)} />}
+      </AnimatePresence>
+
+      {/* 足迹列表 */}
+      {footprints.length > 0 ? (
+        <div className="space-y-3">
+          {footprints.map((fp, i) => (
+            <FootprintCard key={i} fp={fp} index={i} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
+          <p>未检测到足迹记录</p>
+        </div>
+      )}
     </motion.section>
   );
 }

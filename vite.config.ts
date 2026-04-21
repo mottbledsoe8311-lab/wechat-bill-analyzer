@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
+import type { IncomingMessage, ServerResponse } from "http";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
 // =============================================================================
@@ -99,7 +100,7 @@ function vitePluginManusDebugCollector(): Plugin {
 
     configureServer(server: ViteDevServer) {
       // POST /__manus__/logs: Browser sends logs (written directly to files)
-      server.middlewares.use("/__manus__/logs", (req: any, res: any, next: any) => {
+      server.middlewares.use("/__manus__/logs", (req: IncomingMessage, res: ServerResponse, next: () => void) => {
         if (req.method !== "POST") {
           return next();
         }
@@ -132,7 +133,7 @@ function vitePluginManusDebugCollector(): Plugin {
         }
 
         let body = "";
-        req.on("data", (chunk: any) => {
+        req.on("data", (chunk: Buffer) => {
           body += chunk.toString();
         });
 

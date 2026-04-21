@@ -25,24 +25,22 @@ export default function CounterpartSummary({ data, allTransactions = [], expande
   const [showDetails, setShowDetails] = useState(false);
   const [expandedName, setExpandedName] = useState<string | null>(initialExpandedName || null);
   const [highlightedName, setHighlightedName] = useState<string | null>(null);
-  const expandedDetailsRef = useRef<HTMLDivElement>(null);
+  const expandedDetailsRef = useRef<HTMLTableRowElement>(null);
 
   // 当initialExpandedName改变时，更新expandedName
   useEffect(() => {
     if (initialExpandedName) {
       setExpandedName(initialExpandedName);
       setShowDetails(true);
-      setHighlightedName(initialExpandedName);
+      // 使用时间戳强制重新触发高亮，确保每次点击都有效
+      setHighlightedName(`${initialExpandedName}-${Date.now()}`);
       setTimeout(() => {
         expandedDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         setTimeout(() => {
           expandedDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 300);
       }, 100);
-      const timer = setTimeout(() => {
-        setHighlightedName(null);
-      }, 3000);
-      return () => clearTimeout(timer);
+      // 不清除高亮，保持常亮状态
     }
   }, [initialExpandedName]);
 
@@ -321,9 +319,9 @@ export default function CounterpartSummary({ data, allTransactions = [], expande
 
                 {/* 展开的交易明细行 */}
                 {expandedName === item.name && expandedTransactions.length > 0 ? (
-                  <tr key={`${item.name}-details`} ref={highlightedName === item.name ? expandedDetailsRef : null}>
+                  <tr key={`${item.name}-details`} ref={highlightedName?.startsWith(item.name) ? expandedDetailsRef : undefined}>
                     <td colSpan={6} className={`p-0 transition-colors duration-300 ${
-                      highlightedName === item.name ? 'bg-green-100/50' : ''
+                      highlightedName?.startsWith(item.name) ? 'bg-green-100' : ''
                     }`}>
                       <AnimatePresence>
                         <motion.div
@@ -336,6 +334,9 @@ export default function CounterpartSummary({ data, allTransactions = [], expande
                           <div className="px-3 py-2">
                             <p className="text-[11px] font-semibold text-indigo mb-1">
                               {item.name} · 全部 {expandedTransactions.length} 笔交易
+                              {highlightedName?.startsWith(item.name) && (
+                                <span className="ml-2 text-green-600 font-bold">✓ 已定位</span>
+                              )}
                             </p>
                             {(() => {
                               const methodStats: Record<string, number> = {};

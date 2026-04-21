@@ -3,7 +3,7 @@
  * 构建交易对方之间的关系网络，计算资金流向
  */
 
-import type { Transaction } from './analyzer';
+import type { Transaction } from './pdfParser';
 
 export interface CounterpartNode {
   id: string;

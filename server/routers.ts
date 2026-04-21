@@ -224,10 +224,10 @@ export const appRouter = router({
         }
       }),
     delete: publicProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ keyword: z.string() }))
       .mutation(async ({ input }) => {
         try {
-          await deleteFootprintKeyword(input.id);
+          await deleteFootprintKeyword(input.keyword);
           return { success: true };
         } catch (error: any) {
           throw new Error(error?.message || 'Failed to delete footprint keyword');
@@ -260,10 +260,10 @@ export const appRouter = router({
         }
       }),
     delete: publicProcedure
-      .input(z.object({ id: z.number() }))
+      .input(z.object({ keyword: z.string() }))
       .mutation(async ({ input }) => {
         try {
-          await deleteRepaymentKeyword(input.id);
+          await deleteRepaymentKeyword(input.keyword);
           return { success: true };
         } catch (error: any) {
           throw new Error(error?.message || 'Failed to delete repayment keyword');

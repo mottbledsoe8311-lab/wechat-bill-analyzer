@@ -20,8 +20,11 @@ import Footprint from '@/components/report/Footprint';
 import CounterpartSummary from '@/components/report/CounterpartSummary';
 import ShareButton from '@/components/ShareButton';
 import { useAuth } from '@/_core/hooks/useAuth';
+import { trpc } from '@/lib/trpc';
 
 interface ReportData {
+  title?: string;
+  summary?: string;
   overview?: any;
   monthlyBreakdown?: any[];
   regularTransfers?: any[];
@@ -90,41 +93,17 @@ export default function ReportView() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/reports/${params.reportId}`);
+        const result = await trpc.reports.get.query({ reportId: params.reportId });
         
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('报表不存在或已过期');
-          } else {
-            setError('获取报表失败，请重试');
-          }
+        if (!result.success) {
+          setError('报表不存在或已过期');
           return;
         }
 
-        const data = await response.json();
-        setReportTitle(data.title || '微信账单分析报表');
+        setReportTitle(result.title || '微信账单分析报表');
         
-        // 解析数据：先尝试 JSON.parse，再尝试 superjson.parse
-        let parsedData;
-        if (typeof data.data === 'string') {
-          try {
-            // 首先尝试普通 JSON 解析
-            parsedData = JSON.parse(data.data);
-            console.log('[ReportView] JSON.parse 成功');
-          } catch (err) {
-            // 如果 JSON 解析失败，尝试 superjson 解析
-            try {
-              parsedData = superjson.parse(data.data);
-              console.log('[ReportView] superjson.parse 成功');
-            } catch (err2) {
-              console.error('[ReportView] 数据解析失败:', err2);
-              parsedData = null;
-            }
-          }
-        } else {
-          // 如果已经是对象，直接使用
-          parsedData = data.data;
-        }
+        // 数据已经由服务器解析，直接使用
+        const parsedData = result.data;
         
         // 验证解析的数据
         if (!parsedData || typeof parsedData !== 'object') {
@@ -149,9 +128,9 @@ export default function ReportView() {
     };
 
     fetchReport();
-  }, [match, params?.reportId]);
+  }, [match, params?.reportId, trpc]);
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
