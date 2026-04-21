@@ -204,8 +204,11 @@ export default function Home() {
   const handleViewLargeInflowDetails = useCallback((counterpart: string) => {
     setExpandedCounterpart(counterpart);
     setTimeout(() => {
-      counterpartRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 300);
+      counterpartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => {
+        counterpartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 500);
+    }, 100);
   }, []);
 
   return (
