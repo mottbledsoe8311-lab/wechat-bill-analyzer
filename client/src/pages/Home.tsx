@@ -50,6 +50,7 @@ export default function Home() {
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [expandedCounterpart, setExpandedCounterpart] = useState<string | null>(null);
+  const [expandTrigger, setExpandTrigger] = useState(0); // 用于强制重新触发展开
    const reportRef = useRef<HTMLDivElement>(null);
   const reportContentRef = useRef<HTMLDivElement>(null);
   const counterpartRef = useRef<HTMLDivElement>(null);
@@ -202,13 +203,20 @@ export default function Home() {
   }, []);
 
   const handleViewLargeInflowDetails = useCallback((counterpart: string) => {
-    setExpandedCounterpart(counterpart);
-    setTimeout(() => {
-      counterpartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // 先清空状态，强制重新渲染
+    setExpandedCounterpart(null);
+    // 使用 requestAnimationFrame 确保状态更新后再设置新值
+    requestAnimationFrame(() => {
+      setExpandedCounterpart(counterpart);
+      // 延迟滚动，确保 DOM 已更新
       setTimeout(() => {
         counterpartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 500);
-    }, 100);
+        // 再次滚动以确保完整显示
+        setTimeout(() => {
+          counterpartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 500);
+      }, 100);
+    });
   }, []);
 
   return (
