@@ -4,7 +4,7 @@
  * 功能：点击对方名字直接展开全部交易明细，按支出/收入/净额排序
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, type CounterpartSummary as CounterpartSummaryType } from '@/lib/analyzer';
 import { Users, Search, ChevronDown, ChevronUp, ArrowDown, ArrowUp } from 'lucide-react';
@@ -24,6 +24,14 @@ export default function CounterpartSummary({ data, allTransactions = [], expande
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [showDetails, setShowDetails] = useState(false);
   const [expandedName, setExpandedName] = useState<string | null>(initialExpandedName || null);
+
+  // 当initialExpandedName改变时，更新expandedName
+  useEffect(() => {
+    if (initialExpandedName) {
+      setExpandedName(initialExpandedName);
+      setShowDetails(true);
+    }
+  }, [initialExpandedName]);
 
   // 获取搜索对方的所有交易明细（搜索框）
   const searchedCounterpart = searchTerm.trim()

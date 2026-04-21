@@ -156,9 +156,15 @@ export default function LargeInflows({ inflows, allTransactions, onViewDetails }
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-lg font-bold text-green-600">
+                <div className="text-lg font-bold text-green-600 mb-2">
                   +{formatCurrency(item.transaction.amount)}
                 </div>
+                <button
+                  onClick={() => onViewDetails?.(item.transaction.counterpart)}
+                  className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-md transition-colors border border-blue-600"
+                >
+                  查看详情
+                </button>
               </div>
             </div>
             
@@ -187,12 +193,6 @@ export default function LargeInflows({ inflows, allTransactions, onViewDetails }
                         </div>
                       ))}
                     </div>
-                    <button
-                      onClick={() => onViewDetails?.(item.transaction.counterpart)}
-                      className="mt-3 w-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-2 rounded-md transition-colors"
-                    >
-                      查看详情
-                    </button>
                   </div>
                 );
               })()
