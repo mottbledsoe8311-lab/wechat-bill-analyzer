@@ -102,7 +102,11 @@ export default function ShareButton({ reportData, customerName }: ShareButtonPro
 
       if (result.sharePath) {
         // 使用后端返回的真实 sharePath
-        const fullUrl = new URL(result.sharePath, window.location.origin).toString();
+        // 确保是绝对路径
+        let fullUrl = result.sharePath;
+        if (!fullUrl.startsWith('http')) {
+          fullUrl = new URL(result.sharePath, window.location.origin).toString();
+        }
         setShareUrl(fullUrl);
         
         // 完成进度
@@ -211,17 +215,18 @@ ${shareUrl}
 
 📈 规律转账：${reportData?.regularTransfers?.length || 0}个重点核实对象
 💰 转账追踪：${reportData?.repaymentTracking?.length || 0}笔规律还款追踪
-🗒 大额入账：${reportData?.largeInflows?.length || 0}笔异常入账
+🗳 大额入账：${reportData?.largeInflows?.length || 0}笔异常入账
 👥 交易对方：${reportData?.counterpartSummary?.length || 0}个主要对方
 
 点击链接查看完整报表：
 ${shareUrl}
 
 使用大橙子账单分析系统生成，快来试试吧！`;
+                  console.log('[ShareButton] Share content:', { url: shareUrl, contentLength: content.length });
                   const copied = await copyToClipboard(content);
                   if (copied) {
                     toast.success('分享内容已复制');
-                    setShowShareDialog(false);
+                    setTimeout(() => setShowShareDialog(false), 500);
                   } else {
                     toast.error('复制失败，请手动复制');
                   }

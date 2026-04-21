@@ -211,8 +211,14 @@ function KeywordManager({ onClose }: { onClose: () => void }) {
 }
 
 // 足迹卡片（支持展开）
-function FootprintCard({ fp, index }: { fp: FootprintRecord; index: number }) {
+function FootprintCard({ fp, index, allTransactions }: { fp: FootprintRecord; index: number; allTransactions?: any[] }) {
   const [expanded, setExpanded] = useState(false);
+  
+  // 获取该位置的所有交易明细
+  const details = allTransactions?.filter(tx => {
+    const counterpart = tx.counterpart || '';
+    return counterpart.toLowerCase().includes(fp.location.toLowerCase());
+  }) || [];
 
   return (
     <motion.div
@@ -232,14 +238,16 @@ function FootprintCard({ fp, index }: { fp: FootprintRecord; index: number }) {
               <span className={`text-xs px-1.5 py-0.5 rounded ${CATEGORY_COLORS[fp.category]}`}>
                 {CATEGORY_LABELS[fp.category]}
               </span>
-              <span className="text-xs text-muted-foreground">{formatDate(fp.date)}</span>
+              <p className="text-xs text-muted-foreground">{formatDate(fp.date)}</p>
             </div>
           </div>
         </div>
         <div className="text-right shrink-0 ml-2">
           <p className="text-sm font-semibold text-foreground">{formatCurrency(fp.amount)}</p>
           <p className="text-xs text-muted-foreground">{fp.count}笔</p>
-          {expanded ? <ChevronUp className="w-4 h-4 mt-1" /> : <ChevronDown className="w-4 h-4 mt-1" />}
+          <div className="flex items-center justify-end mt-1">
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </div>
         </div>
       </div>
 
@@ -250,10 +258,54 @@ function FootprintCard({ fp, index }: { fp: FootprintRecord; index: number }) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-3 pt-3 border-t border-border/50 text-xs text-muted-foreground"
+            className="mt-3 pt-3 border-t border-border/50 space-y-2"
           >
-            <p>交易对方：{fp.counterpart}</p>
-            <p>分类：{CATEGORY_LABELS[fp.category]}</p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <p className="text-muted-foreground">交易对方</p>
+                <p className="font-medium text-foreground">{fp.counterpart}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">分类</p>
+                <p className="font-medium text-foreground">{CATEGORY_LABELS[fp.category]}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">总金额</p>
+                <p className="font-medium text-foreground">{formatCurrency(fp.amount)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">交易笔数</p>
+                <p className="font-medium text-foreground">{fp.count}笔</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-muted-foreground">最后交易时间</p>
+                <p className="font-medium text-foreground">{formatDate(fp.date)}</p>
+              </div>
+            </div>
+            
+            {/* 交易明细列表 */}
+            {details && details.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <p className="text-xs font-semibold text-foreground mb-2">交易明细（{details.length}笔）</p>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {details.slice(0, 10).map((tx, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs bg-muted/50 p-1.5 rounded">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-muted-foreground">{formatDate(tx.date)}</p>
+                      </div>
+                      <div className="text-right ml-2">
+                        <p className={tx.direction === '支出' ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                          {tx.direction === '支出' ? '-' : '+'}{formatCurrency(tx.amount)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {details.length > 10 && (
+                    <p className="text-xs text-muted-foreground text-center py-1">还有 {details.length - 10} 笔交易...</p>
+                  )}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -373,7 +425,7 @@ export default function Footprint({ allTransactions }: { allTransactions?: any[]
       {footprints.length > 0 ? (
         <div className="space-y-3">
           {footprints.map((fp, i) => (
-            <FootprintCard key={i} fp={fp} index={i} />
+            <FootprintCard key={i} fp={fp} index={i} allTransactions={allTransactions} />
           ))}
         </div>
       ) : (
