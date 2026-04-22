@@ -219,7 +219,7 @@ export default function ReportView() {
         className="container py-8 space-y-8"
       >
         {reportData.overview && (
-          <OverviewSection data={reportData.overview} />
+          <OverviewSection stats={reportData.overview} />
         )}
 
         {reportData.monthlyBreakdown && reportData.monthlyBreakdown.length > 0 && (
@@ -242,8 +242,8 @@ export default function ReportView() {
           <CounterpartSummary data={reportData.counterpartSummary} allTransactions={reportData.allTransactions || []} />
         )}
 
-        {reportData.footprint && (
-          <Footprint data={reportData.footprint} />
+        {reportData.allTransactions && reportData.allTransactions.length > 0 && (
+          <Footprint allTransactions={reportData.allTransactions} />
         )}
       </motion.div>
     </div>
