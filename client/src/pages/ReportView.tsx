@@ -33,7 +33,7 @@ interface ReportData {
   largeExpenses?: any[];
   counterpartSummary?: any[];
   allTransactions?: any[];
-  [key: string]: any; // 允许任意其他属性
+  [key: string]: any;
 }
 
 /**
@@ -45,7 +45,6 @@ function convertDatesToObjects(obj: any): any {
   }
   
   if (typeof obj === 'string') {
-    // 检查是否是 ISO 8601 日期格式
     const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
     if (isoDateRegex.test(obj)) {
       return new Date(obj);
@@ -58,15 +57,13 @@ function convertDatesToObjects(obj: any): any {
   }
   
   if (Array.isArray(obj)) {
-    return obj.map(item => convertDatesToObjects(item));
+    return obj.map(convertDatesToObjects);
   }
   
   if (typeof obj === 'object') {
     const converted: any = {};
     for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        converted[key] = convertDatesToObjects(obj[key]);
-      }
+      converted[key] = convertDatesToObjects(obj[key]);
     }
     return converted;
   }
@@ -76,78 +73,80 @@ function convertDatesToObjects(obj: any): any {
 
 export default function ReportView() {
   const [match, params] = useRoute('/report/:reportId');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [reportTitle, setReportTitle] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
+  const reportId = params?.reportId;
 
+  // 使用 tRPC useQuery hook 加载报表数据
+  const { data: reportResult, isLoading: isQueryLoading, isError, error: queryError } = trpc.reports.get.useQuery(
+    { reportId: reportId || '' },
+    {
+      enabled: !!reportId && match !== false,
+      retry: 1,
+    }
+  );
+
+  // 处理报表数据
   useEffect(() => {
-    if (!match || !params?.reportId) {
+    if (!match || !reportId) {
       setError('无效的报表ID');
       setLoading(false);
       return;
     }
 
-    const fetchReport = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    setLoading(isQueryLoading);
 
-        // 使用 fetch 直接调用 tRPC 端点
-        const response = await fetch(`/api/trpc/reports.get?input=${encodeURIComponent(JSON.stringify({ reportId: params?.reportId || '' }))}`, {
-          credentials: 'include',
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const text = await response.text();
-        const result = JSON.parse(text);
-        
-        if (result.error) {
-          console.error('[ReportView] API Error:', result.error);
-          setError('报表不存在或已过期');
-          return;
-        }
-        
-        if (!result.result?.success) {
-          setError('报表不存在或已过期');
-          return;
-        }
-        
-        const resultData = result.result;
+    if (isError) {
+      console.error('[ReportView] Query error:', queryError);
+      setError('报表加载失败，请检查网络连接');
+      return;
+    }
 
-        setReportTitle(resultData.title || '微信账单分析报表');
-        
-        // 数据已经由服务器解析，直接使用
-        const parsedData = resultData.data;
-        
-        // 验证解析的数据
-        if (!parsedData || typeof parsedData !== 'object') {
-          console.error('[ReportView] 解析的数据不是对象:', parsedData);
+    if (!reportResult) {
+      if (!isQueryLoading) {
+        setError('报表不存在或已过期');
+      }
+      return;
+    }
+
+    try {
+      if (!reportResult.success) {
+        setError('报表不存在或已过期');
+        return;
+      }
+
+      setReportTitle(reportResult.title || '微信账单分析报表');
+      
+      // 解析数据
+      let parsedData = reportResult.data;
+      if (typeof parsedData === 'string') {
+        try {
+          parsedData = JSON.parse(parsedData);
+        } catch (e) {
+          console.error('[ReportView] Failed to parse data:', e);
           setError('报表数据格式错误');
           return;
         }
-        
-        console.log('[ReportView] 报表数据解析成功:', { overview: !!parsedData.overview, monthlyBreakdown: parsedData.monthlyBreakdown?.length || 0 });
-        
-        // 转换日期字符串为 Date 对象
-        const convertedData = convertDatesToObjects(parsedData);
-        console.log('[ReportView] 日期转换完成');
-        
-        setReportData(convertedData);
-      } catch (err) {
-        console.error('Failed to fetch report:', err);
-        setError('加载报表失败，请检查网络连接');
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchReport();
-  }, [match, params?.reportId]);
+      if (!parsedData || typeof parsedData !== 'object') {
+        console.error('[ReportView] Invalid data:', parsedData);
+        setError('报表数据格式错误');
+        return;
+      }
+
+      // 转换日期
+      const convertedData = convertDatesToObjects(parsedData);
+      setReportData(convertedData);
+      setError(null);
+    } catch (err) {
+      console.error('[ReportView] Error processing report:', err);
+      setError('加载报表失败，请检查网络连接');
+    }
+  }, [match, reportId, reportResult, isQueryLoading, isError, queryError]);
 
   if (loading || authLoading) {
     return (
@@ -163,14 +162,22 @@ export default function ReportView() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center max-w-md">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 text-destructive" />
-          <h2 className="text-lg font-semibold mb-2">加载失败</h2>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-md"
+        >
+          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
+          <h2 className="text-2xl font-bold mb-2">加载失败</h2>
           <p className="text-muted-foreground mb-6">{error}</p>
-          <Button onClick={() => window.location.href = '/'}>
-            返回首页
+          <Button
+            onClick={() => window.location.reload()}
+            className="gap-2"
+          >
+            <RotateCcw className="w-4 h-4" />
+            重新加载
           </Button>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -179,7 +186,7 @@ export default function ReportView() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <p className="text-muted-foreground">报表数据为空</p>
+          <p className="text-muted-foreground">报表数据加载中...</p>
         </div>
       </div>
     );
@@ -188,28 +195,17 @@ export default function ReportView() {
   return (
     <div className="min-h-screen bg-background">
       {/* 导航栏 */}
-      <nav className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
+      <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="container flex items-center justify-between h-14">
-          <h2 className="text-lg font-bold">{reportTitle}</h2>
-          <div className="flex gap-2">
-            {!authLoading && user && (
-              <ShareButton reportData={{
-                title: reportTitle,
-                summary: '账单分析完成',
-                regularTransfers: reportData.regularTransfers || [],
-                repaymentTracking: reportData.repaymentTracking || [],
-                largeInflows: reportData.largeInflows || [],
-                counterpartSummary: reportData.counterpartSummary || [],
-              }} />
-            )}
+          <h1 className="font-bold text-lg">{reportTitle}</h1>
+          <div className="flex items-center gap-2">
+            <ShareButton reportId={reportId || ''} reportData={reportData} />
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.location.href = '/'}
-              className="gap-1.5"
+              onClick={() => window.history.back()}
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              新建分析
+              返回
             </Button>
           </div>
         </div>
@@ -219,53 +215,36 @@ export default function ReportView() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.5 }}
+        className="container py-8 space-y-8"
       >
-        <div className="container py-8">
-          {/* 账户概况 - 总是显示，即使数据为空 */}
-          <OverviewSection stats={reportData.overview || { 
-            totalIncome: 0, 
-            totalExpense: 0, 
-            netFlow: 0, 
-            totalTransactions: 0,
-            dateRange: '',
-            avgDailyIncome: 0,
-            avgDailyExpense: 0,
-            topCounterpart: '',
-            largestSingleTransaction: 0,
-            accountName: ''
-          }} />
-          
-          {/* 月度收支趋势 - 总是显示，即使数据为空 */}
-          <MonthlyChart data={reportData.monthlyBreakdown || []} />
-          
-          {/* 规律转账识别 */}
-          {reportData.regularTransfers && reportData.regularTransfers.length > 0 && (
-            <RegularTransfers 
-              groups={reportData.regularTransfers} 
-              allTransactions={reportData.allTransactions || []} 
-            />
-          )}
-          
-          {/* 还款追踪 */}
-          {reportData.repaymentTracking && reportData.repaymentTracking.length > 0 && (
-            <RepaymentTracking records={reportData.repaymentTracking} />
-          )}
-          
-          {/* 大额入账监控 */}
-          {reportData.largeInflows && reportData.largeInflows.length > 0 && (
-            <LargeInflows inflows={reportData.largeInflows} />
-          )}
+        {reportData.overview && (
+          <OverviewSection data={reportData.overview} />
+        )}
 
-          {/* 足迹模块 */}
-          <Footprint allTransactions={reportData.allTransactions || []} />
-          
-          {/* 交易对方分析 - 总是显示，即使数据为空 */}
-          <CounterpartSummary 
-            data={reportData.counterpartSummary || []} 
-            allTransactions={reportData.allTransactions || []} 
-          />
-        </div>
+        {reportData.monthlyBreakdown && reportData.monthlyBreakdown.length > 0 && (
+          <MonthlyChart data={reportData.monthlyBreakdown} />
+        )}
+
+        {reportData.regularTransfers && reportData.regularTransfers.length > 0 && (
+          <RegularTransfers transactions={reportData.allTransactions || []} />
+        )}
+
+        {reportData.repaymentTracking && reportData.repaymentTracking.length > 0 && (
+          <RepaymentTracking data={reportData.repaymentTracking} />
+        )}
+
+        {reportData.largeInflows && reportData.largeInflows.length > 0 && (
+          <LargeInflows data={reportData.largeInflows} />
+        )}
+
+        {reportData.counterpartSummary && reportData.counterpartSummary.length > 0 && (
+          <CounterpartSummary data={reportData.counterpartSummary} allTransactions={reportData.allTransactions || []} />
+        )}
+
+        {reportData.footprint && (
+          <Footprint data={reportData.footprint} />
+        )}
       </motion.div>
     </div>
   );
