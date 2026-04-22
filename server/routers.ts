@@ -77,6 +77,10 @@ export const appRouter = router({
             throw new Error('Failed to create report: database operation failed');
           }
 
+          // 记录访客上传数据
+          const visitorId = ctx.user?.id || 'anonymous';
+          await recordVisitorUpload(visitorId);
+
           // 只返回相对路径，让前端根据 origin 拼接
           const sharePath = `/report/${report.id}`;
           console.log('[tRPC] Report created successfully:', report.id, 'Share path:', sharePath);
@@ -95,8 +99,12 @@ export const appRouter = router({
       .input(z.object({
         reportId: z.string(),
       }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         try {
+          // 记录访客访问数据
+          const visitorId = ctx.user?.id || 'anonymous';
+          await recordVisitorVisit(visitorId);
+
           const report = await getReportById(input.reportId);
           
           if (!report) {

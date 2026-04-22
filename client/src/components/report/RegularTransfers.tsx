@@ -123,8 +123,6 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
   const outGroups = groups.filter(g => {
     const isOut = g.direction === '支出' || g.direction === '支';
     const isAbove51Percent = g.confidence >= 0.51;
-    const isMediumHigh = g.riskLevel === 'medium' || g.riskLevel === 'high';
-    const isWithin40Days = !g.intervalDays || g.intervalDays <= 40;
     const isSuspectedRepayment = g.isSuspectedRepayment === true;
     const isInRiskAccountsMap = 
       riskAccountsMap[g.counterpart]?.riskLevel === 'high' ||
@@ -132,7 +130,7 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
     
     if (isInRiskAccountsMap) return true;
     if (isSuspectedRepayment) return isOut;
-    return isOut && isAbove51Percent && (isMediumHigh && isWithin40Days);
+    return isOut && isAbove51Percent;
   });
 
   // 时间范围筛选逻辑

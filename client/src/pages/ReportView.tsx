@@ -80,9 +80,10 @@ export default function ReportView() {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [reportTitle, setReportTitle] = useState('');
   const { user, loading: authLoading } = useAuth();
+  const reportId = params?.reportId || '';
 
   useEffect(() => {
-    if (!match || !params?.reportId) {
+    if (!match || !reportId) {
       setError('无效的报表ID');
       setLoading(false);
       return;
@@ -93,7 +94,7 @@ export default function ReportView() {
         setLoading(true);
         setError(null);
 
-        const result = await trpc.reports.get.query({ reportId: params.reportId });
+        const result = await trpc.reports.get.query({ reportId });
         
         if (!result.success) {
           setError('报表不存在或已过期');
@@ -128,7 +129,7 @@ export default function ReportView() {
     };
 
     fetchReport();
-  }, [match, params?.reportId, trpc]);
+  }, [match, reportId]);
 
   if (loading || authLoading) {
     return (

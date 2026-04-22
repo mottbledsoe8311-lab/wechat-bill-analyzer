@@ -410,9 +410,13 @@ export default function Footprint({ allTransactions }: { allTransactions?: any[]
         </div>
         <button
           onClick={() => setShowManager(!showManager)}
-          className="ml-auto px-3 py-1.5 text-xs font-medium bg-indigo text-white rounded hover:bg-indigo/90 transition-colors"
+          className={`px-4 py-2 text-xs font-semibold rounded-md transition-all ${
+            showManager
+              ? 'bg-indigo/20 text-indigo border border-indigo/50'
+              : 'bg-indigo text-white hover:bg-indigo/90 shadow-md'
+          }`}
         >
-          {showManager ? '关闭' : '自定义关键词'}
+          {showManager ? '✓ 关闭管理' : '⚙ 关键词管理'}
         </button>
       </div>
 
