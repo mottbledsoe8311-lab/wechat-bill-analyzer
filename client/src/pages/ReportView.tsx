@@ -227,7 +227,7 @@ export default function ReportView() {
         )}
 
         {reportData.regularTransfers && reportData.regularTransfers.length > 0 && (
-          <RegularTransfers transactions={reportData.allTransactions || []} />
+          <RegularTransfers groups={reportData.regularTransfers} allTransactions={reportData.allTransactions || []} />
         )}
 
         {reportData.repaymentTracking && reportData.repaymentTracking.length > 0 && (
