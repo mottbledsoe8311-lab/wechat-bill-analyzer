@@ -33,6 +33,7 @@ interface ReportData {
   largeExpenses?: any[];
   counterpartSummary?: any[];
   allTransactions?: any[];
+  [key: string]: any; // 允许任意其他属性
 }
 
 /**
@@ -93,17 +94,35 @@ export default function ReportView() {
         setLoading(true);
         setError(null);
 
-        const result = await trpc.reports.get.query({ reportId: params.reportId });
+        // 使用 fetch 直接调用 tRPC 端点
+        const response = await fetch(`/api/trpc/reports.get?input=${encodeURIComponent(JSON.stringify({ reportId: params?.reportId || '' }))}`, {
+          credentials: 'include',
+        });
         
-        if (!result.success) {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const text = await response.text();
+        const result = JSON.parse(text);
+        
+        if (result.error) {
+          console.error('[ReportView] API Error:', result.error);
           setError('报表不存在或已过期');
           return;
         }
+        
+        if (!result.result?.success) {
+          setError('报表不存在或已过期');
+          return;
+        }
+        
+        const resultData = result.result;
 
-        setReportTitle(result.title || '微信账单分析报表');
+        setReportTitle(resultData.title || '微信账单分析报表');
         
         // 数据已经由服务器解析，直接使用
-        const parsedData = result.data;
+        const parsedData = resultData.data;
         
         // 验证解析的数据
         if (!parsedData || typeof parsedData !== 'object') {
@@ -128,7 +147,7 @@ export default function ReportView() {
     };
 
     fetchReport();
-  }, [match, params?.reportId, trpc]);
+  }, [match, params?.reportId]);
 
   if (loading || authLoading) {
     return (
