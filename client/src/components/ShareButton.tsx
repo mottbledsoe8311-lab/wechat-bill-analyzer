@@ -13,8 +13,9 @@ import {
 import { Progress } from '@/components/ui/progress';
 
 interface ShareButtonProps {
+  reportId?: string;
   reportData?: {
-    title: string;
+    title?: string;
     summary?: string;
     overview?: any;
     monthlyBreakdown?: any[];

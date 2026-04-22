@@ -165,7 +165,7 @@ function KeywordManager({ onClose }: { onClose: () => void }) {
                 <span>{kw.keyword}</span>
                 <span className="text-[10px] text-muted-foreground">({CATEGORY_LABELS[kw.category as 'parking' | 'property' | 'transit']})</span>
                 <button
-                  onClick={() => deleteMutation.mutate({ keyword: kw.keyword as string })}
+                  onClick={() => deleteMutation.mutate({ id: kw.id })}
                   className="ml-1 hover:text-destructive"
                   disabled={deleteMutation.isPending}
                 >

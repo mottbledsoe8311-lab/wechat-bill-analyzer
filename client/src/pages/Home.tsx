@@ -443,7 +443,6 @@ export default function Home() {
                         regularTransfers: analysisResult?.regularTransfers || [],
                         repaymentTracking: analysisResult?.repaymentTracking || [],
                         largeInflows: analysisResult?.largeInflows || [],
-                        largeExpenses: analysisResult?.largeExpenses || [],
                         counterpartSummary: analysisResult?.counterpartSummary || [],
                         allTransactions: allTransactions,
                       } : undefined}

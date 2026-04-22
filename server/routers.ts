@@ -68,7 +68,7 @@ export const appRouter = router({
             id: reportId,
             userId: ctx.user?.id || null,
             title: input.title,
-            data: reportData, // 传入对象，让 Drizzle 自动 JSON 序列化
+            data: JSON.stringify(reportData), // 序列化为JSON字符串
             expiresAt,
           });
 
@@ -224,10 +224,10 @@ export const appRouter = router({
         }
       }),
     delete: publicProcedure
-      .input(z.object({ keyword: z.string() }))
+      .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         try {
-          await deleteFootprintKeyword(input.keyword);
+          await deleteFootprintKeyword(input.id);
           return { success: true };
         } catch (error: any) {
           throw new Error(error?.message || 'Failed to delete footprint keyword');
@@ -260,10 +260,10 @@ export const appRouter = router({
         }
       }),
     delete: publicProcedure
-      .input(z.object({ keyword: z.string() }))
+      .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         try {
-          await deleteRepaymentKeyword(input.keyword);
+          await deleteRepaymentKeyword(input.id);
           return { success: true };
         } catch (error: any) {
           throw new Error(error?.message || 'Failed to delete repayment keyword');
