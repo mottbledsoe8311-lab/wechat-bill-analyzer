@@ -123,18 +123,22 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
   const outGroups = groups.filter(g => {
     const isOut = g.direction === '支出' || g.direction === '支';
     const isAbove51Percent = g.confidence >= 0.51;
+    const isAbove500 = g.amount > 500;
     const isSuspectedRepayment = g.isSuspectedRepayment === true;
     const isInRiskAccountsMap = 
       riskAccountsMap[g.counterpart]?.riskLevel === 'high' ||
       riskAccountsMap[g.counterpart?.toLowerCase().trim()]?.riskLevel === 'high';
     
+    // 高风险账户不受金额限制
     if (isInRiskAccountsMap) return true;
-    if (isSuspectedRepayment) return isOut;
-    return isOut && isAbove51Percent;
+    // 疑似还款账户必须是支出且满足金额条件
+    if (isSuspectedRepayment) return isOut && isAbove500;
+    // 普通交易必须满足：支出 + 规律度>=51% + 金额>500
+    return isOut && isAbove51Percent && isAbove500;
   });
 
   // 时间范围筛选逻辑
-  const filteredGroups = groups.filter(g => {
+  const filteredGroups = outGroups.filter(g => {
     if (!allTransactions || allTransactions.length === 0) return true;
     
     const end = new Date();

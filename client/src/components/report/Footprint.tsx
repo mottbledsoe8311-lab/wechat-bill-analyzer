@@ -315,7 +315,7 @@ function FootprintCard({ fp, index, allTransactions }: { fp: FootprintRecord; in
 
 // 主组件
 export default function Footprint({ allTransactions }: { allTransactions?: any[] }) {
-  const [showManager, setShowManager] = useState(false);
+
   const [showFilter, setShowFilter] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>('3months');
   const { data: customKeywordsResp } = trpc.footprintKeywords.getAll.useQuery();
@@ -408,22 +408,7 @@ export default function Footprint({ allTransactions }: { allTransactions?: any[]
             </button>
           ))}
         </div>
-        <button
-          onClick={() => setShowManager(!showManager)}
-          className={`px-4 py-2 text-xs font-semibold rounded-md transition-all ${
-            showManager
-              ? 'bg-indigo/20 text-indigo border border-indigo/50'
-              : 'bg-indigo text-white hover:bg-indigo/90 shadow-md'
-          }`}
-        >
-          {showManager ? '✓ 关闭管理' : '⚙ 关键词管理'}
-        </button>
       </div>
-
-      {/* 关键词管理面板 */}
-      <AnimatePresence>
-        {showManager && <KeywordManager onClose={() => setShowManager(false)} />}
-      </AnimatePresence>
 
       {/* 足迹列表 */}
       {footprints.length > 0 ? (
