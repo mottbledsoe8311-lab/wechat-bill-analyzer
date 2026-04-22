@@ -77,8 +77,22 @@ export default function ReportView() {
   const [reportTitle, setReportTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedCounterpart, setExpandedCounterpart] = useState<string | null>(null);
   const { user, loading: authLoading } = useAuth();
   const reportId = params?.reportId;
+
+  const handleViewLargeInflowDetails = (counterpart: string) => {
+    setExpandedCounterpart(null);
+    requestAnimationFrame(() => {
+      setExpandedCounterpart(counterpart);
+      setTimeout(() => {
+        const element = document.getElementById('counterpart-analysis');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    });
+  };
 
   // 使用 tRPC useQuery hook 加载报表数据
   const { data: reportResult, isLoading: isQueryLoading, isError, error: queryError } = trpc.reports.get.useQuery(
@@ -231,15 +245,17 @@ export default function ReportView() {
         )}
 
         {reportData.repaymentTracking && reportData.repaymentTracking.length > 0 && (
-          <RepaymentTracking data={reportData.repaymentTracking} />
+          <RepaymentTracking records={reportData.repaymentTracking} />
         )}
 
         {reportData.largeInflows && reportData.largeInflows.length > 0 && (
-          <LargeInflows data={reportData.largeInflows} />
+          <LargeInflows inflows={reportData.largeInflows} allTransactions={reportData.allTransactions || []} onViewDetails={handleViewLargeInflowDetails} />
         )}
 
         {reportData.counterpartSummary && reportData.counterpartSummary.length > 0 && (
-          <CounterpartSummary data={reportData.counterpartSummary} allTransactions={reportData.allTransactions || []} />
+          <div id="counterpart-analysis">
+            <CounterpartSummary data={reportData.counterpartSummary} allTransactions={reportData.allTransactions || []} expandedName={expandedCounterpart} />
+          </div>
         )}
 
         {reportData.allTransactions && reportData.allTransactions.length > 0 && (
