@@ -83,7 +83,10 @@ export default function ReportView() {
   const reportId = params?.reportId || '';
 
   useEffect(() => {
+    console.log('[ReportView] Route match:', { match, reportId });
+    
     if (!match || !reportId) {
+      console.warn('[ReportView] Invalid route or reportId:', { match, reportId });
       setError('无效的报表ID');
       setLoading(false);
       return;
@@ -91,10 +94,12 @@ export default function ReportView() {
 
     const fetchReport = async () => {
       try {
+        console.log('[ReportView] Fetching report:', reportId);
         setLoading(true);
         setError(null);
 
         const result = await trpc.reports.get.query({ reportId });
+        console.log('[ReportView] Report query result:', { success: result.success, hasData: !!result.data });
         
         if (!result.success) {
           setError('报表不存在或已过期');
