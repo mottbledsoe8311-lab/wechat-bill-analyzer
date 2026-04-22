@@ -97,14 +97,11 @@ function RepaymentKeywordManager({ onClose }: { onClose: () => void }) {
   );
 }
 
-type TimeRange = '1month' | '3months' | '6months' | 'all';
-
 export default function RegularTransfers({ groups, allTransactions = [] }: Props) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [expandedAllIndex, setExpandedAllIndex] = useState<number | null>(null);
   const [riskAccountsMap, setRiskAccountsMap] = useState<Record<string, any>>({});
   const [showManager, setShowManager] = useState(false);
-  const [timeRange, setTimeRange] = useState<TimeRange>('6months');
   const riskAccountsQuery = trpc.riskAccounts.getAll.useQuery();
   const saveRiskMutation = trpc.riskAccounts.save.useMutation();
 
@@ -123,40 +120,20 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
   const outGroups = groups.filter(g => {
     const isOut = g.direction === '支出' || g.direction === '支';
     const isAbove51Percent = g.confidence >= 0.51;
-    const isAbove500 = g.amount > 500;
+    const isMediumHigh = g.riskLevel === 'medium' || g.riskLevel === 'high';
+    const isWithin40Days = !g.intervalDays || g.intervalDays <= 40;
     const isSuspectedRepayment = g.isSuspectedRepayment === true;
     const isInRiskAccountsMap = 
       riskAccountsMap[g.counterpart]?.riskLevel === 'high' ||
       riskAccountsMap[g.counterpart?.toLowerCase().trim()]?.riskLevel === 'high';
     
-    // 高风险账户不受金额限制
     if (isInRiskAccountsMap) return true;
-    // 疑似还款账户必须是支出且满足金额条件
-    if (isSuspectedRepayment) return isOut && isAbove500;
-    // 普通交易必须满足：支出 + 规律度>=51% + 金额>500
-    return isOut && isAbove51Percent && isAbove500;
-  });
-
-  // 时间范围筛选逻辑
-  const filteredGroups = outGroups.filter(g => {
-    if (!allTransactions || allTransactions.length === 0) return true;
-    
-    const end = new Date();
-    const start = new Date();
-    if (timeRange === '1month') start.setMonth(start.getMonth() - 1);
-    else if (timeRange === '3months') start.setMonth(start.getMonth() - 3);
-    else if (timeRange === '6months') start.setMonth(start.getMonth() - 6);
-    else start.setFullYear(1970);
-    
-    // 检查该组是否有交易在时间范围内
-    return g.transactions.some(tx => {
-      const txDate = tx.date instanceof Date ? tx.date : new Date(tx.date);
-      return txDate >= start && txDate <= end;
-    });
+    if (isSuspectedRepayment) return isOut;
+    return isOut && isAbove51Percent && (isMediumHigh && isWithin40Days);
   });
 
   const riskOrder = { high: 0, medium: 1, low: 2 };
-  const sorted = [...filteredGroups].sort((a, b) => {
+  const sorted = [...outGroups].sort((a, b) => {
     if (a.isSuspectedRepayment !== b.isSuspectedRepayment) {
       return a.isSuspectedRepayment ? -1 : 1;
     }
@@ -165,7 +142,7 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
   });
 
   const highConfidenceCount = sorted.filter(g => g.confidence >= 1.0).length;
-  
+
   // 标题区（空状态也显示管理按钮）
   const TitleSection = () => (
     <div className="mb-8">
@@ -186,31 +163,6 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
             管理
             {showManager ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
-        </div>
-        
-        {/* 时间范围筛选按钮 */}
-        <div className="flex items-center gap-2 mt-3">
-          <span className="text-xs text-muted-foreground font-medium">时间范围：</span>
-          <div className="flex gap-2">
-            {([
-              { key: '1month' as TimeRange, label: '近1月' },
-              { key: '3months' as TimeRange, label: '近3月' },
-              { key: '6months' as TimeRange, label: '近6月' },
-              { key: 'all' as TimeRange, label: '全部' },
-            ]).map(opt => (
-              <button
-                key={opt.key}
-                onClick={() => setTimeRange(opt.key)}
-                className={`px-3 py-1.5 text-xs rounded-md transition-all font-medium ${
-                  timeRange === opt.key
-                    ? 'bg-blue-500 text-white shadow-md hover:shadow-lg'
-                    : 'bg-blue-500/10 text-blue-600 border border-blue-500/30 hover:bg-blue-500/20'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
         </div>
         {sorted.length > 0 && (
           <div className="flex items-center gap-3 flex-wrap">
