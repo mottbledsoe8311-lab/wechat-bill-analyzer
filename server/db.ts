@@ -1,4 +1,4 @@
-import { eq, gt } from "drizzle-orm";
+import { eq, gt, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, reports, riskAccounts, type InsertReport, type Report, type RiskAccount, type InsertRiskAccount, visitorStats, type VisitorStat, type InsertVisitorStat } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -169,18 +169,22 @@ export async function getReportById(reportId: string): Promise<Report | undefine
   }
 }
 
-export async function deleteExpiredReports(): Promise<void> {
+export async function deleteExpiredReports(): Promise<number> {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot delete reports: database not available");
-    return;
+    return 0;
   }
 
   try {
     const now = new Date();
-    await db.delete(reports).where(gt(reports.expiresAt, now));
+    // 删除 expiresAt 小于当前时间的报表（已过期的报表）
+    const result = await db.delete(reports).where(lt(reports.expiresAt, now));
+    console.log(`[Database] Deleted expired reports (result: ${JSON.stringify(result)})`);
+    return 0; // MySQL 删除操作的返回值结构取决于驱动程序
   } catch (error) {
     console.error("[Database] Failed to delete expired reports:", error);
+    return 0;
   }
 }
 
