@@ -82,15 +82,18 @@ export default function ReportView() {
   const reportId = params?.reportId;
 
   const handleViewLargeInflowDetails = (counterpart: string) => {
-    setExpandedCounterpart(null);
+    // 立即设置展开状态
+    setExpandedCounterpart(counterpart);
+    
+    // 使用多个requestAnimationFrame确保DOM完全更新后再滚动
     requestAnimationFrame(() => {
-      setExpandedCounterpart(counterpart);
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         const element = document.getElementById('counterpart-analysis');
         if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // 使用 block: 'center' 确保目标元素在视口中心
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 100);
+      });
     });
   };
 
