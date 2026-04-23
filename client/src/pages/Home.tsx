@@ -203,19 +203,16 @@ export default function Home() {
   }, []);
 
   const handleViewLargeInflowDetails = useCallback((counterpart: string) => {
-    // 先清空状态，强制重新渲染
-    setExpandedCounterpart(null);
-    // 使用 requestAnimationFrame 确保状态更新后再设置新值
+    setExpandedCounterpart(counterpart);
+    
     requestAnimationFrame(() => {
-      setExpandedCounterpart(counterpart);
-      // 延迟滚动，确保 DOM 已更新
-      setTimeout(() => {
-        counterpartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        // 再次滚动以确保完整显示
-        setTimeout(() => {
-          counterpartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 500);
-      }, 100);
+      requestAnimationFrame(() => {
+        const elementId = `counterpart-${encodeURIComponent(counterpart)}`;
+        const element = document.getElementById(elementId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
     });
   }, []);
 
