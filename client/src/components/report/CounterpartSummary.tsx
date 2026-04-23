@@ -324,7 +324,7 @@ export default function CounterpartSummary({ data, allTransactions = [], expande
 
                 {/* 展开的交易明细行 */}
                 {expandedName === item.name && expandedTransactions.length > 0 ? (
-                  <tr key={`${item.name}-details`} ref={highlightedName?.startsWith(item.name) ? expandedDetailsRef : undefined}>
+                  <tr key={`${item.name}-details`} id={`counterpart-${encodeURIComponent(item.name)}`} ref={highlightedName?.startsWith(item.name) ? expandedDetailsRef : undefined}>
                     <td colSpan={6} className={`p-0 transition-colors duration-300 ${
                       highlightedName?.startsWith(item.name) ? 'bg-green-100' : ''
                     }`}>

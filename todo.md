@@ -356,3 +356,10 @@
   - [x] 修复为双重requestAnimationFrame
   - [x] 使用block: 'center'将目标元素定位到屏幕中间
   - [x] 编写测试验证修复效果（7个测试全部通过）
+
+## 定位到错误位置的问题修复（彼此独立定位最终修复）
+- [x] 修复所有"查看详情"按钮都跳到固定位的问题
+  - [x] 分析当前定位机制的缺陷：所有按钮都指向同一个ID
+  - [x] 为每个交易对方创建床位ID：counterpart-${encodeURIComponent(name)}
+  - [x] 修复handleViewLargeInflowDetails指向正确的目标，使用对应的客户ID
+  - [x] 编写测试验证每个客户的正确定位（6个测试全部通过）

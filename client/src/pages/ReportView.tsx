@@ -1,270 +1,275 @@
-/**
- * 报表查看页面
- * 根据报表ID显示对应的报表内容
- */
-
-import { useEffect, useState } from 'react';
-import { useRoute } from 'wouter';
-import { Loader2, AlertCircle, RotateCcw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
-import superjson from 'superjson';
+import { RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
+import FileUpload from '@/components/FileUpload';
+import AnalysisProgress from '@/components/AnalysisProgress';
 import OverviewSection from '@/components/report/OverviewSection';
 import MonthlyChart from '@/components/report/MonthlyChart';
 import RegularTransfers from '@/components/report/RegularTransfers';
 import RepaymentTracking from '@/components/report/RepaymentTracking';
 import LargeInflows from '@/components/report/LargeInflows';
-import Footprint from '@/components/report/Footprint';
 import CounterpartSummary from '@/components/report/CounterpartSummary';
-import ShareButton from '@/components/ShareButton';
-import { useAuth } from '@/_core/hooks/useAuth';
-import { trpc } from '@/lib/trpc';
 
-interface ReportData {
-  title?: string;
-  summary?: string;
-  overview?: any;
-  monthlyBreakdown?: any[];
-  regularTransfers?: any[];
-  repaymentTracking?: any[];
-  largeInflows?: any[];
-  largeExpenses?: any[];
-  counterpartSummary?: any[];
-  allTransactions?: any[];
-  [key: string]: any;
-}
+import { parsePDF, type ParseResult } from '@/lib/pdfParser';
+import { analyzeTransactions, type AnalysisResult } from '@/lib/analyzer';
 
-/**
- * 递归转换所有日期字符串为 Date 对象
- */
-function convertDatesToObjects(obj: any): any {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-  
-  if (typeof obj === 'string') {
-    const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
-    if (isoDateRegex.test(obj)) {
-      return new Date(obj);
-    }
-    return obj;
-  }
-  
-  if (obj instanceof Date) {
-    return obj;
-  }
-  
-  if (Array.isArray(obj)) {
-    return obj.map(convertDatesToObjects);
-  }
-  
-  if (typeof obj === 'object') {
-    const converted: any = {};
-    for (const key in obj) {
-      converted[key] = convertDatesToObjects(obj[key]);
-    }
-    return converted;
-  }
-  
-  return obj;
-}
+type AppState = 'upload' | 'analyzing' | 'report';
+
+const HERO_BG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663413101752/gJ9cYUELDfjcatYy8Yce6Q/hero-bg-fqhFpYZYJrJZisccv6Q5DA.webp';
+const UPLOAD_ILLUSTRATION = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663413101752/gJ9cYUELDfjcatYy8Yce6Q/upload-illustration-Fapr2KvCmYJqQf65NjXJvu.webp';
 
 export default function ReportView() {
-  const [match, params] = useRoute('/report/:reportId');
-  const [reportData, setReportData] = useState<ReportData | null>(null);
-  const [reportTitle, setReportTitle] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState<AppState>('upload');
+  const [files, setFiles] = useState<File[]>([]);
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
+  const [progressStage, setProgressStage] = useState<'parsing' | 'analyzing' | 'done'>('parsing');
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [parseResult, setParseResult] = useState<ParseResult | null>(null);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [expandedCounterpart, setExpandedCounterpart] = useState<string | null>(null);
-  const { user, loading: authLoading } = useAuth();
-  const reportId = params?.reportId;
+  const reportRef = useRef<HTMLDivElement>(null);
 
-  const handleViewLargeInflowDetails = (counterpart: string) => {
-    // 立即设置展开状态
+  const handleFilesSelected = useCallback((selectedFiles: File[]) => {
+    setFiles(selectedFiles);
+  }, []);
+
+  const handleStartAnalysis = useCallback(async () => {
+    if (files.length === 0) {
+      toast.error('请先上传PDF文件');
+      return;
+    }
+
+    setState('analyzing');
+    setProgress(0);
+    setProgressStage('parsing');
+
+    try {
+      let allTransactions: ParseResult['transactions'] = [];
+      let accountInfo: ParseResult['accountInfo'] | null = null;
+      let totalPages = 0;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileProgress = (i / files.length) * 50;
+        
+        try {
+          setProgressMessage(`正在解析第 ${i + 1}/${files.length} 个文件: ${file.name}`);
+          
+          const result = await parsePDF(file, (p, msg) => {
+            const overallProgress = fileProgress + (p / 100) * (50 / files.length);
+            setProgress(Math.min(overallProgress, 99));
+            setProgressMessage(msg);
+          });
+
+          if (result.transactions.length === 0 && result.parseErrors.length === 0) {
+            toast.warning(`${file.name} 未能提取到任何交易记录`);
+          }
+
+          allTransactions = [...allTransactions, ...result.transactions];
+          totalPages += result.totalPages;
+          
+          if (!accountInfo && result.accountInfo.name) {
+            accountInfo = result.accountInfo;
+          }
+
+          if (result.parseErrors.length > 0) {
+            result.parseErrors.forEach(err => toast.warning(err));
+          }
+        } catch (fileError: any) {
+          toast.error(`文件 ${file.name} 解析失败: ${fileError.message}`);
+          console.error(`Error parsing file ${file.name}:`, fileError);
+        }
+      }
+
+      const seen = new Set<string>();
+      allTransactions = allTransactions.filter(tx => {
+        const key = tx.orderId 
+          ? tx.orderId 
+          : `${tx.dateStr}-${tx.amount}-${tx.counterpart}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      allTransactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+      const finalParseResult: ParseResult = {
+        accountInfo: accountInfo || { name: '', idNumber: '', account: '', startDate: '', endDate: '' },
+        transactions: allTransactions,
+        totalPages,
+        parseErrors: [],
+      };
+      setParseResult(finalParseResult);
+
+      if (allTransactions.length === 0) {
+        toast.error('未能从PDF中提取到交易记录，请确认文件是微信账单PDF');
+        setState('upload');
+        return;
+      }
+
+      toast.success(`成功提取 ${allTransactions.length} 条交易记录`);
+
+      setProgressStage('analyzing');
+      setProgress(50);
+
+      const analysis = await analyzeTransactions(allTransactions, (p, msg) => {
+        setProgress(50 + p * 0.5);
+        setProgressMessage(msg);
+      });
+
+      setAnalysisResult(analysis);
+      setAllTransactions(allTransactions);
+      
+      setProgressStage('done');
+      setProgress(100);
+      
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setState('report');
+      
+      setTimeout(() => {
+        reportRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      toast.error(`分析失败: ${error.message}`);
+      setState('upload');
+    }
+  }, [files]);
+
+  const handleReset = useCallback(() => {
+    setState('upload');
+    setFiles([]);
+    setAnalysisResult(null);
+    setParseResult(null);
+    setAllTransactions([]);
+    setProgress(0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleViewLargeInflowDetails = useCallback((counterpart: string) => {
     setExpandedCounterpart(counterpart);
     
-    // 使用多个requestAnimationFrame确保DOM完全更新后再滚动
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const element = document.getElementById('counterpart-analysis');
+        const elementId = `counterpart-${encodeURIComponent(counterpart)}`;
+        const element = document.getElementById(elementId);
         if (element) {
-          // 使用 block: 'center' 确保目标元素在视口中心
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       });
     });
-  };
-
-  // 使用 tRPC useQuery hook 加载报表数据
-  const { data: reportResult, isLoading: isQueryLoading, isError, error: queryError } = trpc.reports.get.useQuery(
-    { reportId: reportId || '' },
-    {
-      enabled: !!reportId && match !== false,
-      retry: 1,
-    }
-  );
-
-  // 处理报表数据
-  useEffect(() => {
-    if (!match || !reportId) {
-      setError('无效的报表ID');
-      setLoading(false);
-      return;
-    }
-
-    setLoading(isQueryLoading);
-
-    if (isError) {
-      console.error('[ReportView] Query error:', queryError);
-      setError('报表加载失败，请检查网络连接');
-      return;
-    }
-
-    if (!reportResult) {
-      if (!isQueryLoading) {
-        setError('报表不存在或已过期');
-      }
-      return;
-    }
-
-    try {
-      if (!reportResult.success) {
-        setError('报表不存在或已过期');
-        return;
-      }
-
-      setReportTitle(reportResult.title || '微信账单分析报表');
-      
-      // 解析数据
-      let parsedData = reportResult.data;
-      if (typeof parsedData === 'string') {
-        try {
-          parsedData = JSON.parse(parsedData);
-        } catch (e) {
-          console.error('[ReportView] Failed to parse data:', e);
-          setError('报表数据格式错误');
-          return;
-        }
-      }
-
-      if (!parsedData || typeof parsedData !== 'object') {
-        console.error('[ReportView] Invalid data:', parsedData);
-        setError('报表数据格式错误');
-        return;
-      }
-
-      // 转换日期
-      const convertedData = convertDatesToObjects(parsedData);
-      setReportData(convertedData);
-      setError(null);
-    } catch (err) {
-      console.error('[ReportView] Error processing report:', err);
-      setError('加载报表失败，请检查网络连接');
-    }
-  }, [match, reportId, reportResult, isQueryLoading, isError, queryError]);
-
-  if (loading || authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-indigo" />
-          <p className="text-muted-foreground">正在加载报表...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-md"
-        >
-          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
-          <h2 className="text-2xl font-bold mb-2">加载失败</h2>
-          <p className="text-muted-foreground mb-6">{error}</p>
-          <Button
-            onClick={() => window.location.reload()}
-            className="gap-2"
-          >
-            <RotateCcw className="w-4 h-4" />
-            重新加载
-          </Button>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (!reportData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <p className="text-muted-foreground">报表数据加载中...</p>
-        </div>
-      </div>
-    );
-  }
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
-      {/* 导航栏 */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="container flex items-center justify-between h-14">
-          <h1 className="font-bold text-lg">{reportTitle}</h1>
-          <div className="flex items-center gap-2">
-            <ShareButton reportId={reportId || ''} reportData={reportData} />
+          <div className="flex items-center gap-3">
+            <img 
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663269350406/SXgJ57d4GB9RBvAf3PYHaj/57da3f797bc6e8316f697d6b38c89a14_c3c1d23e.webp" 
+              alt="WeChat" 
+              className="w-8 h-8 rounded-lg"
+            />
+            <span className="font-bold text-lg tracking-tight" style={{ color: '#ff8800' }}>大橙子账单分析系统</span>
+          </div>
+          {state === 'report' && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.history.back()}
+              onClick={handleReset}
+              className="gap-1.5"
             >
-              返回
+              <RotateCcw className="w-3.5 h-3.5" />
+              重新分析
             </Button>
-          </div>
+          )}
         </div>
       </nav>
 
-      {/* 报表内容 */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="container py-8 space-y-8"
-      >
-        {reportData.overview && (
-          <OverviewSection stats={reportData.overview} />
+      <AnimatePresence mode="wait">
+        {state === 'upload' && (
+          <motion.div
+            key="upload"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4 }}
+            className="container py-16"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">上传账单文件</h2>
+                <p className="text-muted-foreground mb-8">
+                  支持微信导出的PDF格式账单，可同时上传多个文件
+                </p>
+                <FileUpload
+                  onFilesSelected={handleFilesSelected}
+                  isAnalyzing={false}
+                  onStartAnalysis={handleStartAnalysis}
+                />
+              </div>
+            </div>
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        {reportData.monthlyBreakdown && reportData.monthlyBreakdown.length > 0 && (
-          <MonthlyChart data={reportData.monthlyBreakdown} />
+      <AnimatePresence mode="wait">
+        {state === 'analyzing' && (
+          <motion.div
+            key="analyzing"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="container py-20"
+          >
+            <AnalysisProgress progress={progress} message={progressMessage} stage={progressStage} />
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        {reportData.regularTransfers && reportData.regularTransfers.length > 0 && (
-          <RegularTransfers groups={reportData.regularTransfers} allTransactions={reportData.allTransactions || []} />
-        )}
+      <AnimatePresence mode="wait">
+        {state === 'report' && analysisResult && parseResult && (
+          <motion.div
+            key="report"
+            ref={reportRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="container py-12 space-y-12"
+          >
+            {analysisResult.overview && (
+              <OverviewSection stats={analysisResult.overview} />
+            )}
 
-        {reportData.repaymentTracking && reportData.repaymentTracking.length > 0 && (
-          <RepaymentTracking records={reportData.repaymentTracking} />
-        )}
+            {analysisResult.monthlyBreakdown && analysisResult.monthlyBreakdown.length > 0 && (
+              <MonthlyChart data={analysisResult.monthlyBreakdown} />
+            )}
 
-        {reportData.largeInflows && reportData.largeInflows.length > 0 && (
-          <LargeInflows inflows={reportData.largeInflows} allTransactions={reportData.allTransactions || []} onViewDetails={handleViewLargeInflowDetails} />
-        )}
+            {analysisResult.regularTransfers && analysisResult.regularTransfers.length > 0 && (
+              <RegularTransfers groups={analysisResult.regularTransfers} allTransactions={allTransactions} />
+            )}
 
-        {reportData.counterpartSummary && reportData.counterpartSummary.length > 0 && (
-          <div id="counterpart-analysis">
-            <CounterpartSummary data={reportData.counterpartSummary} allTransactions={reportData.allTransactions || []} expandedName={expandedCounterpart} />
-          </div>
-        )}
+            {analysisResult.repaymentTracking && analysisResult.repaymentTracking.length > 0 && (
+              <RepaymentTracking records={analysisResult.repaymentTracking} />
+            )}
 
-        {reportData.allTransactions && reportData.allTransactions.length > 0 && (
-          <Footprint allTransactions={reportData.allTransactions} />
+            {analysisResult.largeInflows && analysisResult.largeInflows.length > 0 && (
+              <LargeInflows inflows={analysisResult.largeInflows} allTransactions={allTransactions} onViewDetails={handleViewLargeInflowDetails} />
+            )}
+
+            {analysisResult.counterpartSummary && analysisResult.counterpartSummary.length > 0 && (
+              <CounterpartSummary data={analysisResult.counterpartSummary} allTransactions={allTransactions} expandedName={expandedCounterpart} />
+            )}
+          </motion.div>
         )}
-      </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
