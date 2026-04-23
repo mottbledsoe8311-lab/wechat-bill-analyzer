@@ -364,3 +364,11 @@
   - [x] 修复Home.tsx中handleViewLargeInflowDetails指向正确的目标，使用对应的客户ID
   - [x] 修复CounterpartSummary中ID设置
   - [x] 编写测试验证每个客户的正确定位（36/42测试全部通过）
+
+## 按钮二次点击无反应问题修复（新问题）
+- [x] 排查并修复"查看详情"按钮在二次点击后没有反应的问题
+  - [x] 分析handleViewLargeInflowDetails函数的逻辑
+  - [x] 识别根本原因：重复点击同一客户时，expandedCounterpart状态不变，导致React不重新渲染
+  - [x] 修复：先检查是否已展开该客户，如果是则先清空状态再重新设置，强制重新渲染
+  - [x] 添加expandedCounterpart到useCallback依赖数组
+  - [x] 验证修复效果（36/42测试通过）

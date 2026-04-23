@@ -203,18 +203,36 @@ export default function Home() {
   }, []);
 
   const handleViewLargeInflowDetails = useCallback((counterpart: string) => {
-    setExpandedCounterpart(counterpart);
-    
-    requestAnimationFrame(() => {
+    // 如果已经展开该客户，先清空状态强制重新渲染
+    if (expandedCounterpart === counterpart) {
+      setExpandedCounterpart(null);
+      // 使用setTimeout确保状态清空后再重新设置
+      setTimeout(() => {
+        setExpandedCounterpart(counterpart);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const elementId = `counterpart-${encodeURIComponent(counterpart)}`;
+            const element = document.getElementById(elementId);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          });
+        });
+      }, 0);
+    } else {
+      // 首次点击或点击不同客户，直接设置
+      setExpandedCounterpart(counterpart);
       requestAnimationFrame(() => {
-        const elementId = `counterpart-${encodeURIComponent(counterpart)}`;
-        const element = document.getElementById(elementId);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        requestAnimationFrame(() => {
+          const elementId = `counterpart-${encodeURIComponent(counterpart)}`;
+          const element = document.getElementById(elementId);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        });
       });
-    });
-  }, []);
+    }
+  }, [expandedCounterpart]);
 
   return (
     <div className="min-h-screen bg-background">
