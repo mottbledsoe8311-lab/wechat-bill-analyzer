@@ -34,12 +34,17 @@ export default function CounterpartSummary({ data, allTransactions = [], expande
       setShowDetails(true);
       // 使用时间戳强制重新触发高亮，确保每次点击都有效
       setHighlightedName(`${initialExpandedName}-${Date.now()}`);
-      setTimeout(() => {
-        expandedDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        setTimeout(() => {
-          expandedDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 300);
-      }, 100);
+      
+      // 使用双重requestAnimationFrame确保DOM完全更新后再滚动
+      // 这样可以避免二次跳转问题
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (expandedDetailsRef.current) {
+            // 使用block: 'center'将目标元素定位到屏幕中间
+            expandedDetailsRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        });
+      });
       // 不清除高亮，保持常亮状态
     }
   }, [initialExpandedName]);
