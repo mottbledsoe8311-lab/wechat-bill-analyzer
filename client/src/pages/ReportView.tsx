@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRoute } from 'wouter';
 
 import FileUpload from '@/components/FileUpload';
 import AnalysisProgress from '@/components/AnalysisProgress';
@@ -15,14 +16,18 @@ import CounterpartSummary from '@/components/report/CounterpartSummary';
 
 import { parsePDF, type ParseResult } from '@/lib/pdfParser';
 import { analyzeTransactions, type AnalysisResult } from '@/lib/analyzer';
+import { trpc } from '@/lib/trpc';
 
-type AppState = 'upload' | 'analyzing' | 'report';
+type AppState = 'upload' | 'analyzing' | 'report' | 'loading';
 
 const HERO_BG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663413101752/gJ9cYUELDfjcatYy8Yce6Q/hero-bg-fqhFpYZYJrJZisccv6Q5DA.webp';
 const UPLOAD_ILLUSTRATION = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663413101752/gJ9cYUELDfjcatYy8Yce6Q/upload-illustration-Fapr2KvCmYJqQf65NjXJvu.webp';
 
 export default function ReportView() {
-  const [state, setState] = useState<AppState>('upload');
+  const [, params] = useRoute('/report/:reportId');
+  const reportId = params?.reportId as string | undefined;
+  
+  const [state, setState] = useState<AppState>(reportId ? 'loading' : 'upload');
   const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
@@ -32,6 +37,37 @@ export default function ReportView() {
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [expandedCounterpart, setExpandedCounterpart] = useState<string | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
+  
+  // 加载分享的报表数据
+  const { data: reportData, isLoading: isLoadingReport, error: reportError } = trpc.reports.get.useQuery(
+    { reportId: reportId || '' },
+    { enabled: !!reportId }
+  );
+  
+  // 当报表数据加载完成时，设置分析结果
+  useEffect(() => {
+    if (reportData && reportId) {
+      try {
+        const data = typeof reportData.data === 'string' ? JSON.parse(reportData.data) : reportData.data;
+        setAnalysisResult(data);
+        setAllTransactions(data.allTransactions || []);
+        setState('report');
+      } catch (error) {
+        console.error('Failed to parse report data:', error);
+        toast.error('报表数据解析失败');
+        setState('upload');
+      }
+    }
+  }, [reportData, reportId]);
+  
+  // 处理报表加载错误
+  useEffect(() => {
+    if (reportError && reportId) {
+      console.error('Failed to load report:', reportError);
+      toast.error('报表加载失败，请检查分享链接是否有效');
+      setState('upload');
+    }
+  }, [reportError, reportId]);
 
   const handleFilesSelected = useCallback((selectedFiles: File[]) => {
     setFiles(selectedFiles);
@@ -142,14 +178,20 @@ export default function ReportView() {
   }, [files]);
 
   const handleReset = useCallback(() => {
-    setState('upload');
-    setFiles([]);
-    setAnalysisResult(null);
-    setParseResult(null);
-    setAllTransactions([]);
-    setProgress(0);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+    if (reportId) {
+      // 分享链接页面，重置回主页
+      window.location.href = '/';
+    } else {
+      // 本地分析页面，重置状态
+      setState('upload');
+      setFiles([]);
+      setAnalysisResult(null);
+      setParseResult(null);
+      setAllTransactions([]);
+      setProgress(0);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [reportId]);
 
   const handleViewLargeInflowDetails = useCallback((counterpart: string) => {
     setExpandedCounterpart(counterpart);
@@ -185,11 +227,29 @@ export default function ReportView() {
               className="gap-1.5"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              重新分析
+              {reportId ? '返回主页' : '重新分析'}
             </Button>
           )}
         </div>
       </nav>
+
+      <AnimatePresence mode="wait">
+        {state === 'loading' && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="container py-20 flex items-center justify-center min-h-screen"
+          >
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-indigo" />
+              <p className="text-muted-foreground">正在加载报表...</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence mode="wait">
         {state === 'upload' && (
@@ -234,7 +294,7 @@ export default function ReportView() {
       </AnimatePresence>
 
       <AnimatePresence mode="wait">
-        {state === 'report' && analysisResult && parseResult && (
+        {state === 'report' && analysisResult && (
           <motion.div
             key="report"
             ref={reportRef}
