@@ -49,6 +49,33 @@ export default function ReportView() {
     if (reportData && reportId) {
       try {
         const data = typeof reportData.data === 'string' ? JSON.parse(reportData.data) : reportData.data;
+        
+        // 修复日期对象反序列化
+        if (data.overview) {
+          if (data.overview.largestIncomeDate && typeof data.overview.largestIncomeDate === 'string') {
+            data.overview.largestIncomeDate = new Date(data.overview.largestIncomeDate);
+          }
+          if (data.overview.largestExpenseDate && typeof data.overview.largestExpenseDate === 'string') {
+            data.overview.largestExpenseDate = new Date(data.overview.largestExpenseDate);
+          }
+        }
+        
+        // 修复monthlyBreakdown中的日期
+        if (data.monthlyBreakdown && Array.isArray(data.monthlyBreakdown)) {
+          data.monthlyBreakdown = data.monthlyBreakdown.map((item: any) => ({
+            ...item,
+            date: typeof item.date === 'string' ? new Date(item.date) : item.date
+          }));
+        }
+        
+        // 修复allTransactions中的日期
+        if (data.allTransactions && Array.isArray(data.allTransactions)) {
+          data.allTransactions = data.allTransactions.map((tx: any) => ({
+            ...tx,
+            date: typeof tx.date === 'string' ? new Date(tx.date) : tx.date
+          }));
+        }
+        
         setAnalysisResult(data);
         setAllTransactions(data.allTransactions || []);
         setState('report');
