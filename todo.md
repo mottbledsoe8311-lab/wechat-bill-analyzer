@@ -423,3 +423,10 @@
   - [x] 编写7个端到端测试用例，全部通过
   - [x] 66个单元测试全部通过
   - [x] 构建成功
+
+
+## 分享链接RepaymentTracking日期反序列化bug（已修复）
+- [x] 修复RepaymentTracking组件中的date.getTime错误
+  - [x] 排查repaymentTracking数据结构中的日期字段
+  - [x] 添加repaymentTracking、largeInflows、regularTransfers的日期反序列化逻辑
+  - [x] 测试修复效果（66个测试全部通过）

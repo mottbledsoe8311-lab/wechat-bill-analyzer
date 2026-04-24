@@ -76,6 +76,33 @@ export default function ReportView() {
           }));
         }
         
+        // 修复repaymentTracking中的日期
+        if (data.repaymentTracking && Array.isArray(data.repaymentTracking)) {
+          data.repaymentTracking = data.repaymentTracking.map((record: any) => ({
+            ...record,
+            repayments: Array.isArray(record.repayments) ? record.repayments.map((r: any) => ({
+              ...r,
+              date: typeof r.date === 'string' ? new Date(r.date) : r.date
+            })) : []
+          }));
+        }
+        
+        // 修复largeInflows中的日期
+        if (data.largeInflows && Array.isArray(data.largeInflows)) {
+          data.largeInflows = data.largeInflows.map((item: any) => ({
+            ...item,
+            date: typeof item.date === 'string' ? new Date(item.date) : item.date
+          }));
+        }
+        
+        // 修复regularTransfers中的日期（如果有）
+        if (data.regularTransfers && Array.isArray(data.regularTransfers)) {
+          data.regularTransfers = data.regularTransfers.map((item: any) => ({
+            ...item,
+            lastDate: typeof item.lastDate === 'string' ? new Date(item.lastDate) : item.lastDate
+          }));
+        }
+        
         setAnalysisResult(data);
         setAllTransactions(data.allTransactions || []);
         setState('report');
