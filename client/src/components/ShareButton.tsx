@@ -197,7 +197,7 @@ export default function ShareButton({ reportData, customerName }: ShareButtonPro
 {`📄 （${reportData?.overview?.accountName ? reportData.overview.accountName : customerName ? customerName : '账户'}）账单分析报表
 
 📈 规律转账：${reportData?.regularTransfers?.length || 0}个重点核实对象
-💰 转账追踪：${reportData?.repaymentTracking?.length || 0}笔规律还款追踪
+💰 转账对象追踪：${reportData?.repaymentTracking?.length || 0}笔规律还款追踪
 🗒 大额入账：${reportData?.largeInflows?.length || 0}笔异常入账
 👥 交易对方：${reportData?.counterpartSummary?.length || 0}个主要对方
 
@@ -211,7 +211,7 @@ ${shareUrl}
                   const content = `📄 （${reportData?.overview?.accountName ? reportData.overview.accountName : customerName ? customerName : '账户'}）账单分析报表
 
 📈 规律转账：${reportData?.regularTransfers?.length || 0}个重点核实对象
-💰 转账追踪：${reportData?.repaymentTracking?.length || 0}笔规律还款追踪
+💰 转账对象追踪：${reportData?.repaymentTracking?.length || 0}笔规律还款追踪
 🗒 大额入账：${reportData?.largeInflows?.length || 0}笔异常入账
 👥 交易对方：${reportData?.counterpartSummary?.length || 0}个主要对方
 

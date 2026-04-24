@@ -17,7 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'overview', label: '账户概况', icon: '📊' },
   { id: 'monthly', label: '月度收支', icon: '📈' },
   { id: 'regular', label: '规律转账', icon: '🔄' },
-  { id: 'repayment', label: '转账追踪', icon: '💳' },
+  { id: 'repayment', label: '转账对象追踪', icon: '💳' },
   { id: 'inflows', label: '大额入账', icon: '💰' },
   { id: 'footprint', label: '足迹', icon: '📍' },
   { id: 'counterpart', label: '交易对方', icon: '👥' },

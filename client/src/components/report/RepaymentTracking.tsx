@@ -40,7 +40,7 @@ export default function RepaymentTracking({ records }: Props) {
       <section className="py-10 border-t border-border">
         <div className="mb-8">
           <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-1.5">Transfer Tracking</p>
-          <h3 className="text-2xl font-bold text-foreground">转账追踪</h3>
+          <h3 className="text-2xl font-bold text-foreground">转账对象追踪</h3>
         </div>
         <div className="text-center py-16 text-muted-foreground">
           <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
