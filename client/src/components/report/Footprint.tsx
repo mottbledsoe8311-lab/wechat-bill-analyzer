@@ -298,7 +298,9 @@ export default function Footprint({ allTransactions }: { allTransactions?: any[]
             if (existing) {
               existing.amount += tx.amount;
               existing.count += 1;
-              existing.date = new Date(Math.max(existing.date.getTime(), tx.date.getTime()));
+              const existingTime = typeof existing.date === 'string' ? new Date(existing.date).getTime() : existing.date instanceof Date ? existing.date.getTime() : 0;
+              const txTime = typeof tx.date === 'string' ? new Date(tx.date).getTime() : tx.date instanceof Date ? tx.date.getTime() : 0;
+              existing.date = new Date(Math.max(existingTime, txTime));
             } else {
               locationMap.set(key, {
                 location: counterpart,
@@ -314,7 +316,11 @@ export default function Footprint({ allTransactions }: { allTransactions?: any[]
         }
       });
 
-    return Array.from(locationMap.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
+    return Array.from(locationMap.values()).sort((a, b) => {
+      const aTime = typeof a.date === 'string' ? new Date(a.date).getTime() : a.date instanceof Date ? a.date.getTime() : 0;
+      const bTime = typeof b.date === 'string' ? new Date(b.date).getTime() : b.date instanceof Date ? b.date.getTime() : 0;
+      return bTime - aTime;
+    });
   }, [allTransactions, timeRange, customKeywords]);
 
   if (!allTransactions || allTransactions.length === 0) {

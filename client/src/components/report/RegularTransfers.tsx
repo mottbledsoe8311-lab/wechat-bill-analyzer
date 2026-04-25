@@ -222,7 +222,11 @@ export default function RegularTransfers({ groups, allTransactions = [] }: Props
           const relatedTxs = allTransactions?.length > 0
             ? allTransactions
                 .filter(tx => tx.counterpart?.trim() === counterpartName)
-                .sort((a: any, b: any) => b.date.getTime() - a.date.getTime())
+                .sort((a: any, b: any) => {
+                  const aTime = typeof a.date === 'string' ? new Date(a.date).getTime() : a.date instanceof Date ? a.date.getTime() : 0;
+                  const bTime = typeof b.date === 'string' ? new Date(b.date).getTime() : b.date instanceof Date ? b.date.getTime() : 0;
+                  return bTime - aTime;
+                })
             : g.transactions.map(t => ({ ...t, direction: g.direction }));
 
           const totalIn = relatedTxs

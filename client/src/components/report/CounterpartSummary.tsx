@@ -66,7 +66,11 @@ export default function CounterpartSummary({ data, allTransactions = [], expande
           const txCounterpart = tx.counterpart || '';
           return txCounterpart.toLowerCase() === expandedName.toLowerCase();
         })
-        .sort((a: any, b: any) => b.date.getTime() - a.date.getTime())
+        .sort((a: any, b: any) => {
+          const aTime = typeof a.date === 'string' ? new Date(a.date).getTime() : a.date instanceof Date ? a.date.getTime() : 0;
+          const bTime = typeof b.date === 'string' ? new Date(b.date).getTime() : b.date instanceof Date ? b.date.getTime() : 0;
+          return bTime - aTime;
+        })
     : [];
 
   const handleSort = (key: SortKey) => {

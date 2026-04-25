@@ -43,7 +43,11 @@ export default function LargeInflows({ inflows, allTransactions, onViewDetails }
       });
     
     if (sortBy === 'time') {
-      sorted.sort((a, b) => b.transaction.date.getTime() - a.transaction.date.getTime());
+      sorted.sort((a, b) => {
+        const aTime = typeof a.transaction.date === 'string' ? new Date(a.transaction.date).getTime() : a.transaction.date instanceof Date ? a.transaction.date.getTime() : 0;
+        const bTime = typeof b.transaction.date === 'string' ? new Date(b.transaction.date).getTime() : b.transaction.date instanceof Date ? b.transaction.date.getTime() : 0;
+        return bTime - aTime;
+      });
     } else {
       sorted.sort((a, b) => b.transaction.amount - a.transaction.amount);
     }
@@ -173,7 +177,11 @@ export default function LargeInflows({ inflows, allTransactions, onViewDetails }
               (() => {
                 const followingExpenses = allTransactions
                   .filter(tx => tx.date > item.transaction.date && tx.direction === '支出')
-                  .sort((a, b) => a.date.getTime() - b.date.getTime())
+                  .sort((a, b) => {
+                    const aTime = typeof a.date === 'string' ? new Date(a.date).getTime() : a.date instanceof Date ? a.date.getTime() : 0;
+                    const bTime = typeof b.date === 'string' ? new Date(b.date).getTime() : b.date instanceof Date ? b.date.getTime() : 0;
+                    return aTime - bTime;
+                  })
                   .slice(0, 3);
                 
                 if (followingExpenses.length === 0) return null;
