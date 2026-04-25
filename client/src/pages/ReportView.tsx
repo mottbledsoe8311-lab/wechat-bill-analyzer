@@ -91,7 +91,14 @@ export default function ReportView() {
         if (data.largeInflows && Array.isArray(data.largeInflows)) {
           data.largeInflows = data.largeInflows.map((item: any) => ({
             ...item,
-            date: typeof item.date === 'string' ? new Date(item.date) : item.date
+            transaction: {
+              ...item.transaction,
+              date: typeof item.transaction?.date === 'string' ? new Date(item.transaction.date) : item.transaction?.date
+            },
+            relatedOutflows: Array.isArray(item.relatedOutflows) ? item.relatedOutflows.map((tx: any) => ({
+              ...tx,
+              date: typeof tx.date === 'string' ? new Date(tx.date) : tx.date
+            })) : []
           }));
         }
         

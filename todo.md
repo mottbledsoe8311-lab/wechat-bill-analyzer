@@ -442,3 +442,11 @@
   - [x] 创建5个集成测试，全部通过
   - [x] 71个单元测试全部通过
   - [x] 构建成功，开发服务器正常运行
+
+## 分享链接大额入账监控数据丢失问题（新bug - 已修复）
+- [x] 排查分享链接中大额入账监控模块没有数据显示的原因
+  - [x] 分析LargeInflows数据加载逻辑
+  - [x] 检查ReportView中的largeInflows数据传递
+  - [x] 定位数据丢失的原因：ReportView.tsx中的反序列化逻辑没有处理嵌套的transaction.date
+  - [x] 修复数据丢失问题：修复ReportView.tsx中的largeInflows反序列化逻辑，正确处理item.transaction.date和relatedOutflows中的日期
+  - [x] 测试修复效果：新增14个测试（largeInflowsDeserialization.test.ts和largeInflowsSharedLink.test.ts），全部通过
