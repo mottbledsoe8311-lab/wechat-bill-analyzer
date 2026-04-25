@@ -106,7 +106,11 @@ export default function RepaymentTracking({ records }: Props) {
           const allTxs = [
             ...record.repayments.map(t => ({ ...t, _dir: 'out' as const })),
             ...record.incomings.map(t => ({ ...t, _dir: 'in' as const })),
-          ].sort((a, b) => b.date.getTime() - a.date.getTime());
+          ].sort((a, b) => {
+            const aTime = typeof a.date === 'string' ? new Date(a.date).getTime() : a.date instanceof Date ? a.date.getTime() : 0;
+            const bTime = typeof b.date === 'string' ? new Date(b.date).getTime() : b.date instanceof Date ? b.date.getTime() : 0;
+            return bTime - aTime;
+          });
 
           const hasIncoming = record.incomings.length > 0;
           const netFlow = record.totalReceived - record.totalRepaid;
