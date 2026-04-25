@@ -24,8 +24,14 @@ export default function RepaymentTracking({ records }: Props) {
     
     if (sortBy === 'time') {
       filtered = [...filtered].sort((a, b) => {
-        const aLatest = Math.max(...a.repayments.map(t => t.date.getTime()));
-        const bLatest = Math.max(...b.repayments.map(t => t.date.getTime()));
+        const aLatest = Math.max(...a.repayments.map(t => {
+          const date = typeof t.date === 'string' ? new Date(t.date) : t.date;
+          return date instanceof Date ? date.getTime() : 0;
+        }));
+        const bLatest = Math.max(...b.repayments.map(t => {
+          const date = typeof t.date === 'string' ? new Date(t.date) : t.date;
+          return date instanceof Date ? date.getTime() : 0;
+        }));
         return bLatest - aLatest;
       });
     } else if (sortBy === 'amount') {
