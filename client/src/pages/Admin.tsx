@@ -331,11 +331,12 @@ function AdminPanel() {
             </TabsTrigger>
           </TabsList>
 
-          {/* 足迹关键词管理 */}
+          {/* 数据统计 */}
           <TabsContent value="stats">
             <StatsPanel />
           </TabsContent>
 
+          {/* 足迹关键词管理 */}
           <TabsContent value="footprint">
             <div className="space-y-6">
               <Card>

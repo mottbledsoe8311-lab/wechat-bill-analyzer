@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Share2, Loader2, Check, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
+import { getOrCreateVisitorId } from '@/lib/visitorId';
 import {
   Dialog,
   DialogContent,
@@ -111,7 +112,8 @@ export default function ShareButton({ reportData, customerName }: ShareButtonPro
         setProgress(100);
         
         // 记录分享次数
-        recordShareMutation.mutate();
+        const visitorId = getOrCreateVisitorId();
+        recordShareMutation.mutate({ visitorId });
         // 显示分享对话框
         setShowShareDialog(true);
         setShared(true);

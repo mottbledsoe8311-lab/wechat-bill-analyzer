@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { RotateCcw, Shield, Zap, Eye, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { trpc } from '@/lib/trpc';
+import { getOrCreateVisitorId } from '@/lib/visitorId';
 
 import FileUpload from '@/components/FileUpload';
 import AnalysisProgress from '@/components/AnalysisProgress';
@@ -66,7 +67,8 @@ export default function Home() {
 
   // 静默记录页面访问量（PV），不影响 UI
   useEffect(() => {
-    recordPvMutation.mutate();
+    const visitorId = getOrCreateVisitorId();
+    recordPvMutation.mutate({ visitorId });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -170,7 +172,8 @@ export default function Home() {
       setAllTransactions(allTransactions);
 
       // 记录上传次数（火起不需等待）
-      recordUploadMutation.mutate();
+      const visitorId = getOrCreateVisitorId();
+      recordUploadMutation.mutate({ visitorId });
 
       setProgressStage('done');
       setProgress(100);

@@ -275,20 +275,25 @@ export const appRouter = router({
   stats: router({
     // 记录一次上传
     recordUpload: publicProcedure
-      .mutation(async () => {
+      .input(z.object({ visitorId: z.string() }))
+      .mutation(async ({ input }) => {
         await incrementUploadCount();
+        await recordVisitorUpload(input.visitorId);
         return { success: true };
       }),
     // 记录一次分享
     recordShare: publicProcedure
-      .mutation(async () => {
+      .input(z.object({ visitorId: z.string() }))
+      .mutation(async ({ input }) => {
         await incrementShareCount();
         return { success: true };
       }),
     // 记录一次页面访问（PV）
     recordPv: publicProcedure
-      .mutation(async () => {
+      .input(z.object({ visitorId: z.string() }))
+      .mutation(async ({ input }) => {
         await incrementPvCount();
+        await recordVisitorVisit(input.visitorId);
         return { success: true };
       }),
     // 获取近 N 天统计（管理员用）

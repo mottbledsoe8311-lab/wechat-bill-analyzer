@@ -450,3 +450,19 @@
   - [x] 定位数据丢失的原因：ReportView.tsx中的反序列化逻辑没有处理嵌套的transaction.date
   - [x] 修复数据丢失问题：修复ReportView.tsx中的largeInflows反序列化逻辑，正确处理item.transaction.date和relatedOutflows中的日期
   - [x] 测试修复效果：新增14个测试（largeInflowsDeserialization.test.ts和largeInflowsSharedLink.test.ts），全部通过
+
+## 管理员后台访客统计修复（新需求 - 已完成）
+- [x] 排查访客统计功能没有数据显示的原因
+  - [x] 检查访客数据追踪逻辑：recordVisitorVisit和recordVisitorUpload没有被调用
+  - [x] 检查数据库中的访客数据：visitorStats表存在但没有数据
+  - [x] 定位数据丢失的原因：后端没有调用访客追踪函数，前端没有传递visitorId
+- [x] 修复访客统计功能
+  - [x] 修复后端的recordUpload、recordShare、recordPv以接受visitorId并调用访客追踪函数
+  - [x] 创建前端的visitorId管理工具函数
+  - [x] 修复Home.tsx中recordPv和recordUpload的调用，传递visitorId
+  - [x] 修复ShareButton中recordShare的调用，传递visitorId
+- [x] 编写单元测试验证修复：10个visitorStats测试 + 测试框架支持的visitorId测试，全部通过
+- [x] 进行集成测试和功能验证
+  - [x] 测试访客统计数据准确性：visitorStats测试全部通过
+  - [x] 测试时间范围筛选功能：getVisitorStats支持多个时间范围
+  - [x] 测试多个访客场景：单个访客多次访问、多个访客、混合操作
