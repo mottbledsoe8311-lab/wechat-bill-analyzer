@@ -2,7 +2,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createReport, getReportById, saveRiskAccount, getRiskAccountByName, getAllRiskAccounts, getAllFootprintKeywords, saveFootprintKeyword, deleteFootprintKeyword, getAllRepaymentKeywords, saveRepaymentKeyword, deleteRepaymentKeyword, incrementUploadCount, incrementShareCount, incrementPvCount, getDailyStats, recordVisitorUpload, recordVisitorVisit, getVisitorStats, getVisitorSummary } from "./db";
+import { createReport, getReportById, saveRiskAccount, getRiskAccountByName, getAllRiskAccounts, getAllFootprintKeywords, saveFootprintKeyword, deleteFootprintKeyword, getAllRepaymentKeywords, saveRepaymentKeyword, deleteRepaymentKeyword, incrementUploadCount, incrementShareCount, incrementPvCount, getDailyStats, recordVisitorUpload, recordVisitorVisit, recordVisitorShare, getVisitorStats, getVisitorSummary } from "./db";
 import { randomUUID } from "crypto";
 import { COOKIE_NAME } from "../shared/const";
 
@@ -286,6 +286,7 @@ export const appRouter = router({
       .input(z.object({ visitorId: z.string() }))
       .mutation(async ({ input }) => {
         await incrementShareCount();
+        await recordVisitorShare(input.visitorId);
         return { success: true };
       }),
     // 记录一次页面访问（PV）

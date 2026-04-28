@@ -446,12 +446,36 @@ export async function recordVisitorVisit(visitorId: string): Promise<void> {
   }
 }
 
+export async function recordVisitorShare(visitorId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const today = getTodayStr();
+  try {
+    await db.insert(visitorStats)
+      .values({ 
+        visitorId, 
+        date: today, 
+        visitCount: 0, 
+        uploadCount: 0,
+        lastVisitAt: new Date(),
+      })
+      .onDuplicateKeyUpdate({ 
+        set: { 
+          lastVisitAt: new Date(),
+        } 
+      });
+  } catch (error) {
+    console.error("[Database] Failed to record visitor share:", error);
+  }
+}
+
 // 获取访客统计数据（按日期和访客ID分组）
 export async function getVisitorStats(days: number = 14): Promise<Array<{
   date: string;
   uniqueVisitors: number;
   totalVisits: number;
   totalUploads: number;
+  totalShares: number;
 }>> {
   const db = await getDb();
   if (!db) return [];
@@ -464,6 +488,7 @@ export async function getVisitorStats(days: number = 14): Promise<Array<{
       uniqueVisitors: Set<string>;
       totalVisits: number;
       totalUploads: number;
+      totalShares: number;
     }>();
 
     result.forEach(row => {
@@ -472,12 +497,16 @@ export async function getVisitorStats(days: number = 14): Promise<Array<{
           uniqueVisitors: new Set(),
           totalVisits: 0,
           totalUploads: 0,
+          totalShares: 0,
         });
       }
       const stats = grouped.get(row.date)!;
       stats.uniqueVisitors.add(row.visitorId);
       stats.totalVisits += row.visitCount;
       stats.totalUploads += row.uploadCount;
+      if (row.visitCount === 0 && row.uploadCount === 0) {
+        stats.totalShares++;
+      }
     });
 
     // 转换为数组格式，返回最近days天
@@ -487,6 +516,7 @@ export async function getVisitorStats(days: number = 14): Promise<Array<{
         uniqueVisitors: stats.uniqueVisitors.size,
         totalVisits: stats.totalVisits,
         totalUploads: stats.totalUploads,
+        totalShares: stats.totalShares,
       }))
       .slice(-days);
 
@@ -502,9 +532,10 @@ export async function getVisitorSummary(days: number = 14): Promise<{
   totalUniqueVisitors: number;
   totalVisits: number;
   totalUploads: number;
+  totalShares: number;
 }> {
   const db = await getDb();
-  if (!db) return { totalUniqueVisitors: 0, totalVisits: 0, totalUploads: 0 };
+  if (!db) return { totalUniqueVisitors: 0, totalVisits: 0, totalUploads: 0, totalShares: 0 };
   try {
     const result = await db.select().from(visitorStats)
       .orderBy(visitorStats.date);
@@ -519,14 +550,16 @@ export async function getVisitorSummary(days: number = 14): Promise<{
     const uniqueVisitors = new Set(recentData.map(row => row.visitorId));
     const totalVisits = recentData.reduce((sum, row) => sum + row.visitCount, 0);
     const totalUploads = recentData.reduce((sum, row) => sum + row.uploadCount, 0);
+    const totalShares = recentData.filter(row => row.visitCount === 0 && row.uploadCount === 0).length;
 
     return {
       totalUniqueVisitors: uniqueVisitors.size,
       totalVisits,
       totalUploads,
+      totalShares,
     };
   } catch (error) {
     console.error("[Database] Failed to get visitor summary:", error);
-    return { totalUniqueVisitors: 0, totalVisits: 0, totalUploads: 0 };
+    return { totalUniqueVisitors: 0, totalVisits: 0, totalUploads: 0, totalShares: 0 };
   }
 }

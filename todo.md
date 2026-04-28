@@ -466,3 +466,21 @@
   - [x] 测试访客统计数据准确性：visitorStats测试全部通过
   - [x] 测试时间范围筛选功能：getVisitorStats支持多个时间范围
   - [x] 测试多个访客场景：单个访客多次访问、多个访客、混合操作
+
+
+## 管理员后台数据统计和访客统计数据不一致问题（新bug - 已修复）
+- [x] 排查数据统计和访客统计的实现
+  - [x] 检查Admin.tsx中的数据统计模块实现：使用旧的dailyStats表
+  - [x] 检查Admin.tsx中的访客统计模块实现：使用新的visitorStats表
+  - [x] 对比两个模块的数据来源：两个独立的统计系统
+- [x] 定位数据不一致的原因
+  - [x] 分析上传数据的统计逻辑差异：recordShare没有调用recordVisitorShare
+  - [x] 分析访问数据的统计逻辑差异：getVisitorStats没有返回分享数据
+- [x] 修复数据统计逻辑，确保数据一致
+  - [x] 添加recordVisitorShare函数
+  - [x] 修改recordShare调用recordVisitorShare
+  - [x] 修改getVisitorStats返回分享数据（totalShares）
+  - [x] 修改getVisitorSummary返回分享数据（totalShares）
+  - [x] 修改前端的StatsPanel使用访客统计数据
+- [x] 编写测试验证数据一致性：8个数据一致性测试，全部通过
+- [x] 部署和交付：104个测试全部通过

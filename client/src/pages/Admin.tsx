@@ -77,8 +77,11 @@ function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
 
 function StatsPanel() {
   const [days, setDays] = useState<7 | 14 | 30>(14);
-  const statsQuery = trpc.stats.getDaily.useQuery({ days });
-  const stats = statsQuery.data?.data || [];
+  const visitorQuery = trpc.stats.getVisitorStats.useQuery({ days });
+  const summaryQuery = trpc.stats.getVisitorSummary.useQuery({ days });
+  
+  const stats = visitorQuery.data?.data || [];
+  const summary = summaryQuery.data?.data || { totalUniqueVisitors: 0, totalVisits: 0, totalUploads: 0, totalShares: 0 };
 
   // 生成近 N 天日期列表，空日期填 0
   const dateList = Array.from({ length: days }, (_, i) => {
@@ -91,13 +94,13 @@ function StatsPanel() {
 
   const chartData = dateList.map(date => ({
     date: date.slice(5), // MM-DD
-    upload: statsMap.get(date)?.uploadCount || 0,
-    share: statsMap.get(date)?.shareCount || 0,
-    pv: statsMap.get(date)?.pvCount || 0,
+    upload: statsMap.get(date)?.totalUploads || 0,
+    share: statsMap.get(date)?.totalShares || 0,
+    pv: statsMap.get(date)?.totalVisits || 0,
   }));
 
-  const totalUpload = chartData.reduce((s, d) => s + d.upload, 0);
-  const totalShare = chartData.reduce((s, d) => s + d.share, 0);
+  const totalUpload = summary.totalUploads;
+  const totalShare = summary.totalShares;
   const totalPv = chartData.reduce((s, d) => s + d.pv, 0);
   const maxVal = Math.max(...chartData.map(d => Math.max(d.upload, d.share, d.pv)), 1);
 
@@ -147,7 +150,7 @@ function StatsPanel() {
           <CardTitle className="text-base">近 {days} 天每日统计</CardTitle>
         </CardHeader>
         <CardContent>
-          {statsQuery.isLoading ? (
+          {visitorQuery.isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
