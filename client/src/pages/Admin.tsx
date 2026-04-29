@@ -94,6 +94,7 @@ function StatsPanel() {
 
   const chartData = dateList.map(date => ({
     date: date.slice(5), // MM-DD
+    uniqueVisitors: statsMap.get(date)?.uniqueVisitors || 0,
     upload: statsMap.get(date)?.totalUploads || 0,
     share: statsMap.get(date)?.totalShares || 0,
     pv: statsMap.get(date)?.totalVisits || 0,
@@ -123,7 +124,13 @@ function StatsPanel() {
       </div>
 
       {/* 汇总卡片 */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-5 pb-4">
+            <p className="text-xs text-muted-foreground">近 {days} 天独立访客</p>
+            <p className="text-2xl font-bold mt-1">{summary.totalUniqueVisitors}</p>
+          </CardContent>
+        </Card>
         <Card>
           <CardContent className="pt-5 pb-4">
             <p className="text-xs text-muted-foreground">近 {days} 天页面访问（PV）</p>
@@ -210,6 +217,7 @@ function StatsPanel() {
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2 pr-4 font-medium text-muted-foreground">日期</th>
+                  <th className="text-right py-2 pr-4 font-medium text-muted-foreground">独立访客</th>
                   <th className="text-right py-2 pr-4 font-medium text-muted-foreground">页面访问</th>
                   <th className="text-right py-2 pr-4 font-medium text-muted-foreground">上传次数</th>
                   <th className="text-right py-2 font-medium text-muted-foreground">分享次数</th>
@@ -219,6 +227,7 @@ function StatsPanel() {
                 {chartData.map((d, i) => (
                   <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="py-2 pr-4 text-muted-foreground">{d.date}</td>
+                    <td className="py-2 pr-4 text-right font-medium">{d.uniqueVisitors || '-'}</td>
                     <td className="py-2 pr-4 text-right font-medium">{d.pv || '-'}</td>
                     <td className="py-2 pr-4 text-right font-medium">{d.upload || '-'}</td>
                     <td className="py-2 text-right font-medium">{d.share || '-'}</td>
@@ -328,10 +337,7 @@ function AdminPanel() {
                 <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">{rpKeywords.length}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="visitors" className="gap-2">
-              <Users className="w-4 h-4" />
-              访客统计
-            </TabsTrigger>
+
           </TabsList>
 
           {/* 数据统计 */}
@@ -548,111 +554,13 @@ function AdminPanel() {
             </div>
           </TabsContent>
 
-          {/* 访客统计 */}
-          <TabsContent value="visitors">
-            <VisitorStatsPanel />
-          </TabsContent>
+
         </Tabs>
       </div>
     </div>
   );
 }
 
-function VisitorStatsPanel() {
-  const [days, setDays] = useState<7 | 14 | 30>(14);
-  const visitorQuery = trpc.stats.getVisitorStats.useQuery({ days });
-  const summaryQuery = trpc.stats.getVisitorSummary.useQuery({ days });
-  
-  const visitorData = visitorQuery.data?.data || [];
-  const summary = summaryQuery.data?.data || { totalUniqueVisitors: 0, totalVisits: 0, totalUploads: 0 };
-
-  return (
-    <div className="space-y-6">
-      {/* 时间范围切换 */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">时间范围：</span>
-        {([7, 14, 30] as const).map(n => (
-          <Button
-            key={n}
-            variant={days === n ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setDays(n)}
-            className="h-7 px-3 text-xs"
-          >
-            近 {n} 天
-          </Button>
-        ))}
-      </div>
-
-      {/* 汇总卡片 */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <p className="text-xs text-muted-foreground">近 {days} 天独立访客数</p>
-            <p className="text-2xl font-bold mt-1">{summary.totalUniqueVisitors}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <p className="text-xs text-muted-foreground">近 {days} 天访问次数</p>
-            <p className="text-2xl font-bold mt-1">{summary.totalVisits}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <p className="text-xs text-muted-foreground">近 {days} 天上传次数</p>
-            <p className="text-2xl font-bold mt-1">{summary.totalUploads}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 详细表格 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">访客详情</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 pr-4 font-medium text-muted-foreground">日期</th>
-                  <th className="text-right py-2 pr-4 font-medium text-muted-foreground">独立访客</th>
-                  <th className="text-right py-2 pr-4 font-medium text-muted-foreground">访问次数</th>
-                  <th className="text-right py-2 font-medium text-muted-foreground">上传次数</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visitorQuery.isLoading ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center">
-                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mx-auto" />
-                    </td>
-                  </tr>
-                ) : visitorData.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-muted-foreground text-sm">
-                      暂无数据
-                    </td>
-                  </tr>
-                ) : (
-                  visitorData.map((d: any, i: number) => (
-                    <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="py-2 pr-4 text-muted-foreground">{d.date}</td>
-                      <td className="py-2 pr-4 text-right font-medium">{d.uniqueVisitors || '-'}</td>
-                      <td className="py-2 pr-4 text-right font-medium">{d.totalVisits || '-'}</td>
-                      <td className="py-2 text-right font-medium">{d.totalUploads || '-'}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 export default function Admin() {
   const [unlocked, setUnlocked] = useState(false);
