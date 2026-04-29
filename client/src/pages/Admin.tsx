@@ -123,34 +123,6 @@ function StatsPanel() {
         ))}
       </div>
 
-      {/* 汇总卡片 */}
-      <div className="grid grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <p className="text-xs text-muted-foreground">近 {days} 天独立访客</p>
-            <p className="text-2xl font-bold mt-1">{summary.totalUniqueVisitors}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <p className="text-xs text-muted-foreground">近 {days} 天页面访问（PV）</p>
-            <p className="text-2xl font-bold mt-1">{totalPv}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <p className="text-xs text-muted-foreground">近 {days} 天上传总次数</p>
-            <p className="text-2xl font-bold mt-1">{totalUpload}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <p className="text-xs text-muted-foreground">近 {days} 天分享总次数</p>
-            <p className="text-2xl font-bold mt-1">{totalShare}</p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* 每日柱状图 */}
       <Card>
         <CardHeader>
