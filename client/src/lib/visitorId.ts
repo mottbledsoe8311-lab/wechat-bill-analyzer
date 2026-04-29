@@ -7,44 +7,41 @@
 import { generateBrowserFingerprint } from './browserFingerprint';
 
 const VISITOR_ID_KEY = 'wechat_bill_analyzer_visitor_id';
-const VISITOR_FINGERPRINT_KEY = 'wechat_bill_analyzer_fingerprint';
 
 /**
  * 获取或创建访客ID
- * 优先使用浏览器指纹（稳定、跨浏览器）
- * fallback到localStorage存储的ID（支持向后兼容）
+ * 策略：
+ * 1. 优先使用localStorage中存储的ID（最稳定）
+ * 2. 如果localStorage不可用或没有存储ID，使用浏览器指纹（支持隐私模式和清除数据后识别）
  */
 export function getOrCreateVisitorId(): string {
   try {
-    // 生成当前的浏览器指纹
-    const currentFingerprint = generateBrowserFingerprint();
-
-    // 尝试从localStorage获取之前存储的指纹
-    const storedFingerprint = localStorage.getItem(VISITOR_FINGERPRINT_KEY);
+    // 尝试从localStorage获取已存储的ID
     const storedId = localStorage.getItem(VISITOR_ID_KEY);
-
-    // 如果指纹匹配且有存储的ID，返回存储的ID
-    if (storedFingerprint === currentFingerprint && storedId) {
+    if (storedId) {
       return storedId;
     }
 
-    // 如果指纹不匹配（可能是不同设备或浏览器），使用新的浏览器指纹作为ID
-    // 这样即使清除localStorage也能通过指纹识别
-    const newId = currentFingerprint;
+    // localStorage中没有ID，生成新的ID
+    // 使用浏览器指纹作为ID基础，确保同一设备生成相同的ID
+    const fingerprint = generateBrowserFingerprint();
+    
+    // 添加随机后缀确保唯一性（即使指纹相同也能区分）
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const newId = `${fingerprint}-${randomSuffix}`;
 
-    // 存储当前指纹和ID
+    // 尝试存储ID到localStorage
     try {
-      localStorage.setItem(VISITOR_FINGERPRINT_KEY, currentFingerprint);
       localStorage.setItem(VISITOR_ID_KEY, newId);
     } catch (e) {
-      // localStorage可能不可用（隐私模式），继续使用指纹作为ID
+      // localStorage可能不可用（隐私模式），继续使用生成的ID
     }
 
     return newId;
   } catch (error) {
     // 如果出错，生成一个临时ID
     console.warn('Failed to generate visitor ID:', error);
-    return `temp-${Date.now().toString(36)}`;
+    return `temp-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
   }
 }
 
@@ -54,7 +51,6 @@ export function getOrCreateVisitorId(): string {
 export function clearVisitorId(): void {
   try {
     localStorage.removeItem(VISITOR_ID_KEY);
-    localStorage.removeItem(VISITOR_FINGERPRINT_KEY);
   } catch (error) {
     console.warn('Failed to clear visitor ID:', error);
   }
