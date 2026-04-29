@@ -71,6 +71,13 @@
       "when": 1777460815493,
       "tag": "0009_worried_clint_barton",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1777461904987,
+      "tag": "0010_smart_bishop",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, index } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, index, unique } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -93,7 +93,7 @@ export type InsertDailyStat = typeof dailyStats.$inferInsert;
 // 访客追踪表 - 记录每个访客的上传和访问行为
 export const visitorStats = mysqlTable("visitorStats", {
   id: int("id").autoincrement().primaryKey(),
-  visitorId: varchar("visitorId", { length: 64 }).notNull().unique(), // 访客唯一标识（浏览器指纹或localStorage ID）
+  visitorId: varchar("visitorId", { length: 64 }).notNull(), // 访客唯一标识（浏览器指纹或localStorage ID）
   date: varchar("date", { length: 10 }).notNull(), // 日期，格式：YYYY-MM-DD
   visitCount: int("visitCount").default(1).notNull(), // 当天访问次数
   uploadCount: int("uploadCount").default(0).notNull(), // 当天上传文件次数
@@ -101,6 +101,8 @@ export const visitorStats = mysqlTable("visitorStats", {
   lastVisitAt: timestamp("lastVisitAt").defaultNow().notNull(), // 最后访问时间
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({
+  // 複合唐一約束：同一访客同一天只有一条記錄
+  visitorDateUnique: unique("visitorDateUnique").on(table.visitorId, table.date),
   dateVisitorIdx: index("dateVisitorIdx").on(table.date, table.visitorId),
 }));
 
