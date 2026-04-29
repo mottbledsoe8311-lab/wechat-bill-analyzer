@@ -483,7 +483,14 @@ export async function getVisitorStats(days: number = 14): Promise<Array<{
   const db = await getDb();
   if (!db) return [];
   try {
+    // 计算cutoff日期（days天前）
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffStr = cutoffDate.toISOString().slice(0, 10);
+    
+    // 只查询最近days天的数据
     const result = await db.select().from(visitorStats)
+      .where(gt(visitorStats.date, cutoffStr))
       .orderBy(visitorStats.date);
     
     // 按日期分组统计
@@ -510,7 +517,7 @@ export async function getVisitorStats(days: number = 14): Promise<Array<{
       stats.totalShares += row.shareCount;
     });
 
-    // 转换为数组格式，返回最近days天
+    // 转换为数组格式，按日期排序
     const output = Array.from(grouped.entries())
       .map(([date, stats]) => ({
         date,
@@ -519,7 +526,7 @@ export async function getVisitorStats(days: number = 14): Promise<Array<{
         totalUploads: stats.totalUploads,
         totalShares: stats.totalShares,
       }))
-      .slice(-days);
+      .sort((a, b) => a.date.localeCompare(b.date));
 
     return output;
   } catch (error) {
