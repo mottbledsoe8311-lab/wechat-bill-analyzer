@@ -13,6 +13,8 @@ const VISITOR_ID_KEY = 'wechat_bill_analyzer_visitor_id';
  * 策略：
  * 1. 优先使用localStorage中存储的ID（最稳定）
  * 2. 如果localStorage不可用或没有存储ID，使用浏览器指纹（支持隐私模式和清除数据后识别）
+ * 
+ * 关键：visitorId必须稳定，同一设备同一浏览器每次调用都返回相同的ID
  */
 export function getOrCreateVisitorId(): string {
   try {
@@ -22,26 +24,22 @@ export function getOrCreateVisitorId(): string {
       return storedId;
     }
 
-    // localStorage中没有ID，生成新的ID
-    // 使用浏览器指纹作为ID基础，确保同一设备生成相同的ID
+    // localStorage中没有ID，使用浏览器指纹作为ID
+    // 浏览器指纹本身就是稳定的，同一设备同一浏览器生成的指纹总是相同的
     const fingerprint = generateBrowserFingerprint();
-    
-    // 添加随机后缀确保唯一性（即使指纹相同也能区分）
-    const randomSuffix = Math.random().toString(36).substring(2, 8);
-    const newId = `${fingerprint}-${randomSuffix}`;
 
     // 尝试存储ID到localStorage
     try {
-      localStorage.setItem(VISITOR_ID_KEY, newId);
+      localStorage.setItem(VISITOR_ID_KEY, fingerprint);
     } catch (e) {
-      // localStorage可能不可用（隐私模式），继续使用生成的ID
+      // localStorage可能不可用（隐私模式），继续使用指纹ID
     }
 
-    return newId;
+    return fingerprint;
   } catch (error) {
     // 如果出错，生成一个临时ID
     console.warn('Failed to generate visitor ID:', error);
-    return `temp-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+    return `temp-${Date.now().toString(36)}`;
   }
 }
 
