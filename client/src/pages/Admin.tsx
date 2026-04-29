@@ -109,7 +109,7 @@ function StatsPanel() {
     <div className="space-y-6">
       {/* 时间范围切换 */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">时间范围：</span>
+        <span className="text-xs text-muted-foreground">时间范围：</span>
         {([7, 14, 30] as const).map(n => (
           <Button
             key={n}
@@ -185,24 +185,24 @@ function StatsPanel() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2 pr-4 font-medium text-muted-foreground">日期</th>
-                  <th className="text-right py-2 pr-4 font-medium text-muted-foreground">独立访客</th>
-                  <th className="text-right py-2 pr-4 font-medium text-muted-foreground">页面访问</th>
-                  <th className="text-right py-2 pr-4 font-medium text-muted-foreground">上传次数</th>
-                  <th className="text-right py-2 font-medium text-muted-foreground">分享次数</th>
+                  <th className="text-left py-1.5 px-2 font-medium text-muted-foreground whitespace-nowrap">日期</th>
+                  <th className="text-right py-1.5 px-2 font-medium text-muted-foreground whitespace-nowrap">独立访客</th>
+                  <th className="text-right py-1.5 px-2 font-medium text-muted-foreground whitespace-nowrap">页面访问</th>
+                  <th className="text-right py-1.5 px-2 font-medium text-muted-foreground whitespace-nowrap">上传次数</th>
+                  <th className="text-right py-1.5 px-2 font-medium text-muted-foreground whitespace-nowrap">分享次数</th>
                 </tr>
               </thead>
               <tbody>
                 {chartData.map((d, i) => (
                   <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="py-2 pr-4 text-muted-foreground">{d.date}</td>
-                    <td className="py-2 pr-4 text-right font-medium">{d.uniqueVisitors || '-'}</td>
-                    <td className="py-2 pr-4 text-right font-medium">{d.pv || '-'}</td>
-                    <td className="py-2 pr-4 text-right font-medium">{d.upload || '-'}</td>
-                    <td className="py-2 text-right font-medium">{d.share || '-'}</td>
+                    <td className="py-1.5 px-2 text-muted-foreground whitespace-nowrap">{d.date}</td>
+                    <td className="py-1.5 px-2 text-right font-medium whitespace-nowrap">{d.uniqueVisitors || '-'}</td>
+                    <td className="py-1.5 px-2 text-right font-medium whitespace-nowrap">{d.pv || '-'}</td>
+                    <td className="py-1.5 px-2 text-right font-medium whitespace-nowrap">{d.upload || '-'}</td>
+                    <td className="py-1.5 px-2 text-right font-medium whitespace-nowrap">{d.share || '-'}</td>
                   </tr>
                 ))}
               </tbody>
