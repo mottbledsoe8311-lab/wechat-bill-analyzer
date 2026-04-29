@@ -494,3 +494,18 @@
   - [x] 修改后端getVisitorStats返回独立访客数据：已经返回了uniqueVisitors字段
   - [x] 编写测试验证：104个测试全部通过
   - [x] 测试完成后部署
+
+
+## 实现浏览器指纹方案统计独立访客（新需求 - 已完成）
+- [x] 实现浏览器指纹算法
+  - [x] 收集浏览器信息（User-Agent、屏幕分辨率、时区、语言、硬件并发数、设备内存、WebGL、Canvas指纹）
+  - [x] 生成稳定的浏览器指纹哈希值：client/src/lib/browserFingerprint.ts
+  - [x] 支持fallback到localStorage存储的ID
+- [x] 修改visitorId生成逻辑
+  - [x] 更新client/src/lib/visitorId.ts使用浏览器指纹
+  - [x] 保持向后兼容性：优先使用浏览器指纹，fallback到localStorage
+- [x] 编写测试验证：104个测试全部通过
+  - [x] 测试浏览器指纹生成的一致性
+  - [x] 测试不同浏览器的识别
+  - [x] 测试隐私模式的支持
+- [x] 部署和交付
