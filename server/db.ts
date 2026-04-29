@@ -1,5 +1,6 @@
 import { eq, gt, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { sql } from "drizzle-orm";
 import { InsertUser, users, reports, riskAccounts, type InsertReport, type Report, type RiskAccount, type InsertRiskAccount, visitorStats, type VisitorStat, type InsertVisitorStat } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -457,10 +458,12 @@ export async function recordVisitorShare(visitorId: string): Promise<void> {
         date: today, 
         visitCount: 0, 
         uploadCount: 0,
+        shareCount: 1,
         lastVisitAt: new Date(),
       })
       .onDuplicateKeyUpdate({ 
         set: { 
+          shareCount: sql`shareCount + 1`,
           lastVisitAt: new Date(),
         } 
       });
@@ -504,9 +507,7 @@ export async function getVisitorStats(days: number = 14): Promise<Array<{
       stats.uniqueVisitors.add(row.visitorId);
       stats.totalVisits += row.visitCount;
       stats.totalUploads += row.uploadCount;
-      if (row.visitCount === 0 && row.uploadCount === 0) {
-        stats.totalShares++;
-      }
+      stats.totalShares += row.shareCount;
     });
 
     // 转换为数组格式，返回最近days天
@@ -550,7 +551,7 @@ export async function getVisitorSummary(days: number = 14): Promise<{
     const uniqueVisitors = new Set(recentData.map(row => row.visitorId));
     const totalVisits = recentData.reduce((sum, row) => sum + row.visitCount, 0);
     const totalUploads = recentData.reduce((sum, row) => sum + row.uploadCount, 0);
-    const totalShares = recentData.filter(row => row.visitCount === 0 && row.uploadCount === 0).length;
+    const totalShares = recentData.reduce((sum, row) => sum + row.shareCount, 0);
 
     return {
       totalUniqueVisitors: uniqueVisitors.size,

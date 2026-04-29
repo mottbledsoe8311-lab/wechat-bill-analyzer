@@ -97,6 +97,7 @@ export const visitorStats = mysqlTable("visitorStats", {
   date: varchar("date", { length: 10 }).notNull(), // 日期，格式：YYYY-MM-DD
   visitCount: int("visitCount").default(1).notNull(), // 当天访问次数
   uploadCount: int("uploadCount").default(0).notNull(), // 当天上传文件次数
+  shareCount: int("shareCount").default(0).notNull(), // 当天分享次数
   lastVisitAt: timestamp("lastVisitAt").defaultNow().notNull(), // 最后访问时间
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({

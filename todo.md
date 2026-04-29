@@ -526,3 +526,20 @@
   - [x] 测试访客统计的准确性
   - [x] 测试数据查询的正确性
 - [x] 部署和交付
+
+
+## 四项数据的准确性验证与修复（新bug - 已修复）
+- [x] 验证四项数据的准确性
+  - [x] 独立访客：准确（通过visitorId去重）
+  - [x] 页面访问：准确（直接汇总visitCount）
+  - [x] 上传次数：准确（直接汇总uploadCount）
+  - [x] 分享次数：严重错误（只计算既无访问也无上传的记录）
+- [x] 修复分享次数统计逻辑
+  - [x] 添加shareCount字段到visitorStats表
+  - [x] 执行pnpm db:push推送数据库schema变更
+  - [x] 修复recordVisitorShare函数来正确更新shareCount
+  - [x] 修复getVisitorStats函数：从条件判断改为直接汇总row.shareCount
+  - [x] 修复getVisitorSummary函数：从条件判断改为直接汇总row.shareCount
+- [x] 编写测试验证：104个测试全部通过
+  - [x] 测试分享数据的准确性
+  - [x] 测试整体统计的一致性

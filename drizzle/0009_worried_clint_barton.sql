@@ -1,0 +1,1 @@
+ALTER TABLE `visitorStats` ADD `shareCount` int DEFAULT 0 NOT NULL;

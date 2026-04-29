@@ -64,6 +64,13 @@
       "when": 1776442111398,
       "tag": "0008_black_the_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1777460815493,
+      "tag": "0009_worried_clint_barton",
+      "breakpoints": true
     }
   ]
 }
