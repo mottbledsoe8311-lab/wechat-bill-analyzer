@@ -25,6 +25,7 @@ export default function CounterpartSummary({ data, allTransactions = [], expande
   const [showDetails, setShowDetails] = useState(false);
   const [expandedName, setExpandedName] = useState<string | null>(initialExpandedName || null);
   const [highlightedName, setHighlightedName] = useState<string | null>(null);
+  const [expandLimit, setExpandLimit] = useState(50);
   const expandedDetailsRef = useRef<HTMLTableRowElement>(null);
 
   // 当initialExpandedName改变时，更新expandedName
@@ -272,7 +273,7 @@ export default function CounterpartSummary({ data, allTransactions = [], expande
             </tr>
           </thead>
           <tbody>
-            {filtered.slice(0, 50).map((item, i) => (
+            {filtered.slice(0, expandLimit).map((item, i) => (
               <>
                 <motion.tr
                   key={item.name}
@@ -420,9 +421,19 @@ export default function CounterpartSummary({ data, allTransactions = [], expande
             ))}
           </tbody>
         </table>
-        {filtered.length > 50 && (
+        {filtered.length > expandLimit && (
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={() => setExpandLimit(100)}
+              className="px-4 py-2 text-sm font-medium text-indigo bg-indigo/10 hover:bg-indigo/20 rounded-lg transition-colors"
+            >
+              查看更多 (当前{expandLimit}条, 共{filtered.length}个)
+            </button>
+          </div>
+        )}
+        {filtered.length <= expandLimit && filtered.length > 50 && (
           <p className="text-xs text-muted-foreground mt-3 text-center">
-            仅显示前50条，共 {filtered.length} 个交易对方
+            已显示全部{filtered.length}个交易对方
           </p>
         )}
         {filtered.length === 0 && (
