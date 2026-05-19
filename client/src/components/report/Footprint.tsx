@@ -27,6 +27,7 @@ interface FootprintRecord {
   amount: number;
   counterpart: string;
   count: number;
+  transactions?: any[];
 }
 
 type TimeRange = '1month' | '3months';
@@ -250,10 +251,36 @@ function FootprintCard({ fp, index }: { fp: FootprintRecord; index: number }) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-3 pt-3 border-t border-border/50 text-xs text-muted-foreground"
+            className="mt-3 pt-3 border-t border-border/50"
           >
-            <p>交易对方：{fp.counterpart}</p>
-            <p>分类：{CATEGORY_LABELS[fp.category]}</p>
+            <div className="text-xs text-muted-foreground mb-3">
+              <p>交易对方：{fp.counterpart}</p>
+              <p>分类：{CATEGORY_LABELS[fp.category]}</p>
+            </div>
+            
+            {fp.transactions && fp.transactions.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border/50">
+                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">时间</th>
+                      <th className="text-right py-2 px-2 font-medium text-muted-foreground">金额</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fp.transactions.map((tx: any, idx: number) => {
+                      const txDate = typeof tx.date === 'string' ? new Date(tx.date) : tx.date instanceof Date ? tx.date : new Date();
+                      return (
+                        <tr key={idx} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
+                          <td className="py-1.5 px-2 text-muted-foreground">{formatDate(txDate)}</td>
+                          <td className="py-1.5 px-2 text-right font-medium">{formatCurrency(tx.amount)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -298,6 +325,8 @@ export default function Footprint({ allTransactions }: { allTransactions?: any[]
             if (existing) {
               existing.amount += tx.amount;
               existing.count += 1;
+              existing.transactions = existing.transactions || [];
+              existing.transactions.push(tx);
               const existingTime = typeof existing.date === 'string' ? new Date(existing.date).getTime() : existing.date instanceof Date ? existing.date.getTime() : 0;
               const txTime = typeof tx.date === 'string' ? new Date(tx.date).getTime() : tx.date instanceof Date ? tx.date.getTime() : 0;
               existing.date = new Date(Math.max(existingTime, txTime));
@@ -309,6 +338,7 @@ export default function Footprint({ allTransactions }: { allTransactions?: any[]
                 amount: tx.amount,
                 counterpart,
                 count: 1,
+                transactions: [tx],
               });
             }
             break;
