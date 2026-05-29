@@ -72,20 +72,29 @@ export default function BankCardExpenses({ allTransactions }: { allTransactions?
 
     const { startDate, endDate } = getCurrentDateRange();
     const bankMap = new Map<string, BankExpense>();
+    
+    console.log('[BankCardExpenses] Total transactions:', allTransactions.length);
 
-    allTransactions
+    const filtered = allTransactions
       .filter((tx: any) => {
         // 筛选银行卡支出交易
         const isExpense = tx.direction === '支出' || tx.direction === '支' || tx.direction?.includes('支');
-        const isBankCard = tx.method === '银行卡' || tx.method?.includes('银行卡');
+        const isBankCard = tx.method === '银行卡' || tx.method?.includes('银行卡') || tx.method?.includes('储蓄卡') || tx.method?.includes('信用卡');
         
         // 筛选时间范围
         const txDate = typeof tx.date === 'string' ? new Date(tx.date) : tx.date instanceof Date ? tx.date : new Date();
         const inRange = txDate >= startDate && txDate <= endDate;
         
-        return isExpense && isBankCard && inRange;
-      })
-      .forEach((tx: any) => {
+        const pass = isExpense && isBankCard && inRange;
+        if (pass) {
+          console.log('[BankCardExpenses] Found bank card transaction:', tx.counterpart, tx.amount, tx.direction, tx.method);
+        }
+        return pass;
+      });
+    
+    console.log('[BankCardExpenses] Filtered bank card transactions:', filtered.length);
+    
+    filtered.forEach((tx: any) => {
         // 从对方名称中提取银行信息
         const counterpart = tx.counterpart || '其他';
         let bankName = '其他';
@@ -148,7 +157,9 @@ export default function BankCardExpenses({ allTransactions }: { allTransactions?
       });
 
     // 按金额降序排列
-    return Array.from(bankMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
+    const result = Array.from(bankMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
+    console.log('[BankCardExpenses] Final bank expenses count:', result.length);
+    return result;
   }, [allTransactions, timeRange, customStartDate, customEndDate, showCustom]);
 
   const toggleBank = (bank: string) => {
@@ -161,7 +172,10 @@ export default function BankCardExpenses({ allTransactions }: { allTransactions?
     setExpandedBanks(newSet);
   };
 
+  console.log('[BankCardExpenses] Render - allTransactions:', allTransactions?.length, 'bankExpenses:', bankExpenses.length);
+
   if (!allTransactions || allTransactions.length === 0 || bankExpenses.length === 0) {
+    console.log('[BankCardExpenses] Returning null - allTransactions:', allTransactions?.length, 'bankExpenses:', bankExpenses.length);
     return null;
   }
 
