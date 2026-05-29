@@ -2,13 +2,14 @@
  * 银行卡支出统计模块
  * 分类统计银行卡的支出汇总，包含时间、金额、对象
  * 支持展开查看每个银行的明细
+ * 支持时间范围选择
  */
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency, formatDate } from '@/lib/analyzer';
 import { CreditCard, ChevronDown, ChevronUp } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, subMonths, startOfDay, endOfDay } from 'date-fns';
 
 interface BankExpense {
   bank: string;
@@ -18,22 +19,71 @@ interface BankExpense {
   transactions: any[];
 }
 
+type TimeRange = '1m' | '3m' | '6m' | 'all';
+
 export default function BankCardExpenses({ allTransactions }: { allTransactions?: any[] }) {
   const [expandLimit, setExpandLimit] = useState(50);
   const [expandedBanks, setExpandedBanks] = useState<Set<string>>(new Set());
+  const [timeRange, setTimeRange] = useState<TimeRange>('3m');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [showCustom, setShowCustom] = useState(false);
+
+  // 计算时间范围
+  const getDateRange = (range: TimeRange) => {
+    const now = new Date();
+    const endDate = endOfDay(now);
+    let startDate: Date;
+
+    switch (range) {
+      case '1m':
+        startDate = startOfDay(subMonths(now, 1));
+        break;
+      case '3m':
+        startDate = startOfDay(subMonths(now, 3));
+        break;
+      case '6m':
+        startDate = startOfDay(subMonths(now, 6));
+        break;
+      case 'all':
+        startDate = new Date('2000-01-01');
+        break;
+      default:
+        startDate = startOfDay(subMonths(now, 3));
+    }
+
+    return { startDate, endDate };
+  };
+
+  // 获取当前时间范围
+  const getCurrentDateRange = () => {
+    if (showCustom && customStartDate && customEndDate) {
+      return {
+        startDate: new Date(customStartDate),
+        endDate: new Date(customEndDate),
+      };
+    }
+    return getDateRange(timeRange);
+  };
 
   // 提取银行卡支出数据
   const bankExpenses = useMemo(() => {
     if (!allTransactions) return [];
 
+    const { startDate, endDate } = getCurrentDateRange();
     const bankMap = new Map<string, BankExpense>();
 
     allTransactions
       .filter((tx: any) => {
         // 筛选银行卡支出交易
-        const isExpense = tx.direction === '支' || tx.direction?.includes('支');
+        const isExpense = tx.direction === '支出' || tx.direction === '支' || tx.direction?.includes('支');
         const isBankCard = tx.method === '银行卡' || tx.method?.includes('银行卡');
-        return isExpense && isBankCard;
+        
+        // 筛选时间范围
+        const txDate = typeof tx.date === 'string' ? new Date(tx.date) : tx.date instanceof Date ? tx.date : new Date();
+        const inRange = txDate >= startDate && txDate <= endDate;
+        
+        return isExpense && isBankCard && inRange;
       })
       .forEach((tx: any) => {
         // 从对方名称中提取银行信息
@@ -99,7 +149,7 @@ export default function BankCardExpenses({ allTransactions }: { allTransactions?
 
     // 按金额降序排列
     return Array.from(bankMap.values()).sort((a, b) => b.totalAmount - a.totalAmount);
-  }, [allTransactions]);
+  }, [allTransactions, timeRange, customStartDate, customEndDate, showCustom]);
 
   const toggleBank = (bank: string) => {
     const newSet = new Set(expandedBanks);
@@ -117,6 +167,7 @@ export default function BankCardExpenses({ allTransactions }: { allTransactions?
 
   // 计算总支出
   const totalExpense = bankExpenses.reduce((sum, bank) => sum + bank.totalAmount, 0);
+  const { startDate, endDate } = getCurrentDateRange();
 
   return (
     <motion.section
@@ -133,7 +184,107 @@ export default function BankCardExpenses({ allTransactions }: { allTransactions?
         <p className="text-sm text-muted-foreground mt-1">
           共涉及 <span className="font-semibold text-foreground">{bankExpenses.length}</span> 个银行 · 总支出 <span className="font-semibold text-destructive">{formatCurrency(totalExpense)}</span>
         </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          时间范围：{format(startDate, 'yyyy-MM-dd')} 至 {format(endDate, 'yyyy-MM-dd')}
+        </p>
       </div>
+
+      {/* 时间范围选择器 */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        <button
+          onClick={() => {
+            setTimeRange('1m');
+            setShowCustom(false);
+          }}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+            timeRange === '1m' && !showCustom
+              ? 'bg-indigo text-white'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }`}
+        >
+          近1月
+        </button>
+        <button
+          onClick={() => {
+            setTimeRange('3m');
+            setShowCustom(false);
+          }}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+            timeRange === '3m' && !showCustom
+              ? 'bg-indigo text-white'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }`}
+        >
+          近3月
+        </button>
+        <button
+          onClick={() => {
+            setTimeRange('6m');
+            setShowCustom(false);
+          }}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+            timeRange === '6m' && !showCustom
+              ? 'bg-indigo text-white'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }`}
+        >
+          近6月
+        </button>
+        <button
+          onClick={() => {
+            setTimeRange('all');
+            setShowCustom(false);
+          }}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+            timeRange === 'all' && !showCustom
+              ? 'bg-indigo text-white'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }`}
+        >
+          全部
+        </button>
+        <button
+          onClick={() => setShowCustom(!showCustom)}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+            showCustom
+              ? 'bg-indigo text-white'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }`}
+        >
+          自定义
+        </button>
+      </div>
+
+      {/* 自定义时间范围 */}
+      <AnimatePresence>
+        {showCustom && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6 p-4 bg-muted/50 rounded-lg flex flex-col sm:flex-row gap-3"
+          >
+            <div className="flex-1">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">开始日期</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">结束日期</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 银行列表 */}
       <div className="space-y-3">
