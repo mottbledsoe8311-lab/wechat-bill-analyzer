@@ -79,7 +79,9 @@ export default function BankCardExpenses({ allTransactions }: { allTransactions?
       .filter((tx: any) => {
         // 筛选银行卡支出交易
         const isExpense = tx.direction === '支出' || tx.direction === '支' || tx.direction?.includes('支');
-        const isBankCard = tx.method === '银行卡' || tx.method?.includes('银行卡') || tx.method?.includes('储蓄卡') || tx.method?.includes('信用卡');
+        // 清理method中的空格后再检查
+        const cleanMethod = (tx.method || '').replace(/\s+/g, '');
+        const isBankCard = cleanMethod === '银行卡' || cleanMethod.includes('银行卡') || cleanMethod.includes('储蓄卡') || cleanMethod.includes('信用卡');
         
         // 筛选时间范围
         const txDate = typeof tx.date === 'string' ? new Date(tx.date) : tx.date instanceof Date ? tx.date : new Date();
@@ -174,9 +176,32 @@ export default function BankCardExpenses({ allTransactions }: { allTransactions?
 
   console.log('[BankCardExpenses] Render - allTransactions:', allTransactions?.length, 'bankExpenses:', bankExpenses.length);
 
-  if (!allTransactions || allTransactions.length === 0 || bankExpenses.length === 0) {
-    console.log('[BankCardExpenses] Returning null - allTransactions:', allTransactions?.length, 'bankExpenses:', bankExpenses.length);
+  if (!allTransactions || allTransactions.length === 0) {
+    console.log('[BankCardExpenses] Returning null - no allTransactions');
     return null;
+  }
+
+  // 如果没有银行卡交易，显示占位符
+  if (bankExpenses.length === 0) {
+    console.log('[BankCardExpenses] No bank card expenses found, showing placeholder');
+    return (
+      <motion.section
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.8 }}
+        className="py-12 border-t border-border"
+      >
+        <div className="mb-8">
+          <p className="text-xs font-semibold tracking-widest uppercase text-indigo mb-2">
+            Bank Card Expenses
+          </p>
+          <h3 className="text-2xl font-bold text-foreground">银行卡支出统计</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            暂无银行卡支出记录
+          </p>
+        </div>
+      </motion.section>
+    );
   }
 
   // 计算总支出
