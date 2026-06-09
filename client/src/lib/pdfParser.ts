@@ -191,7 +191,14 @@ function parseAmount(amountStr: string): number {
  */
 function parseTransactionFromText(line: string): Transaction | null {
   // 清理多余空格
-  const cleaned = line.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+  let cleaned = line.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+  
+  // 修复：合并被分散的支付方式
+  // 问题：支付方式可能被分成多部分，如"工商银行储" + "蓄卡(5694)"或"中信银行信" + "用卡(3933)"
+  // 解决：识别这种模式并合并
+  cleaned = cleaned.replace(/(\S*银行\S*)\s+(\S*卡\S*)/g, '$1$2');
+  cleaned = cleaned.replace(/(\S*账户\S*)\s+(\S*卡\S*)/g, '$1$2');
+  cleaned = cleaned.replace(/(\S*零钱\S*)\s+(\S*通\S*)/g, '$1$2');
   
   // 跳过表头和空行
   if (!cleaned || isHeaderRow(cleaned) || cleaned.length < 20) return null;
