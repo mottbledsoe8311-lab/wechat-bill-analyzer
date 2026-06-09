@@ -191,14 +191,7 @@ function parseAmount(amountStr: string): number {
  */
 function parseTransactionFromText(line: string): Transaction | null {
   // 清理多余空格
-  let cleaned = line.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-  
-  // 修复：合并被分散的支付方式
-  // 问题：支付方式可能被分成多部分，如"工商银行储" + "蓄卡(5694)"或"中信银行信" + "用卡(3933)"
-  // 解决：识别这种模式并合并
-  cleaned = cleaned.replace(/(\S*银行\S*)\s+(\S*卡\S*)/g, '$1$2');
-  cleaned = cleaned.replace(/(\S*账户\S*)\s+(\S*卡\S*)/g, '$1$2');
-  cleaned = cleaned.replace(/(\S*零钱\S*)\s+(\S*通\S*)/g, '$1$2');
+  const cleaned = line.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
   
   // 跳过表头和空行
   if (!cleaned || isHeaderRow(cleaned) || cleaned.length < 20) return null;
@@ -208,7 +201,7 @@ function parseTransactionFromText(line: string): Transaction | null {
   
   // 模式1: 完整格式，以长数字订单号开头
   // 改进：使用更宽松的字符集，使用 .+? 匹配仪一些非数字字符以外的任何字符
-  const fullPattern = /^(\d{15,32})\s+(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)\s+([\s\S]+?)\s+(收入|支出|其他|收|支|不计收支)\s+([\s\S]+?)\s+([\d¥￥,.]+)\s+([\s\S]+?)(?:\s+(.*))?$/
+  const fullPattern = /^(\d{15,32})\s+(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?)\s+([\s\S]+?)\s+(收入|支出|其他|收|支|不计收支)\s+([\s\S]+?)\s+([\d¥￥,.]+)\s+([\s\S]+?)(?:\s+(.*))?$/
   
   let match = cleaned.match(fullPattern);
   if (match) {
@@ -230,7 +223,7 @@ function parseTransactionFromText(line: string): Transaction | null {
 
   // 模式2: 没有订单号开头，但有日期
   // 改进：使用更宽松的字符集
-  const dateFirstPattern = /^(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)\s+([\s\S]+?)\s+(收入|支出|其他|收|支|不计收支)\s+([\s\S]+?)\s+([\d¥￥,.]+)\s+([\s\S]+?)(?:\s+(.*))?$/
+  const dateFirstPattern = /^(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?)\s+([\s\S]+?)\s+(收入|支出|其他|收|支|不计收支)\s+([\s\S]+?)\s+([\d¥￥,.]+)\s+([\s\S]+?)(?:\s+(.*))?$/
   
   match = cleaned.match(dateFirstPattern);
   if (match) {
@@ -612,52 +605,7 @@ export async function parsePDF(
           }
         }
 
-        // 修复：合并相邻行中被分散的支付方式
-        // 问题：支付方式可能被分成多行，如"中信银行信"在第一行，"用卡(3933)"在第二行
-        const fixedMergedRows: Array<{ y: number; cells: { x: number; str: string }[] }> = [];
-        let rowIdx2 = 0;
-        while (rowIdx2 < mergedRows.length) {
-          const currentRow = mergedRows[rowIdx2];
-          const currentText = currentRow.cells.map(c => c.str).join(' ');
-          
-          // 检查当前行是否包含金额（表示这是一个交易行）
-          const hasAmount = /[¥￥]?[\d,.]+/.test(currentText);
-          
-          // 检查下一行是否看起来像是支付方式的后半部分
-          if (hasAmount && rowIdx2 + 1 < mergedRows.length) {
-            const nextRow = mergedRows[rowIdx2 + 1];
-            const nextText = nextRow.cells.map(c => c.str).join(' ');
-            
-            // 如果下一行包含时间和卡号信息（如"12:40:38 用卡(3933)"），则合并
-            if (/\d{1,2}:\d{2}:\d{2}/.test(nextText) && /卡|账户|零钱|银行/.test(nextText)) {
-              // 合并当前行和下一行
-              const mergedCells = [...currentRow.cells];
-              
-              // 在合并前，尝试找到支付方式的位置并修复
-              const combinedText = currentText + ' ' + nextText;
-              
-              // 检查是否有被分散的支付方式（如"中信银行信" + "用卡(3933)"）
-              const bankCardMatch = combinedText.match(/(\S*银行\S*)[\s\n]+(\S*卡\S*)/g);
-              if (bankCardMatch) {
-                // 将支付方式合并到一个单元格中
-                const fixedText = combinedText.replace(/([\s\n]+)(?=\d{1,2}:\d{2}:\d{2})/g, ' ');
-                mergedCells[0] = { ...mergedCells[0], str: fixedText };
-              } else {
-                // 简单合并
-                mergedCells[mergedCells.length - 1] = { ...mergedCells[mergedCells.length - 1], str: mergedCells[mergedCells.length - 1].str + ' ' + nextText };
-              }
-              
-              fixedMergedRows.push({ y: currentRow.y, cells: mergedCells });
-              rowIdx2 += 2; // 跳过下一行
-              continue;
-            }
-          }
-          
-          fixedMergedRows.push(currentRow);
-          rowIdx2 += 1;
-        }
-        
-        for (const { cells } of fixedMergedRows) {
+        for (const { cells } of mergedRows) {
           // 按X坐标排序
           cells.sort((a, b) => a.x - b.x);
           
