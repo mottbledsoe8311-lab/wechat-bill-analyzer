@@ -79,9 +79,10 @@ export default function BankCardExpenses({ allTransactions }: { allTransactions?
       .filter((tx: any) => {
         // 筛选银行卡支出交易
         const isExpense = tx.direction === '支出' || tx.direction === '支' || tx.direction?.includes('支');
-        // 清理method中的空格后再检查
-        const cleanMethod = (tx.method || '').replace(/\s+/g, '');
-        const isBankCard = cleanMethod === '银行卡' || cleanMethod.includes('银行卡') || cleanMethod.includes('储蓄卡') || cleanMethod.includes('信用卡');
+        // 清理method中的空格、括号和数字后再检查
+        const cleanMethod = (tx.method || '').replace(/\s+/g, '').replace(/[()（）0-9]/g, '');
+        // 匹配各种银行卡类型：银行卡、储蓄卡、信用卡、以及包含银行名称的卡
+        const isBankCard = cleanMethod.includes('银行卡') || cleanMethod.includes('储蓄卡') || cleanMethod.includes('信用卡');
         
         // 筛选时间范围
         const txDate = typeof tx.date === 'string' ? new Date(tx.date) : tx.date instanceof Date ? tx.date : new Date();
