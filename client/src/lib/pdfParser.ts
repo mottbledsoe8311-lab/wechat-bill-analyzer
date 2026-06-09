@@ -605,7 +605,52 @@ export async function parsePDF(
           }
         }
 
-        for (const { cells } of mergedRows) {
+        // 修复：合并相邻行中被分散的支付方式
+        // 问题：支付方式可能被分成多行，如"中信银行信"在第一行，"用卡(3933)"在第二行
+        const fixedMergedRows: Array<{ y: number; cells: { x: number; str: string }[] }> = [];
+        let rowIdx2 = 0;
+        while (rowIdx2 < mergedRows.length) {
+          const currentRow = mergedRows[rowIdx2];
+          const currentText = currentRow.cells.map(c => c.str).join(' ');
+          
+          // 检查当前行是否包含金额（表示这是一个交易行）
+          const hasAmount = /[¥￥]?[\d,.]+/.test(currentText);
+          
+          // 检查下一行是否看起来像是支付方式的后半部分
+          if (hasAmount && rowIdx2 + 1 < mergedRows.length) {
+            const nextRow = mergedRows[rowIdx2 + 1];
+            const nextText = nextRow.cells.map(c => c.str).join(' ');
+            
+            // 如果下一行包含时间和卡号信息（如"12:40:38 用卡(3933)"），则合并
+            if (/\d{1,2}:\d{2}:\d{2}/.test(nextText) && /卡|账户|零钱|银行/.test(nextText)) {
+              // 合并当前行和下一行
+              const mergedCells = [...currentRow.cells];
+              
+              // 在合并前，尝试找到支付方式的位置并修复
+              const combinedText = currentText + ' ' + nextText;
+              
+              // 检查是否有被分散的支付方式（如"中信银行信" + "用卡(3933)"）
+              const bankCardMatch = combinedText.match(/(\S*银行\S*)[\s\n]+(\S*卡\S*)/g);
+              if (bankCardMatch) {
+                // 将支付方式合并到一个单元格中
+                const fixedText = combinedText.replace(/([\s\n]+)(?=\d{1,2}:\d{2}:\d{2})/g, ' ');
+                mergedCells[0] = { ...mergedCells[0], str: fixedText };
+              } else {
+                // 简单合并
+                mergedCells[mergedCells.length - 1] = { ...mergedCells[mergedCells.length - 1], str: mergedCells[mergedCells.length - 1].str + ' ' + nextText };
+              }
+              
+              fixedMergedRows.push({ y: currentRow.y, cells: mergedCells });
+              rowIdx2 += 2; // 跳过下一行
+              continue;
+            }
+          }
+          
+          fixedMergedRows.push(currentRow);
+          rowIdx2 += 1;
+        }
+        
+        for (const { cells } of fixedMergedRows) {
           // 按X坐标排序
           cells.sort((a, b) => a.x - b.x);
           
