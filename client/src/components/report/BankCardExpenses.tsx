@@ -176,6 +176,14 @@ export default function BankCardExpenses({ allTransactions }: { allTransactions?
   };
 
   console.log('[BankCardExpenses] Render - allTransactions:', allTransactions?.length, 'bankExpenses:', bankExpenses.length);
+  
+  // 详细调试：显示前5条交易的method和direction
+  if (allTransactions && allTransactions.length > 0) {
+    console.log('[BankCardExpenses] 前5条交易详情:');
+    allTransactions.slice(0, 5).forEach((tx, idx) => {
+      console.log(`  交易${idx + 1}: direction="${tx.direction}", method="${tx.method}", counterpart="${tx.counterpart}", amount=${tx.amount}`);
+    });
+  }
 
   if (!allTransactions || allTransactions.length === 0) {
     console.log('[BankCardExpenses] Returning null - no allTransactions');
