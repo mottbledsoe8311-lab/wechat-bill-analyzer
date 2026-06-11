@@ -154,7 +154,7 @@ export async function analyzeTransactions(
 
   // 4. 规律转账识别
   onProgress?.(40, '识别规律转账模式...');
-  let regularTransfers = detectRegularTransfers(transactions);
+  let regularTransfers = detectRegularTransfers(transactions, repaymentKeywords);
   
   // 通过关键词识别疑似还款帐号（从数据库加载的关键词）
   if (repaymentKeywords && repaymentKeywords.length > 0) {
@@ -516,11 +516,11 @@ function isBankOrWithdraw(name: string): boolean {
   return BANK_WITHDRAW_KEYWORDS.some(kw => lower.includes(kw.toLowerCase()));
 }
 
-function detectRegularTransfers(transactions: Transaction[]): RegularTransferGroup[] {
+function detectRegularTransfers(transactions: Transaction[], repaymentKeywords?: string[]): RegularTransferGroup[] {
   const results: RegularTransferGroup[] = [];
   
-  // 还款账户关键字
-  const repaymentKeywords = ['还款', '还贷', '还息', '偿还', '清账', '结清', '还清', '付款', '支付', '缴费', '缴款'];
+  // 使用传入的还款关键词，如果没有则使用空数组
+  const keywords = repaymentKeywords || [];
   
   // 按交易对方+方向分组
   const groups: Record<string, Transaction[]> = {};
@@ -619,38 +619,40 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
   }
 
   // 规则1：还款账户关键字且金额>1200，直接显示（不区分收支方向）
-  for (const [key, txs] of Object.entries(groups)) {
-    const [counterpart, direction] = key.split('|');
-    
-    // 检查是否包含还款关键字
-    const hasRepaymentKeyword = repaymentKeywords.some(kw => counterpart.includes(kw));
-    
-    if (hasRepaymentKeyword) {
-      // 过滤出金额>1200的交易
-      const largeTransactions = txs.filter(tx => tx.amount > 1200);
+  if (keywords.length > 0) {
+    for (const [key, txs] of Object.entries(groups)) {
+      const [counterpart, direction] = key.split('|');
       
-      if (largeTransactions.length > 0) {
-        const sorted = [...largeTransactions].sort((a, b) => a.date.getTime() - b.date.getTime());
-        const totalAmount = sorted.reduce((sum, t) => sum + t.amount, 0);
-        const avgAmount = totalAmount / sorted.length;
+      // 检查是否包含还款关键字（使用数据库中的关键词）
+      const hasRepaymentKeyword = keywords.some(kw => counterpart.includes(kw));
+      
+      if (hasRepaymentKeyword) {
+        // 过滤出金额>1200的交易
+        const largeTransactions = txs.filter(tx => tx.amount > 1200);
         
-        // 计算置信度（基于交易数量和金额一致性）
-        const amounts = sorted.map(t => t.amount);
-        const amountRegularity = detectAmountRegularity(amounts);
-        const confidence = amountRegularity.valid ? 0.9 : 0.7;
-        
-        results.push({
-          counterpart,
-          direction, // 保持原方向
-          pattern: '还款账户',
-          intervalDays: 0,
-          avgAmount,
-          totalAmount,
-          transactions: sorted,
-          confidence,
-          riskLevel: 'high',
-          isSuspectedRepayment: true,
-        });
+        if (largeTransactions.length > 0) {
+          const sorted = [...largeTransactions].sort((a, b) => a.date.getTime() - b.date.getTime());
+          const totalAmount = sorted.reduce((sum, t) => sum + t.amount, 0);
+          const avgAmount = totalAmount / sorted.length;
+          
+          // 计算置信度（基于交易数量和金额一致性）
+          const amounts = sorted.map(t => t.amount);
+          const amountRegularity = detectAmountRegularity(amounts);
+          const confidence = amountRegularity.valid ? 0.9 : 0.7;
+          
+          results.push({
+            counterpart,
+            direction, // 保持原方向
+            pattern: '还款账户',
+            intervalDays: 0,
+            avgAmount,
+            totalAmount,
+            transactions: sorted,
+            confidence,
+            riskLevel: 'high',
+            isSuspectedRepayment: true,
+          });
+        }
       }
     }
   }
