@@ -519,6 +519,9 @@ function isBankOrWithdraw(name: string): boolean {
 function detectRegularTransfers(transactions: Transaction[]): RegularTransferGroup[] {
   const results: RegularTransferGroup[] = [];
   
+  // 还款账户关键字
+  const repaymentKeywords = ['还款', '还贷', '还息', '偿还', '清账', '结清', '还清', '付款', '支付', '缴费', '缴款'];
+  
   // 按交易对方+方向分组
   const groups: Record<string, Transaction[]> = {};
   for (const tx of transactions) {
@@ -545,7 +548,7 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
 
     const [counterpart, direction] = key.split('|');
     
-    // 条件1：只显示支出方向
+    // 条件1：只显示支出方向（但规则1的还款账户不受此限制）
     if (direction !== '支出' && direction !== '支') continue;
     
     // 按日期排序
@@ -615,13 +618,99 @@ function detectRegularTransfers(transactions: Transaction[]): RegularTransferGro
     }
   }
 
+  // 规则1：还款账户关键字且金额>1200，直接显示（不区分收支方向）
+  for (const [key, txs] of Object.entries(groups)) {
+    const [counterpart, direction] = key.split('|');
+    
+    // 检查是否包含还款关键字
+    const hasRepaymentKeyword = repaymentKeywords.some(kw => counterpart.includes(kw));
+    
+    if (hasRepaymentKeyword) {
+      // 过滤出金额>1200的交易
+      const largeTransactions = txs.filter(tx => tx.amount > 1200);
+      
+      if (largeTransactions.length > 0) {
+        const sorted = [...largeTransactions].sort((a, b) => a.date.getTime() - b.date.getTime());
+        const totalAmount = sorted.reduce((sum, t) => sum + t.amount, 0);
+        const avgAmount = totalAmount / sorted.length;
+        
+        // 计算置信度（基于交易数量和金额一致性）
+        const amounts = sorted.map(t => t.amount);
+        const amountRegularity = detectAmountRegularity(amounts);
+        const confidence = amountRegularity.valid ? 0.9 : 0.7;
+        
+        results.push({
+          counterpart,
+          direction, // 保持原方向
+          pattern: '还款账户',
+          intervalDays: 0,
+          avgAmount,
+          totalAmount,
+          transactions: sorted,
+          confidence,
+          riskLevel: 'high',
+          isSuspectedRepayment: true,
+        });
+      }
+    }
+  }
+  
+  // 规则2：连续二次相同金额支出，时间间隔5-15天，金额>1200
+  for (const [key, txs] of Object.entries(groups)) {
+    const [counterpart, direction] = key.split('|');
+    
+    // 只处理支出
+    if (direction !== '支出' && direction !== '支') continue;
+    
+    // 按日期排序
+    const sorted = [...txs].sort((a, b) => a.date.getTime() - b.date.getTime());
+    
+    // 查找连续二次相同金额且间隔5-15天的交易对
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1];
+      const curr = sorted[i];
+      
+      // 检查金额是否相同
+      if (Math.abs(prev.amount - curr.amount) < 0.01 && prev.amount > 1200) {
+        // 检查时间间隔
+        const daysDiff = differenceInDays(curr.date, prev.date);
+        if (daysDiff >= 5 && daysDiff <= 15) {
+          // 找到符合条件的交易对，添加到结果
+          const totalAmount = prev.amount + curr.amount;
+          const avgAmount = prev.amount;
+          
+          results.push({
+            counterpart,
+            direction,
+            pattern: `${daysDiff}天间隔`,
+            intervalDays: daysDiff,
+            avgAmount,
+            totalAmount,
+            transactions: [prev, curr],
+            confidence: 0.85,
+            riskLevel: 'medium',
+          });
+        }
+      }
+    }
+  }
+  
   // 检测日均规律转账（每天连续3天以上＋金额一致）
   const dailyRegularTransfers = detectDailyRegularTransfers(transactions);
   results.push(...dailyRegularTransfers);
 
+  // 去重：移除重复的交易组合（同一个counterpart和direction的重复项）
+  const seen = new Set<string>();
+  const deduped = results.filter(r => {
+    const key = `${r.counterpart}|${r.direction}|${r.pattern}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  
   // 按风险等级排序（高风险优先），再按置信度排序
   const riskOrder = { high: 0, medium: 1, low: 2 };
-  return results.sort((a, b) => {
+  return deduped.sort((a, b) => {
     if (riskOrder[a.riskLevel] !== riskOrder[b.riskLevel]) {
       return riskOrder[a.riskLevel] - riskOrder[b.riskLevel];
     }
