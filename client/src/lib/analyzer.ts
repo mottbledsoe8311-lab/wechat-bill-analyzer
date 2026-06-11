@@ -658,11 +658,24 @@ function detectRegularTransfers(transactions: Transaction[], repaymentKeywords?:
   }
   
   // 规则2：连续二次相同金额支出，时间间隔5-15天，金额>1200
+  // 先收集规则1已经添加的客户（避免重复）
+  const rule1Counterparts = new Set<string>();
+  if (keywords.length > 0) {
+    for (const r of results) {
+      if (r.pattern === '还款账户') {
+        rule1Counterparts.add(`${r.counterpart}|${r.direction}`);
+      }
+    }
+  }
+  
   for (const [key, txs] of Object.entries(groups)) {
     const [counterpart, direction] = key.split('|');
     
     // 只处理支出
     if (direction !== '支出' && direction !== '支') continue;
+    
+    // 如果已经被规则1添加过，则跳过
+    if (rule1Counterparts.has(key)) continue;
     
     // 按日期排序
     const sorted = [...txs].sort((a, b) => a.date.getTime() - b.date.getTime());
