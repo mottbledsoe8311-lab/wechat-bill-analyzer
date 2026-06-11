@@ -623,8 +623,8 @@ function detectRegularTransfers(transactions: Transaction[], repaymentKeywords?:
     for (const [key, txs] of Object.entries(groups)) {
       const [counterpart, direction] = key.split('|');
       
-      // 检查是否包含还款关键字（使用数据库中的关键词）
-      const hasRepaymentKeyword = keywords.some(kw => counterpart.includes(kw));
+      // 检查是否完全匹配还款关键词（完全一致，不是包含）
+      const hasRepaymentKeyword = keywords.some(kw => counterpart === kw || counterpart.trim() === kw.trim());
       
       if (hasRepaymentKeyword) {
         // 过滤出金额>1200的交易
@@ -714,14 +714,28 @@ function detectRegularTransfers(transactions: Transaction[], repaymentKeywords?:
   const dailyRegularTransfers = detectDailyRegularTransfers(transactions);
   results.push(...dailyRegularTransfers);
 
-  // 去重：移除重复的交易组合（同一个counterpart和direction的重复项）
-  const seen = new Set<string>();
-  const deduped = results.filter(r => {
-    const key = `${r.counterpart}|${r.direction}|${r.pattern}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  // 去重：移除重复的客户（同一个counterpart和direction的重复项，保留置信度最高的）
+  const deduped: RegularTransferGroup[] = [];
+  const seen = new Map<string, RegularTransferGroup>();
+  
+  for (const r of results) {
+    const key = `${r.counterpart}|${r.direction}`;
+    const existing = seen.get(key);
+    
+    if (!existing) {
+      // 第一次遇到这个客户，添加
+      seen.set(key, r);
+      deduped.push(r);
+    } else if (r.confidence > existing.confidence) {
+      // 如果置信度更高，替换旧的
+      const index = deduped.indexOf(existing);
+      if (index >= 0) {
+        deduped[index] = r;
+        seen.set(key, r);
+      }
+    }
+    // 否则丢弃低置信度的条目
+  }
   
   // 按风险等级排序（高风险优先），再按置信度排序
   const riskOrder = { high: 0, medium: 1, low: 2 };
