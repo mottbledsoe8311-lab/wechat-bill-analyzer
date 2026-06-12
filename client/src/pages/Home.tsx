@@ -25,6 +25,7 @@ import MonthlyChart from '@/components/report/MonthlyChart';
 import RegularTransfers from '@/components/report/RegularTransfers';
 import RepaymentTracking from '@/components/report/RepaymentTracking';
 import LargeInflows from '@/components/report/LargeInflows';
+import BankCardExpenseSummary from '@/components/report/BankCardExpenseSummary';
 import Footprint from '@/components/report/Footprint';
 import BankCardExpenses from '@/components/report/BankCardExpenses';
 import CounterpartSummary from '@/components/report/CounterpartSummary';
@@ -479,6 +480,7 @@ export default function Home() {
                 <div id="regular"><RegularTransfers groups={analysisResult?.regularTransfers || []} allTransactions={allTransactions} /></div>
                 <div id="repayment"><RepaymentTracking records={analysisResult?.repaymentTracking || []} /></div>
                 <div id="inflows"><LargeInflows inflows={analysisResult?.largeInflows || []} allTransactions={allTransactions} onViewDetails={handleViewLargeInflowDetails} /></div>
+                <div id="bankcardsummary"><BankCardExpenseSummary transactions={allTransactions} /></div>
                 <div id="footprint"><Footprint allTransactions={allTransactions} /></div>
                 <div id="bankcard"><BankCardExpenses allTransactions={allTransactions} /></div>
                 <div id="counterpart" ref={counterpartRef}><CounterpartSummary data={analysisResult?.counterpartSummary || []} allTransactions={allTransactions} expandedName={expandedCounterpart} /></div>
