@@ -360,7 +360,7 @@ export async function parsePDF(
       // 添加超时保护
       const arrayBufferPromise = file.arrayBuffer();
       const timeoutPromise = new Promise<ArrayBuffer>((_, reject) => 
-        setTimeout(() => reject(new Error('文件读取超时')), 15000)
+        setTimeout(() => reject(new Error('文件读取超时')), 30000)
       );
       arrayBuffer = await Promise.race([arrayBufferPromise, timeoutPromise]);
     } catch (e: any) {
@@ -371,7 +371,7 @@ export async function parsePDF(
         const timeout = setTimeout(() => {
           reader.abort();
           reject(new Error('FileReader 读取超时'));
-        }, 15000);
+        }, 30000);
         
         reader.onload = () => {
           clearTimeout(timeout);
@@ -408,7 +408,7 @@ export async function parsePDF(
     
     const pdfPromise = pdfjsLib.getDocument(pdfOptions).promise;
     const pdfTimeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('PDF加载超时')), 20000)
+      setTimeout(() => reject(new Error('PDF加载超时')), 45000)
     );
     
     const pdf = await Promise.race([pdfPromise, pdfTimeoutPromise]) as any;
@@ -425,7 +425,7 @@ export async function parsePDF(
         // 添加超时保护（iOS 上可能卡住）
         const pagePromise = pdf.getPage(i);
         const pageTimeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error(`第 ${i} 页加载超时`)), 15000)
+          setTimeout(() => reject(new Error(`第 ${i} 页加载超时`)), 30000)
         );
         
         let page;
@@ -446,7 +446,7 @@ export async function parsePDF(
         try {
           const textPromise = page.getTextContent({ normalizeSpaces: true });
           const textTimeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error(`第 ${i} 页文本提取超时`)), 10000)
+            setTimeout(() => reject(new Error(`第 ${i} 页文本提取超时`)), 20000)
           );
           textContent = await Promise.race([textPromise, textTimeoutPromise]);
         } catch (textError: any) {
@@ -488,7 +488,7 @@ export async function parsePDF(
         // 添加超时保护
         const pagePromise = pdf.getPage(i);
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('页面加载超时')), 30000)
+          setTimeout(() => reject(new Error('页面加载超时')), 60000)
         );
         
         const page = await Promise.race([pagePromise, timeoutPromise]) as any;
@@ -498,7 +498,7 @@ export async function parsePDF(
         try {
           const textPromise = page.getTextContent();
           const textTimeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('文本提取超时')), 30000)
+            setTimeout(() => reject(new Error('文本提取超时')), 60000)
           );
           textContent = await Promise.race([textPromise, textTimeoutPromise]);
         } catch (textError: any) {

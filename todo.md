@@ -648,3 +648,30 @@
   - [x] 只修改BankCardExpenseSummary.tsx和ReportNavigation.tsx
   - [x] 不改变其他模块的代码和参数
   - [x] 保持组件的独立性和可维护性
+
+## 银行卡支出统计模块全面修复（2026-06-13）
+- [x] 排查跨浏览器PDF解析超时问题
+  - [x] 增加文件读取超时时间：15秒 → 30秒
+  - [x] 增加PDF加载超时时间：20秒 → 45秒
+  - [x] 增加页面加载超时时间：15秒 → 30秒
+  - [x] 增加文本提取超时时间：10秒 → 20秒
+  - [x] 增加备选方案超时时间：30秒 → 60秒
+- [x] 验证BankCardExpenseSummary在导航栏中的显示
+  - [x] 确认组件已在ReportNavigation中添加
+  - [x] 确认导航项ID为"bankcardsummary"
+  - [x] 确认导航项标签为"银行卡支出"
+- [x] 验证组件在Home.tsx中的集成
+  - [x] 确认组件已正确导入
+  - [x] 确认组件已正确集成到报表中
+  - [x] 确认数据传递正确（transactions={allTransactions}）
+- [x] 完整的修复验证测试（5项全部通过）
+  - [x] 导航栏集成测试
+  - [x] Home.tsx集成测试
+  - [x] PDF解析超时配置测试
+  - [x] 组件逻辑验证测试
+  - [x] 数据处理准确性测试
+- [x] 确保代码隔离，不影响其他模块
+  - [x] 只修改了pdfParser.ts（超时设置）和ReportNavigation.tsx（导航项）
+  - [x] BankCardExpenseSummary.tsx保持不变
+  - [x] Home.tsx保持不变
+  - [x] 其他模块完全不受影响
