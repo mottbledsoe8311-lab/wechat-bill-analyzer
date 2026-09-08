@@ -7,17 +7,11 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { formatCurrency, formatDate } from '@/lib/analyzer';
 import type { Transaction } from '@/lib/pdfParser';
+import { summarizeBankCardExpenses, type BankCardSummary } from '@/lib/bankCardExpenseSummary';
 import { ChevronDown, CreditCard, TrendingDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface Props {
-  transactions: Transaction[];
-}
-
-interface BankCardSummary {
-  bankCard: string;
-  totalAmount: number;
-  transactionCount: number;
   transactions: Transaction[];
 }
 
@@ -27,44 +21,8 @@ export default function BankCardExpenseSummary({ transactions }: Props) {
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [showAllByCard, setShowAllByCard] = useState<Set<string>>(new Set());
 
-  // 按银行卡分类统计
-  const bankCardSummaries = useMemo(() => {
-    const groups: Record<string, Transaction[]> = {};
-
-    for (const tx of transactions) {
-      if (tx.direction !== '支出') continue;
-
-      // 检查是否是银行卡支付
-      const method = tx.method?.trim() || '';
-      const cleanMethod = method.replace(/\s+/g, '').replace(/[()（）0-9]/g, '');
-      
-      const isBankCard = 
-        cleanMethod.includes('银行卡') || 
-        cleanMethod.includes('储蓄卡') || 
-        cleanMethod.includes('信用卡');
-
-      if (!isBankCard) continue;
-
-      // 使用原始method作为key（保留银行名称等信息）
-      const key = method || '未知银行卡';
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key].push(tx);
-    }
-
-    // 转换为数组并排序
-    const summaries: BankCardSummary[] = Object.entries(groups)
-      .map(([bankCard, txs]) => ({
-        bankCard,
-        totalAmount: txs.reduce((sum, tx) => sum + tx.amount, 0),
-        transactionCount: txs.length,
-        transactions: txs.sort((a, b) => b.date.getTime() - a.date.getTime()),
-      }))
-      .sort((a, b) => b.totalAmount - a.totalAmount);
-
-    return summaries;
-  }, [transactions]);
+  // 仅在本模块内汇总银行卡支出；不修改传入交易数组。
+  const bankCardSummaries = useMemo(() => summarizeBankCardExpenses(transactions), [transactions]);
 
   const toggleExpanded = (bankCard: string) => {
     const newSet = new Set(expandedCards);

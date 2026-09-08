@@ -7,34 +7,35 @@
  * 交易订单号 | 交易时间 | 交易类型 | 收/支/其他 | 交易方式 | 金额(元) | 交易对方 | 商家单号
  */
 
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
+
+// pdfjs-dist 3.x 在不同打包器下可能以命名空间或 default 形式导出；
+// 统一取实际模块，避免GlobalWorkerOptions为空导致解析在初始化阶段直接失败。
+const pdfjs: any = (pdfjsLib as any).GlobalWorkerOptions
+  ? (pdfjsLib as any)
+  : (pdfjsLib as any).default ?? (pdfjsLib as any);
 
 // 初始化 PDF.js worker
-// 使用 Blob Worker 方案解决 iOS Safari 跨域限制
+// 使用项目内同源资源，避免不同浏览器对CDN、Blob Worker和跨域策略的差异。
 let workerInitialized = false;
-let workerBlobUrl: string | null = null;
+const LOCAL_WORKER_URL = new URL('./pdf.worker.min.js', import.meta.url).toString();
 
-// Worker CDN URL——cdnjs.cloudflare.com 支持 CORS，可用于 Blob Worker 方案
+// 仅作为同源资源加载失败时的最后兜底，不作为正常路径。
 const WORKER_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 async function initPDFWorkerAsync(): Promise<void> {
   if (workerInitialized) return;
   workerInitialized = true;
 
+  // Node/CI环境不具备浏览器Worker；parsePDF会同步关闭worker，避免触发fake worker加载。
+  if (typeof window === 'undefined') return;
+
   try {
-    // 方案 1：尝试通过 fetch 获取 worker 内容，创建 Blob URL（同源）
-    // 这是解决 iOS Safari "Setting up fake worker failed" 的最可靠方案
-    const response = await fetch(WORKER_CDN_URL, { mode: 'cors' });
-    if (!response.ok) throw new Error(`Worker fetch failed: ${response.status}`);
-    const blob = await response.blob();
-    const jsBlob = new Blob([blob], { type: 'application/javascript' });
-    workerBlobUrl = URL.createObjectURL(jsBlob);
-    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerBlobUrl;
-    console.log('[PDF.js] Worker initialized via Blob URL (iOS Safari compatible)');
+    pdfjs.GlobalWorkerOptions.workerSrc = LOCAL_WORKER_URL;
+    console.log('[PDF.js] Worker initialized from same-origin project asset');
   } catch (e) {
-    console.warn('[PDF.js] Blob worker failed, falling back to CDN URL:', e);
-    // 方案 2：直接使用 CDN URL（如果 fetch 失败）
-    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = WORKER_CDN_URL;
+    console.warn('[PDF.js] Local worker initialization failed, falling back to CDN URL:', e);
+    pdfjs.GlobalWorkerOptions.workerSrc = WORKER_CDN_URL;
     console.log('[PDF.js] Worker initialized with CDN URL:', WORKER_CDN_URL);
   }
 }
@@ -402,11 +403,13 @@ export async function parsePDF(
       disableStream: false,
       disableRange: false,
       rangeChunkSize: 65536,
-      useWorkerFetch: true,
+      // 浏览器使用同源worker；Node/CI环境关闭worker，保证测试和非浏览器调用不触发fake worker。
+      disableWorker: typeof window === 'undefined',
+      useWorkerFetch: typeof window !== 'undefined',
       useSystemFonts: false,
     };
     
-    const pdfPromise = pdfjsLib.getDocument(pdfOptions).promise;
+    const pdfPromise = pdfjs.getDocument(pdfOptions).promise;
     const pdfTimeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('PDF加载超时')), 45000)
     );
@@ -549,9 +552,12 @@ export async function parsePDF(
           })();
           
           if (hasDate && !alreadyHasTime) {
-            // 当前行有日期但无时间，在后续 2 行内查找时间
-            // 时间格式：HH:MM:SS（可能与其他数字相连，如 37508918:40:22）
+            // 当前行有日期但无时间，在后续 2 行内查找时间。
+            // 微信账单会把订单号、时间、支付方式和商户号拆到下一行；
+            // 必须把这些续行字段合并回原始列，否则“工商银行储”会被当成完整支付方式，
+            // 后续银行卡识别自然会得到空结果。
             let timeStr = '';
+            let timeRowOffset = 0;
             
             for (let offset = 1; offset <= 2; offset++) {
               if (rowIdx + offset < sortedRows.length) {
@@ -560,30 +566,51 @@ export async function parsePDF(
                 const timeMatch = candidateText.match(/(\d{1,2}:\d{2}:\d{2})/);
                 if (timeMatch) {
                   timeStr = timeMatch[1];
+                  timeRowOffset = offset;
                   break;
                 }
               }
             }
             
             if (timeStr) {
-              // 将时间插入到日期后面
-              const mergedText = lineText.replace(
-                /(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/,
-                `$1 ${timeStr}`
-              );
-              
-              const mergedCells = cells.map((c: {x: number; str: string}, idx: number) => {
-                if (idx === 0) {
-                  return { ...c, str: mergedText };
+              // 保持真实列结构：不要把整行文本塞入订单号单元格。
+              const mergedCells = cells.map((c: {x: number; str: string}) => ({ ...c }));
+              const dateCell = mergedCells.find((c) => /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(c.str));
+              if (dateCell) dateCell.str = `${dateCell.str} ${timeStr}`;
+
+              const orderCell = mergedCells.reduce((left, current) => current.x < left.x ? current : left);
+              const methodCell = mergedCells.find((c) => c.x >= 290 && c.x < 390);
+              const merchantCell = mergedCells.reduce((left, current) => current.x > left.x ? current : left);
+              const continuationCells = sortedRows[rowIdx + timeRowOffset][1];
+
+              for (const continuation of continuationCells) {
+                const continuationText = continuation.str.trim();
+                if (!continuationText || /\d{1,2}:\d{2}:\d{2}/.test(continuationText)) continue;
+
+                // 订单号续段通常位于最左列。
+                if (continuation.x < 80) {
+                  orderCell.str += continuationText;
+                  continue;
                 }
-                return { ...c };
-              });
-              
+
+                // 银行卡名称经常被拆成“工商银行储”+“蓄卡(5694)”或“中信银行信”+“用卡(3933)”。
+                const isPaymentMethodContinuation = /(?:储蓄卡|信用卡|蓄卡|用卡|银行卡)/.test(continuationText);
+                if (methodCell && (isPaymentMethodContinuation || (continuation.x >= 290 && continuation.x < 390))) {
+                  methodCell.str += continuationText;
+                  continue;
+                }
+
+                // 其余右侧续段通常属于商户号，保留到最后一列。
+                if (merchantCell && continuation.x >= 390) merchantCell.str += continuationText;
+              }
+
               mergedRows.push({ y, cells: mergedCells });
+              // 续行已经被消费，避免它再次被当成一笔独立交易。
+              rowIdx += timeRowOffset + 1;
             } else {
               mergedRows.push({ y, cells });
+              rowIdx += 1;
             }
-            rowIdx += 1;
           } else if (!hasDate && prevLineHasDateNoTime) {
             // 当前行没有日期，但上一行有日期无时间
             // 尝试从当前行提取时间并合并到上一行
